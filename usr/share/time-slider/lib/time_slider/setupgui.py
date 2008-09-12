@@ -254,13 +254,7 @@ class SnapshotManager:
     def set_default_state(self, model, path, iter):
         fs = self.liststorefs.get_value(iter, 3)
         mountpoint = self.liststorefs.get_value(iter, 1)
-        try:
-            # Auto-select filesystems whose mountpoint is prefixed
-            # by "/export". Treat it as user data.
-            index = mountpoint.index("/export")
-            fs.commit_state(index == 0)
-        except ValueError:
-            fs.commit_state(False)
+        fs.commit_state(True)
 
     def set_fs_state(self, model, path, iter):
         fs = self.liststorefs.get_value(iter, 3)
