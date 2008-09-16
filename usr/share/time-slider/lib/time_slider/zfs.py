@@ -303,3 +303,4 @@ if __name__ == "__main__":
     for zpool in list_zpools():
         pool = ZPool(zpool)
         print pool.__repr__()
+

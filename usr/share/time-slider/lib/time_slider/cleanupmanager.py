@@ -220,7 +220,7 @@ class CleanupManager:
                            % len(self.destroyedsnaps))
 
     def send_notification(self):
-        pscmd = "ps -ef|grep gnome-session|grep -v grep"
+        pscmd = "ps -ef|egrep \"gnome-session$\" |grep -v grep"
         fin,fout = os.popen4(pscmd)
         lines = fout.read().rstrip().split("\n")
         userpids=[]
@@ -296,7 +296,7 @@ class CleanupManager:
 
             path = os.path.join(os.path.dirname(self.execpath), \
                                 "time-slider-notify")
-            cmd = "pfexec /usr/bin/su " + username + \
+            cmd = "/usr/bin/su - " + username + \
                   " -c \"" + env + path + cmdargs + "\""
             fin,fout = os.popen4(cmd)
 

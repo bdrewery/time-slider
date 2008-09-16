@@ -179,10 +179,13 @@ class SnapshotManager:
         spinButton = self.xml.get_widget("capspinbutton")
         critLevel = self.smfmanager.get_critical_level()
         warnLevel = self.smfmanager.get_warning_level()
+
         # Force the warning level to something practical
         # on the lower end, and make it no greater than the
         # critical level specified in the SVC instance.
-        spinButton.set_range(70, critLevel)
+        adjustment = spinButton.get_adjustment()
+        # Aghhh. Why does this function subtract page size??
+        spinButton.set_range(70, critLevel + adjustment.page_size)
         if warnLevel > 70:
             spinButton.set_value(warnLevel)
         else:

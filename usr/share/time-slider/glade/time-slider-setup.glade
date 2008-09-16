@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Fri Sep 12 10:51:25 2008 -->
+<!--Generated with glade3 3.4.5 on Tue Sep 16 13:31:15 2008 -->
 <glade-interface>
   <widget class="GtkDialog" id="toplevel">
     <property name="visible">True</property>
@@ -189,8 +189,9 @@
                                       <widget class="GtkSpinButton" id="capspinbutton">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
-                                        <property name="adjustment">80 0 100 1 10 10</property>
+                                        <property name="adjustment">0 0 100 1 10 10</property>
                                         <property name="numeric">True</property>
+                                        <property name="update_policy">GTK_UPDATE_IF_VALID</property>
                                         <signal name="value_changed" handler="on_capspinbutton_value_changed"/>
                                       </widget>
                                       <packing>

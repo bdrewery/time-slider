@@ -138,7 +138,6 @@ class NotificationContext:
                   % (self.displayenv, urgency, expiry,\
                   "gnome-dev-harddisk", \
                   "\"%s\"" %head, "\"%s\"" % body)
-        print cmd
         fin,fout = os.popen4(cmd)
 
 def main(filepath):
@@ -162,7 +161,7 @@ def main(filepath):
             # pool status is of the form "<pool1status,<pool2status>..."
             poolstatus = arg.split(",")
     if pid == None or zpools == None or poolstatus == None:
-       sys.exit(2)
+        sys.exit(2)
 
     notification = NotificationContext(pid, zpools, poolstatus)
     notification.send_to_desktop()
