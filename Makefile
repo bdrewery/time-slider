@@ -20,6 +20,20 @@ install:
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-notify
 	$(mkinstalldirs) $(DESTDIR)/usr/share/applications
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/applications usr/share/applications/time-slider-setup.desktop
+	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps usr/share/icons/hicolor/16x16/apps/time-slider-setup.png
+	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/24x24/apps
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/24x24/apps usr/share/icons/hicolor/24x24/apps/time-slider-setup.png
+	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/32x32/apps
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/32x32/apps usr/share/icons/hicolor/32x32/apps/time-slider-setup.png
+	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/36x36/apps
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/36x36/apps usr/share/icons/hicolor/36x36/apps/time-slider-setup.png
+	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/48x48/apps
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/48x48/apps usr/share/icons/hicolor/48x48/apps/time-slider-setup.png
+	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/72x72/apps
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/72x72/apps usr/share/icons/hicolor/72x72/apps/time-slider-setup.png
+	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/96x96/apps
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/96x96/apps usr/share/icons/hicolor/96x96/apps/time-slider-setup.png
 	$(mkinstalldirs) $(DESTDIR)/usr/share/time-slider/glade
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/glade usr/share/time-slider/glade/time-slider-setup.glade
 	$(mkinstalldirs) $(DESTDIR)/usr/share/time-slider/lib/time_slider
@@ -42,5 +56,6 @@ uninstall:
 	$(RM) $(DESTDIR)/usr/lib/time-slider-cleanup
 	$(RM) $(DESTDIR)/usr/lib/time-slider-notify
 	$(RM) $(DESTDIR)/usr/share/applications/time-slider-setup.desktop
+	$(RM) $(DESTDIR)/usr/share/icons/hicolor/*/apps/time-slider-setup.png
 	$(RMRF) $(DESTDIR)/usr/share/time-slider
 	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider.xml

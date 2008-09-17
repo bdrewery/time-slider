@@ -38,15 +38,19 @@ STATUSCRITICAL = 2 # Above CRITICAL lebel
 STATSEMERGENCY = 3 # Above EMERGENCY level
 
 class CleanupManager:
-    def __init__(self, execpath):
+    def __init__(self, execpath, debug = False):
+        self.debug = debug
         self.execpath = execpath
         self.zpools = []
         self.poolstatus = {}
         self.destroyedsnaps = []
         smfmanager = SMFManager('svc:/application/time-slider:default')
         self.warningLevel = smfmanager.get_warning_level()
+        self.__debug("Warning level value is:   %d%%" % self.warningLevel)
         self.criticalLevel = smfmanager.get_critical_level()
+        self.__debug("Critical level value is:  %d%%" % self.criticalLevel)
         self.emergencyLevel = smfmanager.get_emergency_level()
+        self.__debug("Emergency level value is: %d%%" % self.emergencyLevel)
         for poolname in zfs.list_zpools():
             # Do not try to examine FAULTED pools
             zpool = zfs.ZPool(poolname)
@@ -54,11 +58,13 @@ class CleanupManager:
                 pass
             else:
                 self.zpools.append(zpool)
+            self.__debug(zpool.__repr__())
 
     def needs_cleanup(self):
         for zpool in self.zpools:
             if zpool.get_capacity() > self.warningLevel:
                 return True
+                self.__debug("%s needs a cleanup" % zpool.name)
         return False
 
     def perform_cleanup(self):
@@ -80,20 +86,35 @@ class CleanupManager:
             if capacity > self.emergencyLevel:
                 self.run_emergency_cleanup(zpool)
                 self.poolstatus[zpool.name] = 4
-			# Wow, that's pretty screwed. But, there's no
-			# more snapshots left so it's no longer our 
-			# problem. We don't disable the service since 
-			# it will permit self recovery and snapshot
-			# retention when space becomes available on
-			# the pool (hopefully).
+            # Wow, that's pretty screwed. But, there's no
+            # more snapshots left so it's no longer our 
+            # problem. We don't disable the service since 
+            # it will permit self recovery and snapshot
+            # retention when space becomes available on
+            # the pool (hopefully).
+            self.__debug("%s pool status after cleanup:" \
+                         % zpool.name)
+            self.__debug(zpool.__repr__())
+        self.__debug("Cleanup completed. %d snapshots were destroyed" \
+                     % len(self.destroyedsnaps))
+        # Avoid needless list iteration for non-debug mode
+        if self.debug == True and len(self.destroyedsnaps) > 0:
+            print "The following snapshots were destroyed:"
+            for snap in self.destroyedsnaps:
+                print ("\t%s" % snap)
+			
 
     def run_warning_cleanup(self, zpool):
+        self.__debug("Performing warning level cleanup on %s" % \
+                     zpool.name)
         if zpool.get_capacity() > self.warningLevel:
             self.run_cleanup(zpool, "daily", self.warningLevel)
         if zpool.get_capacity() > self.warningLevel:
             self.run_cleanup(zpool, "hourly", self.warningLevel)
 
     def run_critical_cleanup(self, zpool):
+        self.__debug("Performing critical level cleanup on %s" % \
+                     zpool.name)
         if zpool.get_capacity() > self.criticalLevel:
             self.run_cleanup(zpool, "weekly", self.criticalLevel)
         if zpool.get_capacity() > self.criticalLevel:
@@ -102,6 +123,8 @@ class CleanupManager:
             self.run_cleanup(zpool, "hourly", self.criticalLevel)
 
     def run_emergency_cleanup(self, zpool):
+        self.__debug("Performing emergency level cleanup on %s" % \
+                     zpool.name)
         if zpool.get_capacity() > self.emergencyLevel:
             self.run_cleanup(zpool, "monthly", self.emergencyLevel)
         if zpool.get_capacity() > self.emergencyLevel:
@@ -152,13 +175,15 @@ class CleanupManager:
                 clonedsnaps.append(snapshot.name)
                 syslog(syslog.LOG_NOTICE, snapshot.name + \
                        " has clones. Skipping destruction")
+                self.__debug("%s will not be destroyed because" \
+                             "it is cloned" % snapshot.name)
                 continue;
             self.destroyedsnaps.append(snapname)
             # We're going to recursively destroy snapshots so
             # find any children and remove them from the list.
             # If the snapshot has children that have clones then
             # we can only destroy the parent snapshot, so we
-            # have to excludethe recursive flag on calling zfs(1)
+            # have to exclude the recursive flag on calling zfs(1)
             foundClone = False
             children = snapshot.list_children()
             for child in children:
@@ -169,6 +194,10 @@ class CleanupManager:
                     except ValueError:
                         clonedsnaps.append(childsnap.name)
                     foundClone = True
+                    self.__debug("%s has a child filesystem with clones." \
+                                 "\nRecursive snapshot destruction disabled" \
+                                 % snapshot.name)
+                    self.__debug("Cloned child: %s" % childsnap.name)
                     break;
             if foundClone == True:
                 cmd = "pfexec /usr/sbin/zfs destroy %s" % snapname
@@ -300,6 +329,9 @@ class CleanupManager:
                   " -c \"" + env + path + cmdargs + "\""
             fin,fout = os.popen4(cmd)
 
+    def __debug(self, message):
+        if self.debug == True:
+            print (message)
 
 def main(execpath):
 
