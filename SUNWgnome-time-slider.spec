@@ -111,6 +111,7 @@ exit 0
 %dir %attr (0755, root, sys) %{_datadir}
 %dir %attr (0755, root, other) %{_datadir}/applications
 %{_datadir}/applications/time-slider-*.desktop
+%{_datadir}/icons/hicolor/*/apps/time-slider-setup.png
 %{_datadir}/time-slider/*
 
 %files root
