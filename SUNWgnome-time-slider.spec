@@ -71,6 +71,9 @@ fi
 
 exit 0
 
+%post
+%include icon-cache.script
+
 %post root
 #!/bin/sh
 #
@@ -122,4 +125,8 @@ exit 0
 %dir %attr (0755, root, sys) /var/svc/manifest/application
 %class(manifest) %attr (0444, root, sys) /var/svc/manifest/application/time-slider.xml
 %attr (0555, root, bin) /lib/svc/method/time-slider
+
+%changelog
+* Wed Sep 17 2008 - niall.power@sun.com
+- Initial spec file created.
 
