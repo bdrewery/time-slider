@@ -7,14 +7,16 @@
 # This file and all modifications and additions to the pristine
 # package are under the same license as the package itself.
 #
-# Owner: Niall Power
+# Owner: niall
 #
 %include Solaris.inc
+# NOTE: If the version is bumped the new tarball must be uploaded to the
+#       Sun Download Center. Contact GNOME RE for assistance.
 
 Name:                    SUNWgnome-time-slider
 Summary:                 Time Slider ZFS snapshot management for GNOME
 Version:                 0.1.0
-Source:                  time-slider.tar.bz2
+Source:			         http://dlc.sun.com/osol/jds/downloads/extras/time-slider/time-slider-%{version}.tar.bz2
 SUNW_BaseDir:            %{_basedir}
 SUNW_Copyright:          %{name}.copyright
 BuildRoot:               %{_tmppath}/%{name}-%{version}-build
@@ -34,7 +36,7 @@ SUNW_BaseDir:            /
 %include default-depend.inc
 
 %prep
-%setup -q -n time-slider
+%setup -q -n time-slider-%{version}
 
 %build
 make
@@ -114,7 +116,29 @@ exit 0
 %dir %attr (0755, root, sys) %{_datadir}
 %dir %attr (0755, root, other) %{_datadir}/applications
 %{_datadir}/applications/time-slider-*.desktop
-%{_datadir}/icons/hicolor/*/apps/time-slider-setup.png
+%dir %attr (-, root, other) %{_datadir}/icons
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/16x16
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/16x16/apps
+%{_datadir}/icons/hicolor/16x16/apps/time-slider-setup.png
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/24x24
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/24x24/apps
+%{_datadir}/icons/hicolor/24x24/apps/time-slider-setup.png
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/32x32
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/32x32/apps
+%{_datadir}/icons/hicolor/32x32/apps/time-slider-setup.png
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/36x36
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/36x36/apps
+%{_datadir}/icons/hicolor/36x36/apps/time-slider-setup.png
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/48x48
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/48x48/apps
+%{_datadir}/icons/hicolor/48x48/apps/time-slider-setup.png
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/72x72
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/72x72/apps
+%{_datadir}/icons/hicolor/72x72/apps/time-slider-setup.png
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/96x96
+%dir %attr (-, root, other) %{_datadir}/icons/hicolor/96x96/apps
+%{_datadir}/icons/hicolor/96x96/apps/time-slider-setup.png
 %{_datadir}/time-slider/*
 
 %files root
@@ -127,6 +151,6 @@ exit 0
 %attr (0555, root, bin) /lib/svc/method/time-slider
 
 %changelog
-* Wed Sep 17 2008 - niall.power@sun.com
+* Wed Sep 18 2008 - niall.power@sun.com
 - Initial spec file created.
 

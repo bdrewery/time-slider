@@ -183,9 +183,7 @@ class SnapshotManager:
         # Force the warning level to something practical
         # on the lower end, and make it no greater than the
         # critical level specified in the SVC instance.
-        adjustment = spinButton.get_adjustment()
-        # Aghhh. Why does this function subtract page size??
-        spinButton.set_range(70, critLevel + adjustment.page_size)
+        spinButton.set_range(70, critLevel)
         if warnLevel > 70:
             spinButton.set_value(warnLevel)
         else:
