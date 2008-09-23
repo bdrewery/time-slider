@@ -26,7 +26,6 @@ import getopt
 
 from smfmanager import SMFManager
 
-
 STATUSOK = 0 # Everything was OK
 STATUSWARNING = 1 # Above USER threshhold level
 STATUSCRITICAL = 2 # Above CRITICAL level
@@ -64,7 +63,7 @@ class NotificationContext:
             self.dbusenv = details[1]
 
     def send_to_desktop(self):
-        level = 0;
+        level = 900000;
         worstpool = None
         expiry = 20000
         urgency = None
@@ -79,29 +78,31 @@ class NotificationContext:
                 worstpool = pool
 
         if self.pooldata[worstpool] == 4:
-            expiry = "0"
+            # Leave the notification up for 15 minutes (15 * 60 * 1000) so that
+            # notifications don't stack up on the desktop.
+            expiry = "900000"
             urgency = "critical"
             head = _("Emergency: \'%s\' is full!") % worstpool
             body = _("The file system: \'%s\', is over %s%% full.\n"
                      "As an emergency measure, Time Slider has "
                      "destroyed all of it's backups.\nTo fix this problem, "
                      "delete any unnecessary files on \'%s\', or add "
-                     "disk space (see ZFS documentation).\n.") \
+                     "disk space (see ZFS documentation).") \
                       % (worstpool, self.emergencyLevel, worstpool)
         elif self.pooldata[worstpool] == 3:
-            expiry = "0"
+            expiry = "900000"
             urgency = "critical"
             head = _("Emergency: \'%s\' is almost full!") % worstpool
             body = _("The file system: \'%s\', exceeded %s%% "
-                     "of it's total capacity.\nAs an emerency measure, "
+                     "of it's total capacity. As an emerency measure, "
                      "Time Slider has has destroyed most or all of it's "
                      "backups to prevent the disk becoming full. "
                      "To prevent this from happening again, delete "
                      "any unnecessary files on \'%s\', or add disk "
-                     "space (see ZFS documentation).\n\n\n.") \
+                     "space (see ZFS documentation).\n") \
                       % (worstpool, self.emergencyLevel, worstpool)
         elif self.pooldata[worstpool] == 2:
-            expiry = "0"
+            expiry = "900000"
             urgency = "critical"
             head = _("Urgent: \'%s\' is almost full!") % worstpool
             body = _("The file system: \'%s\', exceeded %s%% "
@@ -110,7 +111,7 @@ class NotificationContext:
 					 "destroy more, eventually all, as capacity continues "
 					 "to diminish.\nTo prevent this from happening again, "
 					 "delete any unnecessary files on \'%s\', or add disk "
-					 "space (see ZFS documentation).\n.") \
+					 "space (see ZFS documentation).") \
                       % (worstpool, self.criticalLevel, worstpool)
         elif self.pooldata[worstpool] == 1:
             expiry = 20000
@@ -122,7 +123,7 @@ class NotificationContext:
 					 "capacity continues to diminish.\nTo prevent "
                      "this from happening again, delete any "
                      "unnecessary files on \'%s\', or add disk space "
-                     "(see ZFS documentation).\n.") \
+                     "(see ZFS documentation).") \
                       % (worstpool, self.warningLevel, worstpool)
         else: # No other values currently supported
             return
@@ -139,6 +140,7 @@ class NotificationContext:
                   "gnome-dev-harddisk", \
                   "\"%s\"" %head, "\"%s\"" % body)
         fin,fout = os.popen4(cmd)
+        print fout.read()
 
 def main(filepath):
     pid = None

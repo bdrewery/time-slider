@@ -76,7 +76,6 @@ function check_failure { # integer exit status, error message to display, be fat
 # appending to the $LOG file
 function print_log { # message to display
 	logger -t time-slider -p daemon.notice $*
-	#echo $(date) $* >> $LOG
 }
 
 

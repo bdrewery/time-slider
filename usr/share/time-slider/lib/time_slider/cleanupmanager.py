@@ -223,7 +223,7 @@ class CleanupManager:
         for zpool in self.zpools:
             status = self.poolstatus[zpool.name]
             if status == 4:
-                syslog.syslog(syslog.LOG_EMERGENCY,
+                syslog.syslog(syslog.LOG_EMERG,
                               "%s is over %d%% capacity. " \
                               "All automatic snapshots were destroyed" \
                                % (zpool.name, self.emergencyLevel))

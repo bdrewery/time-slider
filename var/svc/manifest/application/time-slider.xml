@@ -23,8 +23,6 @@
     Copyright 2005 Sun Microsystems, Inc.  All rights reserved.
     Use is subject to license terms.
 
-    ident	"@(#)pools.xml	1.1	05/11/30 SMI"
-
     NOTE:  This service manifest is not editable; its contents will
     be overwritten by package or patch operations, including
     operating system upgrade.  Make customizations in a different
@@ -36,7 +34,7 @@
 <service
 	name='application/time-slider'
 	type='service'
-	version='1'>
+	version='0.1.0'>
 
 	<!-- This is the time-slider snapshot management service
 	     which is a simple monitor and configuration synchr-
@@ -81,12 +79,12 @@
 			value='transient' />
 	</property_group>
 
-	<!--<property_group name='general' type='framework'>
+	<property_group name='general' type='framework'>
 		<propval name='action_authorization' type='astring'
 			value='solaris.smf.manage.zfs-auto-snapshot' />
 		<propval name='value_authorization' type='astring'
 			value='solaris.smf.manage.zfs-auto-snapshot' />
-	</property_group>-->
+	</property_group>
 
 	<property_group name='zfs' type='application'>
 		<propval name='custom-selection' type='boolean' value='false'
