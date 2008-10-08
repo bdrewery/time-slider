@@ -45,7 +45,7 @@ except:
 SHARED_FILES = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                os.path.pardir,
                                os.path.pardir))
-LOCALE_PATH = os.path.join(SHARED_FILES, 'i18n')
+LOCALE_PATH = os.path.join('/usr', 'share', 'locale')
 RESOURCE_PATH = os.path.join(SHARED_FILES, 'res')
 
 # the name of the gettext domain. because we have our translation files

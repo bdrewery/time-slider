@@ -26,7 +26,7 @@ from os.path import abspath, dirname, join, pardir
 # know the actual location, we just use the location of the current
 # file and use paths relative to that.
 SHARED_FILES = abspath(join(dirname(__file__), pardir, pardir))
-LOCALE_PATH = join(SHARED_FILES, 'i18n')
+LOCALE_PATH = join('/usr', 'share', 'locale')
 RESOURCE_PATH = join(SHARED_FILES, 'res')
 
 # the name of the gettext domain. because we have our translation files
