@@ -85,7 +85,7 @@ class NotificationContext:
             head = _("Emergency: \'%s\' is full!") % worstpool
             body = _("The file system: \'%s\', is over %s%% full.\n"
                      "As an emergency measure, Time Slider has "
-                     "destroyed all of it's backups.\nTo fix this problem, "
+                     "destroyed all of its backups.\nTo fix this problem, "
                      "delete any unnecessary files on \'%s\', or add "
                      "disk space (see ZFS documentation).") \
                       % (worstpool, self.emergencyLevel, worstpool)
@@ -94,8 +94,8 @@ class NotificationContext:
             urgency = "critical"
             head = _("Emergency: \'%s\' is almost full!") % worstpool
             body = _("The file system: \'%s\', exceeded %s%% "
-                     "of it's total capacity. As an emerency measure, "
-                     "Time Slider has has destroyed most or all of it's "
+                     "of its total capacity. As an emerency measure, "
+                     "Time Slider has has destroyed most or all of its "
                      "backups to prevent the disk becoming full. "
                      "To prevent this from happening again, delete "
                      "any unnecessary files on \'%s\', or add disk "
@@ -106,7 +106,7 @@ class NotificationContext:
             urgency = "critical"
             head = _("Urgent: \'%s\' is almost full!") % worstpool
             body = _("The file system: \'%s\', exceeded %s%% "
-                     "of it's total capacity. As a remedial measure, "
+                     "of its total capacity. As a remedial measure, "
 					 "Time Slider has destroyed some backups, and will "
 					 "destroy more, eventually all, as capacity continues "
 					 "to diminish.\nTo prevent this from happening again, "
@@ -117,7 +117,7 @@ class NotificationContext:
             expiry = 20000
             urgency = "normal"
             head = _("Warning: \'%s\' is getting full") % worstpool
-            body = _("\'%s\' exceeded %s%% of it's total "
+            body = _("\'%s\' exceeded %s%% of its total "
                      "capacity. To fix this, Time Slider has destroyed "
 					 "some recent backups, and will destroy more as "
 					 "capacity continues to diminish.\nTo prevent "
@@ -140,7 +140,6 @@ class NotificationContext:
                   "gnome-dev-harddisk", \
                   "\"%s\"" %head, "\"%s\"" % body)
         fin,fout = os.popen4(cmd)
-        print fout.read()
 
 def main(filepath):
     pid = None
