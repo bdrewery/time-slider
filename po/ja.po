@@ -119,16 +119,11 @@ msgstr "カスタム(_C):"
 # SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
 msgid "of pool capacity"
-msgstr "プール容量の"
+msgstr "プール容量"
 
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN TECH REVIEWED
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-#, fuzzy
 msgid "of file system capacity"
-msgstr "プール容量の"
+msgstr "ファイルシステム容量"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -207,11 +202,11 @@ msgid ""
 "the disk becoming full. To prevent this from happening again, delete any "
 "unnecessary files on '%s', or add disk space (see ZFS documentation).\n"
 msgstr ""
-"ファイルシステム: '%s' が総容量の %s%% を超えました。"
-"緊急の手段として、ディスクがいっぱいになることを避けるために、タイムスライダ"
-"はほとんどまたはすべてのバックアップを破棄しました。この問題がふたたび発生し"
-"ないようにするために、'%s' 上の不必要なファイルをすべて削除するか、またはディ"
-"スク容量を追加してください (ZFS のマニュアルを参照)。\n"
+"ファイルシステム: '%s' が総容量の %s%% を超えました。緊急の手段として、ディス"
+"クがいっぱいになることを避けるために、タイムスライダはほとんどまたはすべての"
+"バックアップを破棄しました。この問題がふたたび発生しないようにするために、'%"
+"s' 上の不必要なファイルをすべて削除するか、またはディスク容量を追加してくださ"
+"い (ZFS のマニュアルを参照)。\n"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -239,8 +234,7 @@ msgstr ""
 "ライダはすでに一部のバックアップを破棄しており、容量が減り続ければさらに多く"
 "のバックアップ、最終的にはすべてのバックアップを破棄します。\n"
 "この問題がふたたび発生しないようにするために、'%s' 上の不必要なファイルをすべ"
-"て削除するか、またはディスク容量を追加してください (ZFS のマニュアルを参"
-"照)。"
+"て削除するか、またはディスク容量を追加してください (ZFS のマニュアルを参照)。"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -268,8 +262,7 @@ msgstr ""
 "すでに一部の最新のバックアップを破棄しており、容量が減り続ければさらに多くの"
 "バックアップを破棄します。\n"
 "この問題がふたたび発生しないようにするために、'%s' 上の不必要なファイルをすべ"
-"て削除するか、またはディスク容量を追加してください (ZFS のマニュアルを参"
-"照)。"
+"て削除するか、またはディスク容量を追加してください (ZFS のマニュアルを参照)。"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE

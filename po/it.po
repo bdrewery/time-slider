@@ -111,13 +111,9 @@ msgstr "_Personalizzato:"
 msgid "of pool capacity"
 msgstr "di capacità del pool"
 
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-#, fuzzy
 msgid "of file system capacity"
-msgstr "di capacità del pool"
+msgstr "di capacità del file system"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -192,10 +188,10 @@ msgid ""
 "the disk becoming full. To prevent this from happening again, delete any "
 "unnecessary files on '%s', or add disk space (see ZFS documentation).\n"
 msgstr ""
-"La capacità totale del file system '%s' è stata superata del %s%%. "
-"Come misura di emergenza, Time Slider ha eliminato tutti o la maggior parte "
-"dei backup per impedire che lo spazio su disco venga esaurito. Per evitare "
-"il ripetersi del problema, eliminare eventuali file non necessari in '%s' "
+"La capacità totale del file system '%s' è stata superata del %s%%. Come "
+"misura di emergenza, Time Slider ha eliminato tutti o la maggior parte dei "
+"backup per impedire che lo spazio su disco venga esaurito. Per evitare il "
+"ripetersi del problema, eliminare eventuali file non necessari in '%s' "
 "oppure aggiungere spazio su disco (vedere la documentazione di ZFS).\n"
 
 # COMMUNITY UNTRANS

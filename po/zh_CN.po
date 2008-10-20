@@ -105,13 +105,9 @@ msgstr "自定义(_C)："
 msgid "of pool capacity"
 msgstr "池容量"
 
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-#, fuzzy
 msgid "of file system capacity"
-msgstr "池容量"
+msgstr "文件系统容量"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -186,10 +182,9 @@ msgid ""
 "the disk becoming full. To prevent this from happening again, delete any "
 "unnecessary files on '%s', or add disk space (see ZFS documentation).\n"
 msgstr ""
-"文件系统 '%s' 已超过其总容量的 %s%%。"
-"作为一种紧急措施，时间滑块已销毁了它的大部分或所有备份，以防止磁盘被占满。要"
-"防止这种情况再次发生，请删除 '%s' 上所有不必要的文件，或增加磁盘空间（请参见 "
-"ZFS 文档）。\n"
+"文件系统 '%s' 已超过其总容量的 %s%%。作为一种紧急措施，时间滑块已销毁了它的大"
+"部分或所有备份，以防止磁盘被占满。要防止这种情况再次发生，请删除 '%s' 上所有"
+"不必要的文件，或增加磁盘空间（请参见 ZFS 文档）。\n"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE

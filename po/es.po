@@ -111,13 +111,9 @@ msgstr "P_ersonalizar:"
 msgid "of pool capacity"
 msgstr "de capacidad de la agrupación"
 
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-#, fuzzy
 msgid "of file system capacity"
-msgstr "de capacidad de la agrupación"
+msgstr "de capacidad de la sistema de archivos"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE

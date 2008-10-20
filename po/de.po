@@ -111,13 +111,9 @@ msgstr "_Benutzerdefiniert:"
 msgid "of pool capacity"
 msgstr "der Pool-Kapazität"
 
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-#, fuzzy
 msgid "of file system capacity"
-msgstr "der Pool-Kapazität"
+msgstr "der Dateisystem-Kapazität"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -193,9 +189,9 @@ msgid ""
 "the disk becoming full. To prevent this from happening again, delete any "
 "unnecessary files on '%s', or add disk space (see ZFS documentation).\n"
 msgstr ""
-"Das Dateisystem: '%s', %s%% der Gesamtkapazität überschritten. "
-"Der Zeit-Schieberegler hat im Zuge einer Notfallmaßnahme die meisten oder "
-"alle Sicherungsdateien gelöscht, um zu verhindern, dass der Datenträger voll "
+"Das Dateisystem: '%s', %s%% der Gesamtkapazität überschritten. Der Zeit-"
+"Schieberegler hat im Zuge einer Notfallmaßnahme die meisten oder alle "
+"Sicherungsdateien gelöscht, um zu verhindern, dass der Datenträger voll "
 "wird. Um zu verhindern, dass dieses Problem erneut auftritt, löschen Sie "
 "alle nicht benötigten Dateien auf '%s', oder fügen Sie Speicherplatz hinzu "
 "(siehe ZFS-Dokumentation).\n"

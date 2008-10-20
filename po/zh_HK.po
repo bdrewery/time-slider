@@ -105,13 +105,9 @@ msgstr "自訂(_C)："
 msgid "of pool capacity"
 msgstr "池容量"
 
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-#, fuzzy
 msgid "of file system capacity"
-msgstr "池容量"
+msgstr "檔案系統容量"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -165,8 +161,7 @@ msgstr ""
 "檔案系統：「%s」已超過 %s%%。\n"
 "時間調整器所採取的緊急措施是銷毀其所有的備份。\n"
 "若要修正此問題，請刪除「%s」上所有不必要的檔案，或增加磁碟空間 (請參閱 ZFS 文"
-"件)。"
-"."
+"件)。."
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -187,10 +182,9 @@ msgid ""
 "the disk becoming full. To prevent this from happening again, delete any "
 "unnecessary files on '%s', or add disk space (see ZFS documentation).\n"
 msgstr ""
-"檔案系統：「%s」超過了其總容量的 %s%%。"
-"時間調整器所採取的緊急措施是銷毀大部分或其所有的備份，以防止磁碟變滿。若要避"
-"免再次發生這種情形，請刪除「%s」上所有不必要的檔案，或增加磁碟空間 (請參閱 "
-"ZFS 文件)。\n"
+"檔案系統：「%s」超過了其總容量的 %s%%。時間調整器所採取的緊急措施是銷毀大部分"
+"或其所有的備份，以防止磁碟變滿。若要避免再次發生這種情形，請刪除「%s」上所有"
+"不必要的檔案，或增加磁碟空間 (請參閱 ZFS 文件)。\n"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
