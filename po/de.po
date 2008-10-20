@@ -1,0 +1,327 @@
+# Copyright (C) 2008 Sun Microsystems, Inc
+# This file is distributed under the same license as the time-slider package.
+#
+# Desktop Discuss <desktop-discuss@opensolaris.org>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: time-slider HEAD\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-10-01 21:35+0900\n"
+"PO-Revision-Date: 2008-10-14 12:26+0100\n"
+"Last-Translator: desktop-discuss@opensolaris.org\n"
+"Language-Team: desktop-discuss@opensolaris.org\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:1
+msgid "<b>Enable Time Slider</b>"
+msgstr "<b>Zeit-Schieberegler aktivieren</b>"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:2
+msgid "<b>File Systems To Back Up</b>"
+msgstr "<b>Dateisystem zur Sicherung</b>"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:3
+msgid "Advanced Options"
+msgstr "Erweiterte Optionen"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:4
+msgid "Destroy oldest backups when storage space usage exceeds:"
+msgstr ""
+"Älteste Sicherungsdateien löschen, wenn der zur Nutzung vorgesehene "
+"Speicherplatz überschritten wird:"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:5
+msgid "For advanced users"
+msgstr "Für erfahrene Benutzer"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
+msgid "Recommended for most users"
+msgstr "Empfohlen für die meisten Benutzer"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:7
+msgid "Time Slider Setup"
+msgstr "Einrichtung des Zeit-Schiebereglers"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
+msgid "Time Slider backs up data regularly by taking timed ZFS Snapshots"
+msgstr ""
+"Der Zeit-Schieberegler sichert regelmäßig Daten durch Erfassung von zeitlich "
+"festgelegten ZFS-Schnappschüssen"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:9
+msgid "_All"
+msgstr "_Alle"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:10
+msgid "_Custom:"
+msgstr "_Benutzerdefiniert:"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
+msgid "of pool capacity"
+msgstr "der Pool-Kapazität"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:84
+#, python-format
+msgid "Emergency: '%s' is full!"
+msgstr "Notfall: '%s' ist voll!"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:85
+#, python-format
+msgid ""
+"The file system: '%s', is over %s%% full.\n"
+"As an emergency measure, Time Slider has destroyed all of it's backups.\n"
+"To fix this problem, delete any unnecessary files on '%s', or add disk space "
+"(see ZFS documentation).\n"
+"."
+msgstr ""
+"Das Dateisystem: '%s', ist über %s%% voll.\n"
+"Der Zeit-Schieberegler hat im Zuge einer Notfallmaßnahme alle "
+"Sicherungsdateien gelöscht.\n"
+"Um dieses Problem zu beheben, löschen Sie alle nicht benötigten Dateien auf "
+"'%s', oder fügen Sie Speicherplatz hinzu (siehe ZFS-Dokumentation).\n"
+"."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:94
+#, python-format
+msgid "Emergency: '%s' is almost full!"
+msgstr "Notfall: '%s' ist fast voll!"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:95
+#, python-format
+msgid ""
+"The file system: '%s', exceeded %s%% of it's total capacity.\n"
+"As an emerency measure, Time Slider has has destroyed most or all of it's "
+"backups to prevent the disk becoming full. To prevent this from happening "
+"again, delete any unnecessary files on '%s', or add disk space (see ZFS "
+"documentation).\n"
+"\n"
+"\n"
+"."
+msgstr ""
+"Das Dateisystem: '%s', %s%% der Gesamtkapazität überschritten.\n"
+"Der Zeit-Schieberegler hat im Zuge einer Notfallmaßnahme die meisten oder "
+"alle Sicherungsdateien gelöscht, um zu verhindern, dass der Datenträger voll "
+"wird. Um zu verhindern, dass dieses Problem erneut auftritt, löschen Sie "
+"alle nicht benötigten Dateien auf '%s', oder fügen Sie Speicherplatz hinzu "
+"(siehe ZFS-Dokumentation).\n"
+"\n"
+"\n"
+"."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:106
+#, python-format
+msgid "Urgent: '%s' is almost full!"
+msgstr "Dringend: '%s' ist fast voll!"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:107
+#, python-format
+msgid ""
+"The file system: '%s', exceeded %s%% of it's total capacity. As a remedial "
+"measure, Time Slider has destroyed some backups, and will destroy more, "
+"eventually all, as capacity continues to diminish.\n"
+"To prevent this from happening again, delete any unnecessary files on '%s', "
+"or add disk space (see ZFS documentation).\n"
+"."
+msgstr ""
+"Das Dateisystem: '%s', %s%% der Gesamtkapazität überschritten. Der Zeit-"
+"Schieberegler hat im Zuge einer Abhilfemaßnahme einige Sicherungsdateien "
+"gelöscht und wird weitere und letztlich alle Sicherungsdateien löschen, wenn "
+"die Kapazität weiter abnimmt.\n"
+"Um zu verhindern, dass dieses Problem erneut auftritt, löschen Sie alle "
+"nicht benötigten Dateien auf '%s', oder fügen Sie Speicherplatz hinzu (siehe "
+"ZFS-Dokumentation).\n"
+"."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:118
+#, python-format
+msgid "Warning: '%s' is getting full"
+msgstr "Warnung: '%s' wird voll"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:119
+#, python-format
+msgid ""
+"'%s' exceeded %s%% of it's total capacity. To fix this, Time Slider has "
+"destroyed some recent backups, and will destroy more as capacity continues "
+"to diminish.\n"
+"To prevent this from happening again, delete any unnecessary files on '%s', "
+"or add disk space (see ZFS documentation).\n"
+"."
+msgstr ""
+"'%s' %s%% der Gesamtkapazität überschritten. Um dieses Problem zu beheben, "
+"hat der Zeit-Schieberegler einige der zuletzt erstellten Sicherungsdateien "
+"gelöscht und wird weitere Sicherungsdateien löschen, wenn die Kapazität "
+"weiter abnimmt.\n"
+"Um zu verhindern, dass dieses Problem erneut auftritt, löschen Sie alle "
+"nicht benötigten Dateien auf '%s', oder fügen Sie Speicherplatz hinzu (siehe "
+"ZFS-Dokumentation).\n"
+"."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:100
+msgid "Select"
+msgstr "Auswählen"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:103
+msgid "Mount Point"
+msgstr "Einhängepunkt"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:106
+msgid "File System Name"
+msgstr "Dateisystemname"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:126
+msgid "Snapshot manager service dependency error"
+msgstr ""
+"Abhängigkeitsfehler im Zusammenhang mit dem Schnappschussverwaltungsdienst"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:127
+#, python-format
+msgid ""
+"The snapshot manager service has been placed offline due to a dependency "
+"problem. The following dependency problems were found:\n"
+"\n"
+"%s\n"
+"\n"
+"See the svcs(1) man page for more information"
+msgstr ""
+"Der Schnappschussverwaltungsdienst wurde wegen eines Abhängigkeitsproblems "
+"offline geschaltet. Folgende Abhängigkeitsprobleme wurden festgestellt:\n"
+"\n"
+"%s\n"
+"\n"
+"Weitere Informationen finden Sie in der Online-Dokumentation, svcs(1)"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:140
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:157
+msgid "Snapshot manager service error"
+msgstr "Schnappschussverwaltungsdienst-Fehler"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:141
+msgid ""
+"The snapshot manager service has encountered a problem and has been disabled "
+"until the problem is fixed.\n"
+"\n"
+"See the svcs(1) man page for more information."
+msgstr ""
+"Der Schnappschussverwaltungsdienst ist von einem Problem betroffen und wurde "
+"bis zur Behebung des Problems deaktiviert.\n"
+"\n"
+"Weitere Informationen finden Sie in der Online-Dokumentation, svcs(1)."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:158
+msgid ""
+"The snapshot manager service does not appear to be installed on this "
+"system.\n"
+"\n"
+"See the svcs(1) man page for more information."
+msgstr ""
+"Der Schnappschussverwaltungsdienst ist offenbar nicht auf diesem System "
+"installiert.\n"
+"\n"
+"Weitere Informationen finden Sie in der Online-Dokumentation, svcs(1)."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:299
+msgid "Insufficient Priviliges"
+msgstr "Nicht ausreichend Zugriffsrechte"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:300
+msgid ""
+"The snapshot manager service requires administrative privileges to run. You "
+"have not been assigned the necessaryadministrative priviliges.\n"
+"\n"
+"Consult your system administrator "
+msgstr ""
+"Für die Ausführung des Schnappschussverwaltungsdienstes sind "
+"Administratorrechte erforderlich. Ihnen wurden nicht die nötigen "
+"Administratorrechte zugewiesen.\n"
+"\n"
+"Wenden Sie sich an den Systemadministrator "

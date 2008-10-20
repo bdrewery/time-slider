@@ -1,3 +1,10 @@
+2008-10-20   Takao Fujiwara  <takao.fujiwara@sun.com>
+
+	* Makefile: Updated to load po/Makefile and data/Makefile.
+	* data/Makefile: Added to generate .desktop files.
+	* data/time-slider-setup.desktop.in: Added for intltool.
+	* po: Added for intltool.
+
 2008-09-11 Niall Power - <niall.power@sun.com>
 
 	* Initial import of Time Slider service

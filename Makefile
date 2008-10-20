@@ -7,10 +7,19 @@ INSTALL_SCRIPT = ${INSTALL} -f
 RM = /usr/bin/rm -f
 RMRF = /usr/bin/rm -Rf
 RMDIR = /usr/bin/rmdir
+SUBDIRS = po data
 
 all:
+	for subdir in $(SUBDIRS); do \
+	  cd $$subdir; make; cd ..;\
+	done
 
 install:
+	for subdir in $(SUBDIRS); do \
+	  cd $$subdir; \
+	  make DESTDIR=$(DESTDIR) GETTEXT_PACKAGE=time-slider install; \
+	  cd ..;\
+	done
 	$(mkinstalldirs) $(DESTDIR)/lib/svc/method
 	$(INSTALL_SCRIPT) $(DESTDIR)/lib/svc/method lib/svc/method/time-slider
 	$(mkinstalldirs) $(DESTDIR)/usr/bin
@@ -18,8 +27,6 @@ install:
 	$(mkinstalldirs) $(DESTDIR)/usr/lib
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-cleanup
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-notify
-	$(mkinstalldirs) $(DESTDIR)/usr/share/applications
-	$(INSTALL_DATA) $(DESTDIR)/usr/share/applications usr/share/applications/time-slider-setup.desktop
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps usr/share/icons/hicolor/16x16/apps/time-slider-setup.png
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/24x24/apps
@@ -51,11 +58,15 @@ install:
 	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider.xml
 	
 uninstall:
+	for subdir in $(SUBDIRS); do \
+	  cd $$subdir; \
+	  make DESTDIR=$(DESTDIR) GETTEXT_PACKAGE=time-slider uninstall; \
+	  cd ..;\
+	done
 	$(RM) $(DESTDIR)/lib/svc/method/time-slider
 	$(RM) $(DESTDIR)/usr/bin/time-slider-setup
 	$(RM) $(DESTDIR)/usr/lib/time-slider-cleanup
 	$(RM) $(DESTDIR)/usr/lib/time-slider-notify
-	$(RM) $(DESTDIR)/usr/share/applications/time-slider-setup.desktop
 	$(RM) $(DESTDIR)/usr/share/icons/hicolor/*/apps/time-slider-setup.png
 	$(RMRF) $(DESTDIR)/usr/share/time-slider
 	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider.xml

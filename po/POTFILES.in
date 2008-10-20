@@ -1,0 +1,6 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/time-slider-setup.desktop.in
+usr/share/time-slider/glade/time-slider-setup.glade
+usr/share/time-slider/lib/time_slider/notification.py
+usr/share/time-slider/lib/time_slider/setupgui.py

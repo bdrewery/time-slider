@@ -1,0 +1,8 @@
+2008-10-20  Takao Fujiwara  <takao.fujiwara@sun.com>
+
+	* LINGUAS: Added to compile .mo files.
+	* Makefile: Added.
+	* POTFILES.in: Added for intltool.
+	* cs.po de.po es.po fr.po hu.po it.po ja.po ko.po pl.po pt_BR.po ru.po
+	  sv.po zh_CN.po zh_HK.po zh_TW.po: Added .po files.
+
