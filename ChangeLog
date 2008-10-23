@@ -1,3 +1,13 @@
+2008-10-23 Erwann Chenede - <erwann.chenede@sun.com>
+
+	* usr/share/icons/hicolor/16x16/apps/time-slider-setup.png 
+	* usr/share/icons/hicolor/24x24/apps/time-slider-setup.png 
+	* usr/share/icons/hicolor/32x32/apps/time-slider-setup.png 
+	* usr/share/icons/hicolor/36x36/apps/time-slider-setup.png 
+	* usr/share/icons/hicolor/48x48/apps/time-slider-setup.png 
+	* usr/share/icons/hicolor/72x72/apps/time-slider-setup.png :
+	  new icon (4182)
+
 2008-10-20   Takao Fujiwara  <takao.fujiwara@sun.com>
 
 	* Makefile: Updated to load po/Makefile and data/Makefile.
