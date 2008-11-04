@@ -15,9 +15,28 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Report-Msgid-Bugs-To: \n"
 
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
 #: ../data/time-slider-setup.desktop.in.h:1
 msgid "Configure the system to take automatic snapshots of your data"
-msgstr ""
+msgstr "将系统配置为自动捕获数据的快照"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
+msgid "of file system capacity"
+msgstr "关于文件系统容量"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
+msgid "Reduce backups when storage space usage exceeds:"
+msgstr "当存储空间使用率超过以下值时减少备份："
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -72,14 +91,6 @@ msgstr "当存储空间使用率超过以下值时销毁最旧的备份："
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
-#, fuzzy
-msgid "Reduce backups when storage space usage exceeds:"
-msgstr "当存储空间使用率超过以下值时销毁最旧的备份："
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
 msgid "Time Slider backs up data regularly by taking timed ZFS Snapshots"
 msgstr "时间滑块通过定时拍摄 ZFS 快照来对数据进行定期备份"
@@ -104,10 +115,6 @@ msgstr "自定义(_C)："
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
 msgid "of pool capacity"
 msgstr "池容量"
-
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-msgid "of file system capacity"
-msgstr "文件系统容量"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE

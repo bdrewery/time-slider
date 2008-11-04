@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: time-slider HEAD\n"
 "POT-Creation-Date: 2008-10-20 20:14+0900\n"
-"PO-Revision-Date: 2008-10-14 17:48+0100\n"
+"PO-Revision-Date: 2008-10-31 20:19+0100\n"
 "Last-Translator: desktop-discuss@opensolaris.org\n"
 "Language-Team: desktop-discuss@opensolaris.org\n"
 "MIME-Version: 1.0\n"
@@ -15,9 +15,29 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Report-Msgid-Bugs-To: \n"
 
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
 #: ../data/time-slider-setup.desktop.in.h:1
 msgid "Configure the system to take automatic snapshots of your data"
 msgstr ""
+"Configurer le système de manière à prendre des instantanés automatiques des "
+"données"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
+msgid "of file system capacity"
+msgstr "de la capacité du système de fichiers"
+
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
+msgid "Reduce backups when storage space usage exceeds:"
+msgstr "Réduire les sauvegardes lorsque l'espace de stockage utilisé dépasse :"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -74,16 +94,6 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
-#, fuzzy
-msgid "Reduce backups when storage space usage exceeds:"
-msgstr ""
-"Détruire les plus anciennes sauvegardes lorsque l'espace de stockage utilisé "
-"dépasse :"
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
 msgid "Time Slider backs up data regularly by taking timed ZFS Snapshots"
 msgstr ""
@@ -110,10 +120,6 @@ msgstr "_Personnalisé :"
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
 msgid "of pool capacity"
 msgstr "de la capacité du pool"
-
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-msgid "of file system capacity"
-msgstr "de la capacité du système de fichiers"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE

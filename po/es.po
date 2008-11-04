@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: time-slider HEAD\n"
 "POT-Creation-Date: 2008-10-20 20:14+0900\n"
-"PO-Revision-Date: 2008-10-15 11:12+0100\n"
+"PO-Revision-Date: 2008-10-31 20:43+0100\n"
 "Last-Translator: desktop-discuss@opensolaris.org\n"
 "Language-Team: desktop-discuss@opensolaris.org\n"
 "MIME-Version: 1.0\n"
@@ -15,9 +15,31 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Report-Msgid-Bugs-To: \n"
 
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
 #: ../data/time-slider-setup.desktop.in.h:1
 msgid "Configure the system to take automatic snapshots of your data"
 msgstr ""
+"Configurar el sistema para tomar instantáneas de manera automática de los "
+"datos"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
+msgid "of file system capacity"
+msgstr "de capacidad de sistema de archivos"
+
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
+msgid "Reduce backups when storage space usage exceeds:"
+msgstr ""
+"Destruir las copias de seguridad cuando se sobrepase el uso del espacio de "
+"almacenamiento:"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -74,16 +96,6 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
-#, fuzzy
-msgid "Reduce backups when storage space usage exceeds:"
-msgstr ""
-"Destruir la copias de seguridad más antiguas cuando el uso del espacio de "
-"almacenamiento supere:"
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
 msgid "Time Slider backs up data regularly by taking timed ZFS Snapshots"
 msgstr ""
@@ -110,10 +122,6 @@ msgstr "P_ersonalizar:"
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
 msgid "of pool capacity"
 msgstr "de capacidad de la agrupación"
-
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-msgid "of file system capacity"
-msgstr "de capacidad de la sistema de archivos"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE

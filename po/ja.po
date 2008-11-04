@@ -15,9 +15,23 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Report-Msgid-Bugs-To: \n"
 
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN TECH REVIEWED
+# SUN LING REVIEWED
 #: ../data/time-slider-setup.desktop.in.h:1
 msgid "Configure the system to take automatic snapshots of your data"
-msgstr ""
+msgstr "自動的にデータのスナップショットを作成するようにシステムを構成します"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN TECH REVIEWED
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
+msgid "Reduce backups when storage space usage exceeds:"
+msgstr "ストレージスペースの使用量が超過したらバックアップを削減する:"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -74,16 +88,6 @@ msgstr "ほとんどのユーザーに推奨"
 # SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
 msgid "Destroy oldest backups when storage space usage exceeds:"
-msgstr ""
-"ストレージスペースの使用量が超過したらもっとも古いバックアップを破棄する:"
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN TECH REVIEWED
-# SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
-#, fuzzy
-msgid "Reduce backups when storage space usage exceeds:"
 msgstr ""
 "ストレージスペースの使用量が超過したらもっとも古いバックアップを破棄する:"
 

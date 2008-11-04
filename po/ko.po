@@ -15,9 +15,30 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Report-Msgid-Bugs-To: \n"
 
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
 #: ../data/time-slider-setup.desktop.in.h:1
 msgid "Configure the system to take automatic snapshots of your data"
-msgstr ""
+msgstr "사용자 데이터의 자동 스냅샷을 만들도록 시스템 구성"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
+msgid "Reduce backups when storage space usage exceeds:"
+msgstr "저장소 공간 사용량이 초과되는 경우 백업 줄이기:"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
+msgid "of file system capacity"
+msgstr "- 파일 시스템 용량"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -72,14 +93,6 @@ msgstr "저장소 공간 사용량이 초과되는 경우 가장 오래된 백�
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
-#, fuzzy
-msgid "Reduce backups when storage space usage exceeds:"
-msgstr "저장소 공간 사용량이 초과되는 경우 가장 오래된 백업 삭제:"
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
 msgid "Time Slider backs up data regularly by taking timed ZFS Snapshots"
 msgstr ""
@@ -105,14 +118,6 @@ msgstr "사용자 정의(_C):"
 # SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
 msgid "of pool capacity"
-msgstr "풀 용량"
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-#, fuzzy
-msgid "of file system capacity"
 msgstr "풀 용량"
 
 # COMMUNITY UNTRANS
