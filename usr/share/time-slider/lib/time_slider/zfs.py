@@ -129,16 +129,26 @@ class ZPool(Exception):
 
 class Snapshot(Exception):
 
-    def __init__(self, name):
+    def __init__(self, name, creation = None):
         self.name = name
         self.fsname, self.snaplabel = self.__split_snapshot_name()
-        self.creationTime = self.__get_creation_time()
+        self.poolname = self.__get_pool_name()
+        self.__creationTime = None
+        if creation:
+            self.__creationTime = creation
+        else:
+            self.__creationTime = self.get_creation_time()
 
-    def __get_creation_time(self):
-        cmd = "/usr/sbin/zfs get -H -p -o value creation %s" % (self.name)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip()
-        return long(result)
+    def get_creation_time(self):
+        if self.__creationTime == None:
+            cmd = "/usr/sbin/zfs get -H -p -o value creation %s" % (self.name)
+            fin,fout = os.popen4(cmd)
+            self.__creationTime = long(fout.read().rstrip())
+        return self.__creationTime
+
+    def __get_pool_name(self):
+        name = self.fsname.split("/", 1)
+        return name[0]
 
     def __split_snapshot_name(self):
         name = self.name.split("@", 1)
@@ -149,6 +159,19 @@ class Snapshot(Exception):
         if name[0] == self.name:
             raise 'SnapshotError'
         return name[0],name[1]
+
+    def exists(self):
+        """Returns True if the snapshots is still present on the system.
+           False otherwise"""
+        # Test existance of the snapshot by checking the output of a 
+        # simple zfs get command on the snapshot
+        cmd = "/usr/sbin/zfs get -H -o name type %s" % self.name
+        fin,fout,ferr = os.popen3(cmd)
+        result = fout.read().rstrip()
+        if result == self.name:
+            return True
+        else:
+            return False
 
     def get_used_size(self):
         cmd = "/usr/sbin/zfs get -H -p -o value used %s" % (self.name)
@@ -185,13 +208,22 @@ class Snapshot(Exception):
                 return True
         return False
 
-
+    def destroy_snapshot(self, recursive = False):
+        cmd = "pfexec /usr/sbin/zfs destroy %s" % self.name
+        fin,fout,ferr = os.popen3(cmd)
+        # Check for any error output generated and
+        # return it to caller if so.
+        error = ferr.read()
+        if len(error) > 0:
+            return error
+        else:
+            return
 
     def __repr__(self):
         return_string = "Snapshot name: " + self.name
-        return_string = return_string + "\n\tCreation time: " + str(self.creationTime)
-        return_string = return_string + "\n\tUsed Size: " + str(self.usedSize)
-        return_string = return_string + "\n\tReferenced Size: " + str(self.referencedSize)
+        return_string = return_string + "\n\tCreation time: " + str(self.get_creation_time())
+        #return_string = return_string + "\n\tUsed Size: " + str(self.usedSize)
+        #return_string = return_string + "\n\tReferenced Size: " + str(self.referencedSize)
         return return_string
 
 
@@ -276,19 +308,35 @@ class Filesystem:
                 result.append(line.rstrip())
         return result
 
-
-def list_snapshots(pattern = None):
-    # We want pattern matching snapshots sorted by creation date.
-    # Oldest snapshots get listed first
+def list_filesystems(pattern = None):
+    # We want pattern matching filesystems sorted by name.
     if pattern != None:
-        cmd = "zfs list -t snapshot -o name -s creation | grep @%s" \
+        cmd = "zfs list -H -t filesystem -o name -s name | grep @%s" \
                 % (pattern)
     else:
-        cmd = "zfs list -t snapshot -o name -s creation"
+        cmd = "zfs list -H -t filesystem -o name -s name"
+    fin,fout = os.popen4(cmd)
+    filesystems = []
+    for line in fout:
+        filesystems.append(line.rstrip())
+    return filesystems
+    
+def list_snapshots(pattern = None):
+    # We want pattern matching snapshots sorted by creation date.
+    # Oldest snapshots get listed first. We use zfs get instead
+    # of zfs list since it allows creation time to be output in
+    # machine usable format. This is faster than calling zfs get
+    # for each snapshot (of which there could be thousands)
+    if pattern != None:
+        cmd = "zfs get -H -p -o value,name creation | grep @%s | sort"\
+                % (pattern)
+    else:
+        cmd = "zfs get -H -p -o value,name creation | grep @ | sort"
     fin,fout = os.popen4(cmd)
     snapshots = []
     for line in fout:
-        snapshots.append(line.rstrip())
+        line = line.rstrip().split()
+        snapshots.append([line[1], long(line[0])])
     return snapshots
 
 def list_zpools():
@@ -303,4 +351,3 @@ if __name__ == "__main__":
     for zpool in list_zpools():
         pool = ZPool(zpool)
         print pool.__repr__()
-

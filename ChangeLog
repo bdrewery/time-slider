@@ -1,5 +1,27 @@
 2008-12-02 Niall Power - <niall.power@sun.com>
 
+	* VERSION: bumped to 0.2.0
+	* Makefile: added new files to install and uninstall targets
+	* data/Makefile: adjusted for renamed .desktop.in file
+	* usr/share/time-slider/glade/time-slider-setup.glade: Added launch
+	  button for snapshot deletion GUI. Rename window title from 
+	  "Time Slider Setup" to "Time Slider Manager"
+	* usr/share/time-slider/lib/time_slider/setupgui.py: add launch handler
+	  for time-slider-delete
+	* usr/share/time-slider/lib/time_slider/zfs.py: Add utility functions
+	  for time-slider-delete for listing and creating snapshot objects
+	* data/time-slider.desktop.in renamed from time-slider-setup.desktop.in
+	* usr/lib/time-slider-delete: Added new snapshot deleter program to
+	  allow snapshot browsing/deletion.
+	* usr/share/applications/time-slider.desktop: renamef from 
+	  time-slider-setup.desktop
+	* usr/share/time-slider/glade/time-slider-delete.glade: Added glade UI
+	  file for snapshot delete GUI
+	* usr/share/time-slider/lib/time_slider/deletegui.py: Added main python
+	  code for listing and deleting snapshots
+
+2008-12-02 Niall Power - <niall.power@sun.com>
+
 	* py-compile.py: Added to insure pyc files are in sync with
 	  .py sources
 	* VERSION: Added version file. Bump to 0.1.5

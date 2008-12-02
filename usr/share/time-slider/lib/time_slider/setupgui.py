@@ -74,7 +74,8 @@ class SnapshotManager:
                "on_enablebutton_toggled" : self.on_enablebutton_toggled,
                "on_defaultfsradio_toggled" : self.on_defaultfsradio_toggled,
                "on_selectfsradio_toggled" : self.on_selectfsradio_toggled,
-               "on_capspinbutton_value_changed" : self.on_capspinbutton_value_changed}
+               "on_capspinbutton_value_changed" : self.on_capspinbutton_value_changed,
+               "on_deletesnapshots_clicked" : self.on_deletesnapshots_clicked}
         self.xml.signal_autoconnect(dic)
 
         # Set TreeViews
@@ -261,6 +262,10 @@ class SnapshotManager:
         fs = self.liststorefs.get_value(iter, 3)
         included = self.liststorefs.get_value(iter, 0)
         fs.commit_state(included)
+
+    def on_deletesnapshots_clicked(self, widget):
+        cmd = "../lib/time-slider-delete"
+        fin,fout = os.popen4(cmd)
 
 
 def main(argv):
