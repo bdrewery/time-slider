@@ -1,3 +1,4 @@
+include VERSION
 
 mkinstalldirs = /usr/bin/mkdir -p
 INSTALL = /usr/sbin/install
@@ -9,10 +10,31 @@ RMRF = /usr/bin/rm -Rf
 RMDIR = /usr/bin/rmdir
 SUBDIRS = po data
 
+DISTFILES = Authors \
+			VERSION \
+			ChangeLog \
+			Makefile \
+			py-compile.py \
+			$(SUBDIRS) \
+			lib \
+			usr \
+			var \
+
+compile:
+	python py-compile.py
+
 all:
 	for subdir in $(SUBDIRS); do \
 	  cd $$subdir; make; cd ..;\
 	done
+	echo $(VERSION)
+
+dist: compile all
+	$(RMRF) time-slider-$(VERSION)
+	mkdir time-slider-$(VERSION)
+	cp -pR $(DISTFILES) time-slider-$(VERSION)
+	/usr/bin/tar cf - time-slider-$(VERSION) | bzip2 > time-slider-$(VERSION).tar.bz2
+	$(RMRF) time-slider-$(VERSION)
 
 install:
 	for subdir in $(SUBDIRS); do \

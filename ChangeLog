@@ -1,3 +1,12 @@
+2008-12-02 Niall Power - <niall.power@sun.com>
+
+	* py-compile.py: Added to insure pyc files are in sync with
+	  .py sources
+	* VERSION: Added version file. Bump to 0.1.5
+	* SUNWgnome-time-slider.spec: removd because spec file is
+	  in spec-files-other repository on opensolaris.org
+	* Makefile: added "dist" target for creating dist bz2 tarballs
+
 2008-10-23 Erwann Chenede - <erwann.chenede@sun.com>
 
 	* usr/share/icons/hicolor/16x16/apps/time-slider-setup.png 
