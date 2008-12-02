@@ -65,7 +65,8 @@ install:
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/96x96/apps
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/96x96/apps usr/share/icons/hicolor/96x96/apps/time-slider-setup.png
 	$(mkinstalldirs) $(DESTDIR)/usr/share/time-slider/glade
-	$(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/glade usr/share/time-slider/glade/*.glade
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/glade usr/share/time-slider/glade/time-slider-delete.glade
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/glade usr/share/time-slider/glade/time-slider-setup.glade
 	$(mkinstalldirs) $(DESTDIR)/usr/share/time-slider/lib/time_slider
 	for file in usr/share/time-slider/lib/time_slider/*.py; do \
 		if test -f $$file ; then \

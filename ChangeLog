@@ -1,5 +1,10 @@
 2008-12-02 Niall Power - <niall.power@sun.com>
 
+	* Makefile: Fix install target error that didn't install both glade
+	  files
+
+2008-12-02 Niall Power - <niall.power@sun.com>
+
 	* VERSION: bumped to 0.2.0
 	* Makefile: added new files to install and uninstall targets
 	* data/Makefile: adjusted for renamed .desktop.in file
