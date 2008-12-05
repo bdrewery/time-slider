@@ -20,16 +20,16 @@ DISTFILES = Authors \
 			usr \
 			var \
 
-compile:
-	python py-compile.py
-
-all:
+all: compile
 	for subdir in $(SUBDIRS); do \
 	  cd $$subdir; make; cd ..;\
 	done
 	echo $(VERSION)
 
-dist: compile all
+compile:
+	python py-compile.py
+
+dist: all
 	$(RMRF) time-slider-$(VERSION)
 	mkdir time-slider-$(VERSION)
 	cp -pR $(DISTFILES) time-slider-$(VERSION)

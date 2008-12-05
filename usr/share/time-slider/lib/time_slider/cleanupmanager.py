@@ -60,6 +60,45 @@ class CleanupManager:
                 self.zpools.append(zpool)
             self.__debug(zpool.__repr__())
 
+    def perform_purge(self):
+        """ Cleans out zero sized snapshots, kind of cautiously"""
+        deletelist = []
+        # Need to seperate out snapshots by filesystem.
+        for fsname in zfs.list_filesystems():
+            fs = zfs.Filesystem(fsname)
+            # We also split out by schedule. We want to delete 0 sized
+            # snapshots but we need to keep at least one around (the most
+            # recent one) for each schedule so that that overlap is 
+            # maintained from frequent -> hourly -> daily etc.
+            # We start off with the smallest interval schedule first and
+            # move up. This increases the amount of data retained where
+            # several snapshots are taken together like a frequent hourly
+            # and daily snapshot taken at 12:00am. If 3 snapshots are all
+            # identical and reference the same identical data they will all
+            # be initially reported as zero for used size. Deleting the
+            # daily first then the hourly would shift make the data referenced
+            # by all 3 snapshots unique to the frequent scheduled snapshot.
+            # This snapshot would probably be purged within an how ever and the
+            # data referenced by it would be gone for good.
+            # Doing it the other way however ensures that the data should remain
+            # accessible to the user for at least a week as long as the pool 
+            # doesn't run low on available space before that.
+            for schedule in ["frequent", "hourly", "daily", "weekly", "monthly"]:
+                snaps = fs.list_snapshots("zfs-auto-snap:%s" % schedule)
+                try: # remove the newest one from the list.
+                    snaps.pop()
+                except IndexError:
+                    continue
+                for snapname in snaps:
+                    snapshot = zfs.Snapshot(snapname)
+                    if snapshot.get_used_size() == 0:
+                        deletelist.append(snapname)
+                        snapshot.destroy_snapshot()
+        self.__debug("The following %d snapshots were deleted:" % len(deletelist))
+        if self.debug == True and len(deletelist) > 0:
+            for item in deletelist:
+                self.__debug(item)
+
     def needs_cleanup(self):
         for zpool in self.zpools:
             if zpool.get_capacity() > self.warningLevel:
@@ -137,14 +176,16 @@ class CleanupManager:
             self.run_cleanup(zpool, "frequent", self.emergencyLevel)
 
     def run_cleanup(self, zpool, schedule, threshold):
-        clonedsnaps = []
+        clonedsnaps = zfs.list_cloned_snapshots()
+
+        # Build a list of snapshots in the given schedule, that are not
+        # cloned, and sort the result in reverse chronological order.
+        snapshots = [s for s in \
+                        zpool.list_snapshots("zfs-auto-snap:%s" % schedule) \
+                        if not s in clonedsnaps]
+        snapshots.reverse()
         while zpool.get_capacity() > threshold:
-            # List snapshots every time since snapshots can get 
-            # deleted by the auto-snapshot smf instances behing our back
-            existingsnaps = zpool.list_snapshots("zfs-auto-snap:%s" % schedule)
-            candidates = [s for s in existingsnaps if not \
-                          s in clonedsnaps]
-            if len(candidates) == 0:
+            if len(snapshots) == 0:
                 syslog.syslog(syslog.LOG_NOTICE,
                               "No more %s snapshots left" \
                                % schedule)
@@ -167,57 +208,22 @@ class CleanupManager:
             better way exists...."""
 
             # Start with the oldest first
-            snapname = candidates[0]
+            snapname = snapshots.pop()
             snapshot = zfs.Snapshot(snapname)
-            # Find out if the snapshot has any direct clones.
-            # If it has we can't destroy it.
-            if snapshot.has_clones() == True:
-                clonedsnaps.append(snapshot.name)
-                syslog(syslog.LOG_NOTICE, snapshot.name + \
-                       " has clones. Skipping destruction")
-                self.__debug("%s will not be destroyed because" \
-                             "it is cloned" % snapshot.name)
-                continue;
+            # It would be nicer, for performance purposes, to delete sets
+            # of snapshots recursively but this might destroy more data than
+            # absolutely necessary, plus the previous purging of zero sized
+            # snapshots can easily break the recursion chain between
+            # filesystems.
+            # On the positive side there should be fewer snapshots and they
+            # will mostly non-zero so we should get more effectiveness as a
+            # result of deleting snapshots since they should be nearly always
+            # non zero sized.
+            self.__debug("Destroying %s" % snapname)
+            snapshot.destroy_snapshot()
             self.destroyedsnaps.append(snapname)
-            # We're going to recursively destroy snapshots so
-            # find any children and remove them from the list.
-            # If the snapshot has children that have clones then
-            # we can only destroy the parent snapshot, so we
-            # have to exclude the recursive flag on calling zfs(1)
-            foundClone = False
-            children = snapshot.list_children()
-            for child in children:
-                childsnap = zfs.Snapshot(child)
-                if childsnap.has_clones() == True:
-                    try:
-                        clonedsnaps.index(childsnap.name)
-                    except ValueError:
-                        clonedsnaps.append(childsnap.name)
-                    foundClone = True
-                    self.__debug("%s has a child filesystem with clones." \
-                                 "\nRecursive snapshot destruction disabled" \
-                                 % snapshot.name)
-                    self.__debug("Cloned child: %s" % childsnap.name)
-                    break;
-            if foundClone == True:
-                cmd = "pfexec /usr/sbin/zfs destroy %s" % snapname
-            else:
-                cmd = "pfexec /usr/sbin/zfs destroy -r %s" % snapname
-                for child in children:
-                    self.destroyedsnaps.append(child)
-            # Time to destroy the snapshots
-            # We sleep a few seconds afterwards to give the
-            # zpool a chance to hopefully sync up and recalculate
-            # sizes before the next run through
-            fin,fout = os.popen4(cmd)
-            fin,fout = os.popen4("/usr/bin/sync")
+            # Give zfs some time to recalculate.
             time.sleep(3)
-
-    def need_notification(self):
-        for zpool in self.zpools:
-            if self.poolstatus[zpool.name] > 0:
-                return True
-        return False
         
     def send_to_syslog(self):
         for zpool in self.zpools:
@@ -249,6 +255,9 @@ class CleanupManager:
                            % len(self.destroyedsnaps))
 
     def send_notification(self):
+        pgrepcmd = "pgrep gnome-session"
+        fin,fout = os.popen4(pgrepcmd)
+        procs = fout.read().rstrip().rsplit("\n")
         pscmd = "ps -ef|egrep \"gnome-session$\" |grep -v grep"
         fin,fout = os.popen4(pscmd)
         lines = fout.read().rstrip().split("\n")
@@ -264,10 +273,14 @@ class CleanupManager:
                 pid = linedetails [1]
                 # Dont't bother with notification if the user is not authorised
                 # to take any action about it.
-                rbacp = RBACprofile(username)
-                if rbacp.has_profile("Primary Administrator") or \
-                    rbacp.has_profile("ZFS File System Management"):
-                    userpids.append([username, pid])
+                try:
+                    procs.index(pid)
+                    rbacp = RBACprofile(username)
+                    if rbacp.has_profile("Primary Administrator") or \
+                        rbacp.has_profile("ZFS File System Management"):
+                        userpids.append([username, pid])
+                except ValueError:
+                    continue
 
         for name, pid in userpids:
             # All this because there's no proper way to send a notification
@@ -358,6 +371,7 @@ def main(execpath):
     rbacp = RBACprofile()
     if rbacp.has_profile("Primary Administrator"):
         cleanup = CleanupManager(execpath)
+        cleanup.perform_purge()
         if cleanup.needs_cleanup() == True:
             cleanup.perform_cleanup()
             cleanup.send_notification()

@@ -175,7 +175,7 @@ class DeleteSnapManager:
             self.fsfilterentry.set_active(0)
         else:
             self.xml.get_widget("time-slider-delete").hide()
-            cloned = self.__get_cloned_snapshots()
+            cloned = zfs.list_cloned_snapshots()
             for snapname in snapshots:
                 # Filter out snapshots that are the root 
                 # of cloned filesystems or volumes
@@ -217,7 +217,7 @@ class DeleteSnapManager:
             return
 
     def __create_snapshot_list(self):
-        cloned = self.__get_cloned_snapshots()
+        cloned = zfs.list_cloned_snapshots()
 
         snaplist = zfs.list_snapshots()
         for snapname,snaptime in snaplist:  
@@ -252,22 +252,6 @@ class DeleteSnapManager:
         for line in fout:
             line = line.rstrip().split()
             result[line[0]] = line[1]
-        return result
-
-    def __get_cloned_snapshots(self):
-        """Returns a list of snapshots that have
-           cloned filesystems associated with them. Cloned filesystems
-           should not be displayed to the user for deletion"""
-        cmd = "zfs list -H -o origin"
-        fin,fout,ferr = os.popen3(cmd)
-        result = []
-        for line in fout:
-            details = line.rstrip()
-            if details != "-":
-                try:
-                    result.index(details)
-                except ValueError:
-                    result.append(details)
         return result
 
     def __on_treeviewcol_clicked(self, widget, searchcol):

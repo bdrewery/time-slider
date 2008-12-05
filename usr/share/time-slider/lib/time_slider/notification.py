@@ -63,7 +63,7 @@ class NotificationContext:
             self.dbusenv = details[1]
 
     def send_to_desktop(self):
-        level = 900000;
+        level = 0;
         worstpool = None
         expiry = 20000
         urgency = None
@@ -76,6 +76,9 @@ class NotificationContext:
             if self.pooldata[pool] > level:
                 level = self.pooldata[pool]
                 worstpool = pool
+
+        if worstpool == None:
+            sys.exit(0)
 
         if self.pooldata[worstpool] == 4:
             # Leave the notification up for 15 minutes (15 * 60 * 1000) so that

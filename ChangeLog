@@ -1,3 +1,28 @@
+2008-12-05 Niall Power - <niall.power@sun.com>
+
+	* VERSION: bumped to 0.2.1
+	* Makefile: Minor cleanups
+	* usr/share/time-slider/lib/time_slider/cleanupmanager.py: add
+	  perform_purge method to clean up zero sized snapshots under 
+	  safe circumstances so that the system doesn't become cluttered
+	  with too many permanently zero sized snapshots.
+	  Rewrote emercency space makeing cleanup alogorithm in run_cleanup  
+	  to be more efficient and spawn far fewer shell commands. No longer
+	  does recursive snapshot deletion since the above changes will break
+	  the recursive snapshot chain in most cases and recursive deletion
+	  is now overkill since individual snapshots should be larger in size
+	  and yield larger space savings per snapshot deleted.
+	  Fixed notification bug where notification would happen twice if
+	  gnome-session is launched via dbus-launch.
+	* usr/share/time-slider/lib/time_slider/deletegui.py: move
+	  __get_cloned_snapshots() method to a public function in zfs.py
+	* usr/share/time-slider/lib/time_slider/notification.py: fix typo
+	  bug in send_to_desktop() where initial warning level was set to
+	  90000 which broke desktop notification. Should be 0.
+	* usr/share/time-slider/lib/time_slider/zfs.py: Add new function:
+	  list_cloned_snapshots() to list snapshots that have cloned filesystem
+	  based on them.
+
 2008-12-02 Niall Power - <niall.power@sun.com>
 
 	* Makefile: Fix install target error that didn't install both glade

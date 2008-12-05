@@ -136,8 +136,6 @@ class Snapshot(Exception):
         self.__creationTime = None
         if creation:
             self.__creationTime = creation
-        else:
-            self.__creationTime = self.get_creation_time()
 
     def get_creation_time(self):
         if self.__creationTime == None:
@@ -187,7 +185,7 @@ class Snapshot(Exception):
 
     def list_children(self):
         """Returns a recursive list of child snapshots of this snapshot"""  
-        cmd = "/usr/sbin/zfs list -H -r -o name %s | grep @%s" \
+        cmd = "/usr/sbin/zfs list -t snapshot -H -r -o name %s | grep @%s" \
               % (self.fsname, self.snaplabel)
         fin,fout = os.popen4(cmd)
         result = []
@@ -311,7 +309,7 @@ class Filesystem:
 def list_filesystems(pattern = None):
     # We want pattern matching filesystems sorted by name.
     if pattern != None:
-        cmd = "zfs list -H -t filesystem -o name -s name | grep @%s" \
+        cmd = "zfs list -H -t filesystem -o name -s name | grep %s" \
                 % (pattern)
     else:
         cmd = "zfs list -H -t filesystem -o name -s name"
@@ -338,6 +336,22 @@ def list_snapshots(pattern = None):
         line = line.rstrip().split()
         snapshots.append([line[1], long(line[0])])
     return snapshots
+
+def list_cloned_snapshots():
+    """Returns a list of snapshots that have
+       cloned filesystems associated with them. Cloned filesystems
+       should not be displayed to the user for deletion"""
+    cmd = "zfs list -H -o origin"
+    fin,fout,ferr = os.popen3(cmd)
+    result = []
+    for line in fout:
+        details = line.rstrip()
+        if details != "-":
+            try:
+                result.index(details)
+            except ValueError:
+                result.append(details)
+    return result
 
 def list_zpools():
     result = []
