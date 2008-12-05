@@ -1,4 +1,8 @@
 2008-12-05 Niall Power - <niall.power@sun.com>
+	* usr/share/time-slider/lib/time_slider/setupgui.py
+	  Fixed a patch generation problem when launching time-slider-delete
+
+2008-12-05 Niall Power - <niall.power@sun.com>
 
 	* VERSION: bumped to 0.2.1
 	* Makefile: Minor cleanups

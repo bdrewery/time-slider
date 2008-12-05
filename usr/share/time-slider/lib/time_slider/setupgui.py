@@ -63,7 +63,8 @@ from rbac import RBACprofile
 
 class SnapshotManager:
 
-    def __init__(self):
+    def __init__(self, execpath):
+        self.execpath = execpath
         self.controller = ZFSController()
         self.xml = gtk.glade.XML("%s/../../glade/time-slider-setup.glade" \
                                   % (os.path.dirname(__file__)))
@@ -264,8 +265,9 @@ class SnapshotManager:
         fs.commit_state(included)
 
     def on_deletesnapshots_clicked(self, widget):
-        cmd = "../lib/time-slider-delete"
-        fin,fout = os.popen4(cmd)
+        cmdpath = os.path.join(os.path.dirname(self.execpath), \
+                                "../lib/time-slider-delete")
+        fin,fout = os.popen4(cmdpath)
 
 
 def main(argv):
@@ -286,7 +288,7 @@ def main(argv):
             rbacp.has_profile("ZFS File System Management") and \
             (rbacp.has_auth("solaris.smf.manage.zfs-auto-snapshot") or \
                 rbacp.has_profile("Service Management")):
-        manager = SnapshotManager()
+        manager = SnapshotManager(argv)
         gtk.main()
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):
         # Run via gksu, which will prompt for the root password
