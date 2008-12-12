@@ -1,3 +1,10 @@
+2008-12-12 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/time_slider/cleanupmanager.py: Implement
+	  destruction of older snapshots since zfs-auto-snapshot only does
+	  snapshot destruction recursively and we break the recursion by
+	  deleting individual snapshots instead of recursive sets.
+
 2008-12-05 Niall Power - <niall.power@sun.com>
 	* usr/share/time-slider/lib/time_slider/setupgui.py
 	  Fixed a patch generation problem when launching time-slider-delete

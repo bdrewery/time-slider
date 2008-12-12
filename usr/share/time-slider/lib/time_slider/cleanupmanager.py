@@ -61,6 +61,19 @@ class CleanupManager:
             self.__debug(zpool.__repr__())
 
     def perform_purge(self):
+        keep = {}
+        keep["frequent"] = 0
+        keep["hourly"] = 0
+        keep["daily"] = 0
+        keep["weekly"] = 0
+        keep["monthly"] = 0
+        for schedule in ["frequent", "hourly", "daily", "weekly", "monthly"]:
+            instance = "svc:/system/filesystem/zfs/auto-snapshot:%s" % \
+                           (schedule)
+            cmd = "svcprop -c -p zfs/keep %s" % (instance)
+            fin,fout,ferr = os.popen3(cmd)
+            keep[schedule] = int(fout.read()) 
+
         """ Cleans out zero sized snapshots, kind of cautiously"""
         deletelist = []
         # Need to seperate out snapshots by filesystem.
@@ -80,10 +93,11 @@ class CleanupManager:
             # by all 3 snapshots unique to the frequent scheduled snapshot.
             # This snapshot would probably be purged within an how ever and the
             # data referenced by it would be gone for good.
-            # Doing it the other way however ensures that the data should remain
-            # accessible to the user for at least a week as long as the pool 
-            # doesn't run low on available space before that.
-            for schedule in ["frequent", "hourly", "daily", "weekly", "monthly"]:
+            # Doing it the other way however ensures that the data should
+            # remain accessible to the user for at least a week as long as
+            # the pool doesn't run low on available space before that.
+            for schedule in ["frequent", \
+                "hourly", "daily", "weekly", "monthly"]:
                 snaps = fs.list_snapshots("zfs-auto-snap:%s" % schedule)
                 try: # remove the newest one from the list.
                     snaps.pop()
@@ -94,7 +108,27 @@ class CleanupManager:
                     if snapshot.get_used_size() == 0:
                         deletelist.append(snapname)
                         snapshot.destroy_snapshot()
-        self.__debug("The following %d snapshots were deleted:" % len(deletelist))
+                        snaps.remove(snapname)
+                
+                # Deleting individual snapshots instead of recursive sets
+                # breaks the recursion chain and leaves child snapshots
+                # dangling so we need to take care of cleaning up the 
+                # snapshots here instead of relying on zfs-auto-snapshot SMF
+                # instances to do it.
+                target = len(snaps) - keep[schedule]
+                counter = 0
+                while counter <= target:
+                    # This could be so much more efficient if "zfs destroy"
+                    # would accept more than one argument.
+                    # We don't need to run this via pfexec since we're running
+                    # as root already.
+                    cmd = "/usr/sbin/zfs destroy %s" % snaps[counter]
+                    os.system(cmd)
+                    deletelist.append(snaps[counter])
+                    counter += 1
+                
+        self.__debug("The following %d snapshots were deleted:" \
+                     % len(deletelist))
         if self.debug == True and len(deletelist) > 0:
             for item in deletelist:
                 self.__debug(item)
