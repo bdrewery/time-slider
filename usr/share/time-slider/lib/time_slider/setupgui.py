@@ -129,8 +129,9 @@ class SnapshotManager:
                 dialog.format_secondary_text(_("The snapshot manager service has "
                                              "been placed offline due to a dependency "
                                              "problem. The following dependency problems "
-                                             "were found:\n\n%s\n\nSee the svcs(1) man "
-                                             "page for more information") % errors)
+                                             "were found:\n\n%s\n\nRun \"svcs -xv\" from "
+                                             "a command prompt for more information about "
+                                             "these dependency problems.") % errors)
                 dialog.run()
                 sys.exit(1)
             elif self.smfmanager.svcstate == "maintenance":

@@ -36,7 +36,6 @@ CLEANUP_PROG="/usr/lib/time-slider-cleanup -y"
 # This function sets the appropriate svc configuration property for all
 # dependent auto-snapshot:<schedule> instances if necessary
 function update_service_props {
-	set -x
 	DEPENDENCIES=$(svcs -d  -H -o fmri $SMF_FMRI|grep auto-snapshot)
 	for dependency in ${DEPENDENCIES} ; do
 		if [ "$(svcprop -p zfs/fs-name $dependency)" != "//" ] ; then

@@ -1,3 +1,15 @@
+2008-12-17 Niall Power - <niall.powr@sun.com>
+
+	* lib/svc/method/time-slider: remove "set -x" command which errantly turns
+	  on debug mode. Fixes bugzilla defect #5067
+	* usr/share/time-slider/glade/time-slider-setup.glade: Change mnemonic key for
+	  "Custom" radio button from "C" to "u". C is already in use by "Cancel" button.
+	  Fixes bugzilla defect #3986
+	* usr/share/time-slider/lib/time_slider/setupgui.py: Change error dialog text to
+	  instruct user to consult "svcs -xv" instead of "svcs(1) man page" for more info
+	  when time-slider SMF instance is placed into offline state by SMF.
+	  Fixes bugzilla defect #5804
+
 2008-12-17 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/cleanupmanager.py: Check
@@ -26,7 +38,11 @@
 	  with too many permanently zero sized snapshots.
 	  Rewrote emercency space makeing cleanup alogorithm in run_cleanup  
 	  to be more efficient and spawn far fewer shell commands. No longer
-	  does recursive snapshot deletion since the above changes will break
+	usr/share/time-slider/lib/time_slider/setupgui.py: Change error dialog text to
+	  instruct user to consult "svcs -xv" instead of "svcs(1) man page" for more info
+	  when time-slider SMF instance is placed into offline state by SMF.
+	  Fixes bugzilla defect #5804
+  does recursive snapshot deletion since the above changes will break
 	  the recursive snapshot chain in most cases and recursive deletion
 	  is now overkill since individual snapshots should be larger in size
 	  and yield larger space savings per snapshot deleted.
@@ -71,7 +87,7 @@
 2008-12-02 Niall Power - <niall.power@sun.com>
 
 	* py-compile.py: Added to insure pyc files are in sync with
-	  .py sources
+	  .py sources. Fixes bugster #6754650
 	* VERSION: Added version file. Bump to 0.1.5
 	* SUNWgnome-time-slider.spec: removd because spec file is
 	  in spec-files-other repository on opensolaris.org
