@@ -299,10 +299,7 @@ class CleanupManager:
 
         for line in lines:
             linedetails = line.split()
-            if linedetails[1]:
-                # We're highly unlikely to match more than 1
-                # gnome-session process per user, but if we
-                # do, no harm done.
+            try:
                 username = linedetails[0]
                 pid = linedetails [1]
                 # Dont't bother with notification if the user is not authorised
@@ -315,6 +312,8 @@ class CleanupManager:
                         userpids.append([username, pid])
                 except ValueError:
                     continue
+            except IndexError:
+                continue
 
         for name, pid in userpids:
             # All this because there's no proper way to send a notification

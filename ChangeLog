@@ -1,3 +1,10 @@
+2008-12-17 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/time_slider/cleanupmanager.py: Check
+	  ps commmand output before accessing it by catching IndexError
+	  exceptions. Prevents root's mailbox being spammed by cron.
+	  Fixes bugster #6758575
+
 2008-12-12 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/cleanupmanager.py: Implement
