@@ -1,3 +1,14 @@
+2009-01-09 Niall Power - <niall.power@sun.com>
+
+	* VERSION: bump version to 0.2.3
+	* usr/share/time-slider/glade/time-slider-delete.glade:
+	  add progress dialog for snapshot scanning feedback
+	* usr/share/time-slider/lib/time_slider/deletegui.py:
+	  restructure initialisation code and run snapshot scanning in it's
+	  own thread so that feedback can be give to user via a progress dialog
+	  Prevents the app appearing dead when dealing with huge numbers of
+	  snapshots.
+
 2009-01-09 Erwann Chenede - <erwann.chenede@sun.com>
 
 	* Makefile: added newly introduced file
@@ -12,6 +23,7 @@
 
 2008-12-17 Niall Power - <niall.powr@sun.com>
 
+	* VERSION: bump version to 0.2.2
 	* lib/svc/method/time-slider: remove "set -x" command which errantly turns
 	  on debug mode. Fixes bugzilla defect #5067
 	* usr/share/time-slider/glade/time-slider-setup.glade: Change mnemonic key for

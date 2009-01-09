@@ -69,11 +69,21 @@ from rbac import RBACprofile
 class DeleteSnapManager:
 
     def __init__(self, snapshots = None):
-        self.snapshots = []
-        self.snapstodelete = []
         self.xml = gtk.glade.XML("%s/../../glade/time-slider-delete.glade" \
                                   % (os.path.dirname(__file__)))
+        self.snapstodelete = []
+        self.shortcircuit = []
+        maindialog = self.xml.get_widget("time-slider-delete")
+        self.pulsedialog = self.xml.get_widget("pulsedialog")
+        self.pulsedialog.set_transient_for(maindialog)
+        if snapshots:
+            maindialog.hide()
+            self.shortcircuit = snapshots
+        else:
+            glib.idle_add(self.__init_scan)
+
         self.progressdialog = self.xml.get_widget("deletingdialog")
+        self.progressdialog.set_transient_for(maindialog)
         self.progressbar = self.xml.get_widget("deletingprogress")
         # signal dictionary	
         dic = {"on_closebutton_clicked" : gtk.main_quit,
@@ -89,8 +99,24 @@ class DeleteSnapManager:
                "on_errordialog_response" : self.__on_errordialog_response}
         self.xml.signal_autoconnect(dic)
 
-        if snapshots == None:
-            self.mounts = self.__get_fs_mountpoints()
+    def __create_snapshot_list_store(self):
+
+        for snapshot in self.snapscanner.snapshots:
+            try:
+                self.liststorefs.append([
+                       self.snapscanner.mounts[snapshot.fsname],
+                       snapshot.fsname,
+                       snapshot.snaplabel,
+                       time.ctime(snapshot.get_creation_time()),
+                       snapshot.get_creation_time(),
+                       snapshot])
+            except KeyError:
+                continue
+                # This will catch exceptions from things we ignore
+                # such as dump and swap volumes and skip over them.
+
+    def initialise_view(self):
+        if len(self.shortcircuit) == 0:
             # Set TreeViews
             self.liststorefs = gtk.ListStore(str, str, str, str, long,
                                              gobject.TYPE_PYOBJECT)
@@ -98,7 +124,6 @@ class DeleteSnapManager:
             list_sort = gtk.TreeModelSort(list_filter)
             list_sort.set_sort_column_id(1, gtk.SORT_ASCENDING)
 
-            self.__create_snapshot_list()
             self.snaptreeview = self.xml.get_widget("snaplist")
             self.snaptreeview.set_model(self.liststorefs)
             self.snaptreeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
@@ -174,9 +199,8 @@ class DeleteSnapManager:
             self.schedfilterentry.set_active(0)
             self.fsfilterentry.set_active(0)
         else:
-            self.xml.get_widget("time-slider-delete").hide()
             cloned = zfs.list_cloned_snapshots()
-            for snapname in snapshots:
+            for snapname in self.shortcircuit:
                 # Filter out snapshots that are the root 
                 # of cloned filesystems or volumes
                 try:
@@ -210,49 +234,10 @@ class DeleteSnapManager:
             if response != 2:
                 sys.exit(0)
             else:
-                # We can create the thread here but he have to start it outside
-                # of the gtk main loop in order to avoid deadlock inside gtk.
-                self.snapdeleter = DeleteSnapshots(self.snapstodelete)
-                glib.idle_add(self.__monitor_deletion)
-            return
-
-    def __create_snapshot_list(self):
-        cloned = zfs.list_cloned_snapshots()
-
-        snaplist = zfs.list_snapshots()
-        for snapname,snaptime in snaplist:  
-            # Filter out snapshots that are the root 
-            # of cloned filesystems or volumes
-            try:
-                cloned.index(snapname)
-            except ValueError:
-                snapshot = zfs.Snapshot(snapname, snaptime)
-                self.snapshots.append(snapshot)
-
-        for snapshot in self.snapshots:
-            try:
-                self.liststorefs.append([
-                       self.mounts[snapshot.fsname],
-                       snapshot.fsname,
-                       snapshot.snaplabel,
-                       time.ctime(snapshot.get_creation_time()),
-                       snapshot.get_creation_time(),
-                       snapshot])
-            except KeyError:
-                continue
-                # This will catch exceptions from things we ignore
-                # such as dump and swap volumes and skip over them.
-
-    def __get_fs_mountpoints(self):
-        """Returns a dictionary mapping: 
-           {filesystem : mountpoint}"""
-        cmd = "zfs list -H -t filesystem -o name,mountpoint"
-        fin,fout,ferr = os.popen3(cmd)
-        result = {}
-        for line in fout:
-            line = line.rstrip().split()
-            result[line[0]] = line[1]
-        return result
+                # Create the thread in an idle loop in order to
+                # avoid deadlock inside gtk.
+                glib.idle_add(self.__init_delete)
+        return False
 
     def __on_treeviewcol_clicked(self, widget, searchcol):
         self.snaptreeview.set_search_column(searchcol)
@@ -294,13 +279,13 @@ class DeleteSnapManager:
             snap = model.get(iter, 1)[0]
 
         self.liststorefs.clear()
-        newlist = self.__filter_snapshot_list(self.snapshots,
+        newlist = self.__filter_snapshot_list(self.snapscanner.snapshots,
                     filesys,
                     snap)
         for snapshot in newlist:
             try:
                 self.liststorefs.append([
-                       self.mounts[snapshot.fsname],
+                       self.snapscanner.mounts[snapshot.fsname],
                        snapshot.fsname,
                        snapshot.snaplabel,
                        time.ctime(snapshot.get_creation_time()),
@@ -340,22 +325,55 @@ class DeleteSnapManager:
         if response != 2:
             return
         else:
-            # We can create the thread here but he have to start it outside
-            # of the gtk main loop in order to avoid deadlock inside gtk.
-            self.snapdeleter = DeleteSnapshots(self.snapstodelete)
-            glib.idle_add(self.__monitor_deletion)
+            glib.idle_add(self.__init_delete)
         return
+        
+    def __init_scan(self):
+        self.snapscanner = ScanSnapshots()
+        self.pulsedialog.show()
+        self.snapscanner.start()
+        glib.timeout_add(100, self.__monitor_scan)  
+        return False
+
+    def __init_delete(self):
+        self.snapdeleter = DeleteSnapshots(self.snapstodelete)
+        # If there's more than a few snapshots, pop up
+        # a progress bar.
+        if len(self.snapstodelete) > 3:
+            self.progressbar.set_fraction(0.0)
+            self.progressdialog.show()        
+        self.snapdeleter.start()
+        glib.timeout_add(300, self.__monitor_deletion)  
+        return False
+
+    def __monitor_scan(self):
+        if self.snapscanner.isAlive() == True:
+            self.xml.get_widget("pulsebar").pulse()
+            return True
+        else:
+            self.pulsedialog.hide()
+            if self.snapscanner.errors:
+                details = ""
+                dialog = gtk.MessageDialog(None,
+                            0,
+                            gtk.MESSAGE_ERROR,
+                            gtk.BUTTONS_CLOSE,
+                            _("Some snapshots could not be read"))
+                dialog.connect("response",
+                            self.on_errordialog_response)                 
+                for error in self.snapscanner.errors:
+                    details = details + error
+                dialog.format_secondary_text(details)
+                dialog.show()
+            self.__on_filterentry_changed(None)
+            return False
 
     def __monitor_deletion(self):
-        if self.snapdeleter.started == False:
-            self.progressbar.set_fraction(0.0)
-            # If there's more than a few snapshots, pop up
-            # a progress bar.
-            if len(self.snapstodelete) > 3:
-                self.progressdialog.show()
-            self.snapdeleter.start()
-        elif self.snapdeleter.completed == True:
-            self.snapdeleter.join()
+        if self.snapdeleter.isAlive() == True:
+            self.progressbar.set_fraction(self.snapdeleter.progress)
+            return True
+        else:
+            self.progressdialog.hide()
             self.progressbar.set_fraction(1.0)
             self.progressdialog.hide()
             if self.snapdeleter.errors:
@@ -371,24 +389,20 @@ class DeleteSnapManager:
                     details = details + error
                 dialog.format_secondary_text(details)
                 dialog.show()
-            # Either exit or rebuild the list.
-            if len(self.snapshots) > 0:
+            # If we didn't shortcircut straight to the delete confirmation
+            # dialog then the main dialog is visible so we rebuild the list
+            # view.
+            if len(self.shortcircuit) ==  0:
                 self.__refresh_view()
             else:
                 gtk.main_quit()
             return False
-        else:
-            self.progressbar.set_fraction(self.snapdeleter.progress)
-        return True
 
     def __refresh_view(self):
         self.liststorefs.clear()
-        self.snapshots = []
+        glib.idle_add(self.__init_scan)        
         self.snapstodelete = []
-        self.__create_snapshot_list()
-        # Fake a callback to filter the list view
-        self.__on_filterentry_changed(None)
-     
+
     def __add_selection(self, treemodel, path, iter):
         snapshot = treemodel.get(iter, 5)[0]
         self.snapstodelete.append(snapshot)
@@ -403,6 +417,41 @@ class DeleteSnapManager:
 
     def __on_errordialog_response(self, widget, responseid):
         widget.hide()
+
+class ScanSnapshots(threading.Thread):
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.errors = []
+        self.snapshots = []
+
+    def run(self):
+        self.mounts = self.__get_fs_mountpoints()
+        self.rescan()
+
+    def __get_fs_mountpoints(self):
+        """Returns a dictionary mapping: 
+           {filesystem : mountpoint}"""
+        cmd = "zfs list -H -t filesystem -o name,mountpoint"
+        fin,fout,ferr = os.popen3(cmd)
+        result = {}
+        for line in fout:
+            line = line.rstrip().split()
+            result[line[0]] = line[1]
+        return result
+
+    def rescan(self):
+        cloned = zfs.list_cloned_snapshots()
+        self.snapshots = []
+        snaplist = zfs.list_snapshots()
+        for snapname,snaptime in snaplist:  
+            # Filter out snapshots that are the root 
+            # of cloned filesystems or volumes
+            try:
+                cloned.index(snapname)
+            except ValueError:
+                snapshot = zfs.Snapshot(snapname, snaptime)
+                self.snapshots.append(snapshot)
 
 class DeleteSnapshots(threading.Thread):
 
@@ -452,6 +501,7 @@ def main(argv):
         else:
             manager = DeleteSnapManager()
         gtk.gdk.threads_enter()
+        glib.idle_add(manager.initialise_view)
         gtk.main()
         gtk.gdk.threads_leave()
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):
