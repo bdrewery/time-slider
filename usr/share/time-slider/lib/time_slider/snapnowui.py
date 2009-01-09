@@ -162,13 +162,6 @@ class SnapshotNowDialog:
 	sys.exit(1)
       else:
 	self.snap_name_entry.set_text (valid_name)
-	print "invalid name"
-
-
-class TakeSnapshot:
-
-    def __init__(self, dir_path, zfs_fs, snap_name):
-      print "init"
 
 def main(argv):
     try:

@@ -1,5 +1,10 @@
 2009-01-09 Erwann Chenede - <erwann.chenede@sun.com>
 
+	* Makefile: added newly introduced file
+	* usr/share/time-slider/lib/time_slider/snapnowui.py: removed print
+
+2009-01-09 Erwann Chenede - <erwann.chenede@sun.com>
+
 	* usr/lib/time-slider-snapshot:
 	* usr/share/time-slider/glade/time-slider-snapshot.glade:
 	* usr/share/time-slider/lib/time_slider/snapnowui.py:
