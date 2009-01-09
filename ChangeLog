@@ -1,3 +1,10 @@
+2009-01-09 Erwann Chenede - <erwann.chenede@sun.com>
+
+	* usr/lib/time-slider-snapshot:
+	* usr/share/time-slider/glade/time-slider-snapshot.glade:
+	* usr/share/time-slider/lib/time_slider/snapnowui.py:
+	  Initial implementation of the snapshot now dialog
+
 2008-12-17 Niall Power - <niall.powr@sun.com>
 
 	* lib/svc/method/time-slider: remove "set -x" command which errantly turns
