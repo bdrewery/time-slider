@@ -25,6 +25,7 @@ import sys
 import os
 import time
 import getopt
+import locale
 
 try:
     import pygtk
@@ -104,7 +105,8 @@ class DeleteSnapManager:
         for snapshot in self.snapscanner.snapshots:
             try:
                 tm = time.localtime(snapshot.get_creation_time())
-                t = time.strftime ("%c", tm)
+                t = unicode(time.strftime ("%c", tm),
+                    locale.getpreferredencoding()).encode('utf-8')
             except:
                 t = time.ctime(snapshot.get_creation_time())
             try:
@@ -293,7 +295,8 @@ class DeleteSnapManager:
         for snapshot in newlist:
             try:
                 tm = time.localtime(snapshot.get_creation_time())
-                t = time.strftime ("%c", tm)
+                t = unicode(time.strftime ("%c", tm),
+                    locale.getpreferredencoding()).encode('utf-8')
             except:
                 t = time.ctime(snapshot.get_creation_time())
             try:
