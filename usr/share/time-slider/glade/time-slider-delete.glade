@@ -163,7 +163,7 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="label" translatable="yes">gtk-select-all</property>
+                            <property name="label">gtk-select-all</property>
                             <property name="use_stock">True</property>
                             <property name="response_id">0</property>
                             <signal name="clicked" handler="on_selectbutton_clicked"/>
@@ -219,7 +219,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="label" translatable="yes">gtk-delete</property>
+                        <property name="label">gtk-delete</property>
                         <property name="use_stock">True</property>
                         <property name="response_id">0</property>
                         <signal name="clicked" handler="on_deletebutton_clicked"/>
@@ -258,7 +258,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="label" translatable="yes">gtk-close</property>
+                <property name="label">gtk-close</property>
                 <property name="use_stock">True</property>
                 <property name="response_id">0</property>
                 <signal name="clicked" handler="on_closebutton_clicked"/>
@@ -378,7 +378,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="label" translatable="yes">gtk-cancel</property>
+                <property name="label">gtk-cancel</property>
                 <property name="use_stock">True</property>
                 <property name="response_id">0</property>
                 <signal name="clicked" handler="on_confirmcancel_clicked"/>
@@ -389,7 +389,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="label" translatable="yes">gtk-delete</property>
+                <property name="label">gtk-delete</property>
                 <property name="use_stock">True</property>
                 <property name="response_id">0</property>
                 <signal name="clicked" handler="on_confirmdelete_clicked"/>

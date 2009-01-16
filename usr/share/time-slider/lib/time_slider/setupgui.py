@@ -82,10 +82,13 @@ class SnapshotManager:
         # Set TreeViews
         self.liststorefs = gtk.ListStore(bool, str, str, gobject.TYPE_PYOBJECT)
         for fs in self.controller.zfs_fs:
+            mountpoint = fs.mountpoint
+            if (mountpoint == "legacy"):
+                mountpoint = _("Legacy")
             if fs.is_included() == True:
-                self.liststorefs.append([True, fs.mountpoint, fs.name, fs])
+                self.liststorefs.append([True, mountpoint, fs.name, fs])
             else:
-                self.liststorefs.append([False, fs.mountpoint, fs.name, fs])
+                self.liststorefs.append([False, mountpoint, fs.name, fs])
 
         self.fstv = self.xml.get_widget("fstreeview")
         self.fstv.set_sensitive(False)

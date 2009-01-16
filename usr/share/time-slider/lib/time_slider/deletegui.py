@@ -103,11 +103,19 @@ class DeleteSnapManager:
 
         for snapshot in self.snapscanner.snapshots:
             try:
+                tm = time.localtime(snapshot.get_creation_time())
+                t = time.strftime ("%c", tm)
+            except:
+                t = time.ctime(snapshot.get_creation_time())
+            try:
+                mount_point = self.snapscanner.mounts[snapshot.fsname]
+                if (mount_point == "legacy"):
+                    mount_point = _("Legacy")
                 self.liststorefs.append([
-                       self.snapscanner.mounts[snapshot.fsname],
+                       mount_point,
                        snapshot.fsname,
                        snapshot.snaplabel,
-                       time.ctime(snapshot.get_creation_time()),
+                       t,
                        snapshot.get_creation_time(),
                        snapshot])
             except KeyError:
@@ -284,11 +292,19 @@ class DeleteSnapManager:
                     snap)
         for snapshot in newlist:
             try:
+                tm = time.localtime(snapshot.get_creation_time())
+                t = time.strftime ("%c", tm)
+            except:
+                t = time.ctime(snapshot.get_creation_time())
+            try:
+                mount_point = self.snapscanner.mounts[snapshot.fsname]
+                if (mount_point == "legacy"):
+                    mount_point = _("Legacy")
                 self.liststorefs.append([
-                       self.snapscanner.mounts[snapshot.fsname],
+                       mount_point,
                        snapshot.fsname,
                        snapshot.snaplabel,
-                       time.ctime(snapshot.get_creation_time()),
+                       t,
                        snapshot.get_creation_time(),
                        snapshot])
             except KeyError:

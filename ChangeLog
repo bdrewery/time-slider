@@ -1,3 +1,17 @@
+2009-01-16  Takao Fujiwara  <takao.fujiwara@sun.com>
+
+	* po/POTFILES.in: Update with the latest files.
+	* usr/share/time-slider/glade/time-slider-delete.glade:
+	* usr/share/time-slider/glade/time-slider-setup.glade:
+	* usr/share/time-slider/glade/time-slider-snapshot.glade:
+	  Update to remove "translatable" tag for GTK textdomain.
+	* usr/share/time-slider/lib/time_slider/deletegui.py:
+	  Update to localize date.
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Update to localize "legacy".
+	* usr/share/time-slider/lib/time_slider/snapnowui.py:
+	  Update to add gettext.
+
 2009-01-09 Niall Power - <niall.power@sun.com>
 
 	* VERSION: bump version to 0.2.3

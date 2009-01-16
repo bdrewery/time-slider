@@ -114,7 +114,7 @@ class SnapshotNowDialog:
 				     gtk.MESSAGE_ERROR,
 				     gtk.BUTTONS_CLOSE,
 				     _("Invalid characters in snapshot name"))
-	  dialog.set_title ("Error")
+	  dialog.set_title (_("Error"))
 	  dialog.format_secondary_text(_("Allowed characters for snapshot names are :\n"
 					 "[a-z][A-Z][0-9][-_.:\n"
 					 "All invalid characters will be removed\n"))
@@ -144,7 +144,7 @@ class SnapshotNowDialog:
 				     gtk.MESSAGE_ERROR,
 				     gtk.BUTTONS_CLOSE,
 				     _("Error occured while creating the snapshot"))
-	  dialog.set_title ("Error")
+	  dialog.set_title (_("Error"))
 	  dialog.format_secondary_text(error)
 	  dialog.run ()
         else:
@@ -153,10 +153,10 @@ class SnapshotNowDialog:
 				     gtk.MESSAGE_INFO,
 				     gtk.BUTTONS_CLOSE,
 				     _("Snapshot created successfully"))
-	  dialog.set_title ("Success")
-	  dialog.format_secondary_text("A snapshot of zfs filesystem %s\n"
+	  dialog.set_title (_("Success"))
+	  dialog.format_secondary_text(_("A snapshot of zfs filesystem %s\n"
 				       "named %s\n"
-				       "has been created.\n" % (self.zfs_fs, valid_name))
+				       "has been created.\n") % (self.zfs_fs, valid_name))
 	  dialog.run ()
 
 	sys.exit(1)
@@ -176,7 +176,7 @@ def main(argv):
                                    gtk.MESSAGE_ERROR,
                                    gtk.BUTTONS_CLOSE,
                                    _("Invalid arguments count."))
-	dialog.set_title ("Error")
+	dialog.set_title (_("Error"))
         dialog.format_secondary_text(_("Snapshot Now requires"
                                        " 2 arguments :\n- The path of the "
 				       "directory to be snapshotted.\n"
@@ -212,7 +212,7 @@ def main(argv):
                                    gtk.MESSAGE_ERROR,
                                    gtk.BUTTONS_CLOSE,
                                    _("Insufficient Priviliges"))
-	dialog.set_title ("Error")
+	dialog.set_title (_("Error"))
         dialog.format_secondary_text(_("Snapshot Now requires "
                                        "administrative privileges to run. "
                                        "You have not been assigned the necessary"
