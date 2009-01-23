@@ -51,6 +51,7 @@ install:
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-delete
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-notify
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-snapshot
+	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-version
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps usr/share/icons/hicolor/16x16/apps/time-slider-setup.png
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/24x24/apps
@@ -69,6 +70,7 @@ install:
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/glade usr/share/time-slider/glade/time-slider-delete.glade
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/glade usr/share/time-slider/glade/time-slider-setup.glade
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/glade usr/share/time-slider/glade/time-slider-snapshot.glade
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/glade usr/share/time-slider/glade/time-slider-version.glade
 	$(mkinstalldirs) $(DESTDIR)/usr/share/time-slider/lib/time_slider
 	for file in usr/share/time-slider/lib/time_slider/*.py; do \
 		if test -f $$file ; then \
@@ -95,6 +97,7 @@ uninstall:
 	$(RM) $(DESTDIR)/usr/lib/time-slider-delete
 	$(RM) $(DESTDIR)/usr/lib/time-slider-notify
 	$(RM) $(DESTDIR)/usr/lib/time-slider-snapshot
+	$(RM) $(DESTDIR)/usr/lib/time-slider-version
 	$(RM) $(DESTDIR)/usr/share/icons/hicolor/*/apps/time-slider-setup.png
 	$(RMRF) $(DESTDIR)/usr/share/time-slider
 	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider.xml
