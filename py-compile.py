@@ -1,3 +1,7 @@
 import compileall
-compileall.compile_dir("usr", force=1)
+import os
+
+destdir = os.getenv("DESTDIR", ".")
+dir = destdir + "/usr"
+compileall.compile_dir(destdir, force=1)
 

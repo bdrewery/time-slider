@@ -1,3 +1,23 @@
+2009-02-05 Niall Power - <niall.power@sun.com>
+
+	* VERSION: bump to 0.2.5
+	* Makefile: don't install .pyc files, but generate them as part
+	  of "install:" rule. Fixes bugster: 6754650
+	* py-compile.py: Prepend "DESTDIR" to compile python bytecode
+	  within the installed directory tree.
+	* usr/share/time-slider/lib/time_slider/__init__.pyc: removed
+	* usr/share/time-slider/lib/time_slider/cleanupmanager.pyc: removed
+	* usr/share/time-slider/lib/time_slider/deletegui.pyc: removed
+	* usr/share/time-slider/lib/time_slider/fileversion.pyc: removed
+	* usr/share/time-slider/lib/time_slider/notification.pyc: removed
+	* usr/share/time-slider/lib/time_slider/rbac.pyc: removed
+	* usr/share/time-slider/lib/time_slider/setupgui.pyc: removed
+	* usr/share/time-slider/lib/time_slider/smfmanager.pyc: removed
+	* usr/share/time-slider/lib/time_slider/snapnowui.pyc: removed
+	* usr/share/time-slider/lib/time_slider/zfs.pyc: removed
+	* usr/share/time-slider/lib/time_slider/zfscontroller.pyc: removed
+
+
 2009-01-23 Erwann Chenede - <erwann.chenede@sun.com>
 
 	* VERSION: bump version to 0.2.4

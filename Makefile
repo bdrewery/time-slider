@@ -5,6 +5,7 @@ INSTALL = /usr/sbin/install
 INSTALL_DATA = ${INSTALL} -u root -g bin -m 644 -f
 INSTALL_PROGRAM = ${INSTALL} -u root -g bin -f
 INSTALL_SCRIPT = ${INSTALL} -f
+PYTHON = /usr/bin/python
 RM = /usr/bin/rm -f
 RMRF = /usr/bin/rm -Rf
 RMDIR = /usr/bin/rmdir
@@ -20,16 +21,16 @@ DISTFILES = Authors \
 			usr \
 			var \
 
-all: compile
+clean:
+	$(RM) usr/share/time-slider/lib/time_slider/*.pyc
+
+all:
 	for subdir in $(SUBDIRS); do \
 	  cd $$subdir; make; cd ..;\
 	done
 	echo $(VERSION)
 
-compile:
-	python py-compile.py
-
-dist: all
+dist: clean all
 	$(RMRF) time-slider-$(VERSION)
 	mkdir time-slider-$(VERSION)
 	cp -pR $(DISTFILES) time-slider-$(VERSION)
@@ -77,13 +78,9 @@ install:
 		  $(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/lib/time_slider $$file; \
 		fi; \
 	done
-	for file in usr/share/time-slider/lib/time_slider/*.pyc; do \
-		if test -f $$file ; then \
-		  $(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/lib/time_slider $$file; \
-		fi; \
-	done
 	$(mkinstalldirs) $(DESTDIR)/var/svc/manifest/application
 	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider.xml
+	$(PYTHON) py-compile.py
 	
 uninstall:
 	for subdir in $(SUBDIRS); do \
