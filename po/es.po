@@ -1,4 +1,4 @@
-# Copyright (C) 2008 Sun Microsystems, Inc
+# Copyright (C) 2009 Sun Microsystems, Inc
 # This file is distributed under the same license as the time-slider package.
 #
 # Desktop Discuss <desktop-discuss@opensolaris.org>
@@ -6,48 +6,547 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: time-slider HEAD\n"
-"POT-Creation-Date: 2008-10-20 20:14+0900\n"
-"PO-Revision-Date: 2008-10-31 20:43+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2009-02-10 22:37+0900\n"
+"PO-Revision-Date: 2009-02-16 18:31+0100\n"
 "Last-Translator: desktop-discuss@opensolaris.org\n"
 "Language-Team: desktop-discuss@opensolaris.org\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Report-Msgid-Bugs-To: \n"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../data/time-slider-setup.desktop.in.h:1
-msgid "Configure the system to take automatic snapshots of your data"
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:2
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:241
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:341
+#, no-c-format, python-format
+msgid "%d snapshots will be deleted."
+msgstr "Se eliminarán %d instantáneas."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:3
+msgid "<b>Summary</b>"
+msgstr "<b>Resumen</b>"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:4
+msgid "D_eselect All"
+msgstr "D_eseleccionar todo"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:5
+msgid "Delete Snapshots"
+msgstr "Eliminar instantáneas"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:6
+msgid "Deleting Snapshots"
+msgstr "Eliminación de instantáneas"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:7
+msgid "Deleting snapshots..."
+msgstr "Eliminando instantáneas..."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:8
+msgid "Exit when done. "
+msgstr "Salir al terminar. "
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:10
+msgid "Name:"
+msgstr "Nombre:"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:11
+msgid "Press Delete to continue."
+msgstr "Pulse Suprimir para continuar."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:12
+msgid "Scanning snapshots..."
+msgstr "Buscando instantáneas..."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:13
+msgid "Select ZFS snapshots to delete from the list below."
 msgstr ""
-"Configurar el sistema para tomar instantáneas de manera automática de los "
-"datos"
+"Seleccione las instantáneas ZFS que desea eliminar de la siguiente lista."
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-msgid "of file system capacity"
-msgstr "de capacidad de sistema de archivos"
+msgid "_Delete Snapshots..."
+msgstr "_Eliminar instantáneas..."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:1
+msgid "Take a snapshot now"
+msgstr "Tomar una instantánea ahora"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:2
+msgid "Take a snapshot of "
+msgstr "Tomar una instantánea de "
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:3
+msgid "with the name :"
+msgstr "con el nombre:"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:1
+msgid "10 Mo"
+msgstr "10 Mo"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:2
+msgid "19/01/09"
+msgstr "19/01/09"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:3
+msgid "<b>Current Version</b>"
+msgstr "<b>Versión actual</b>"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:4
+msgid "<b>Older Versions</b>"
+msgstr "<b>Versiones anteriores</b>"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:5
+msgid "Double click to open the file"
+msgstr "Haga doble clic para abrir este archivo"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:6
+msgid "Open the current version of the file"
+msgstr "Abrir la versión actual del archivo"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:7
+msgid "Scanning for older versions"
+msgstr "Buscando versiones anteriores"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:8
+msgid "Time Slider File Version Explorer"
+msgstr "Explorador de versiones de archivos del deslizador de tiempo"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:9
+msgid "compare"
+msgstr "comparar"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:10
+msgid "filename"
+msgstr "nombre_archivo"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:11
+msgid "gtk-close"
+msgstr "gtk-cerrar"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:12
+msgid "last modified : "
+msgstr "última modificación: "
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:13
+msgid "name :"
+msgstr "nombre:"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-version.glade.h:14
+msgid "size : "
+msgstr "tamaño: "
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:115
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:305
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:87
+msgid "Legacy"
+msgstr "Antiguo"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:162
+msgid "Snapshot Name"
+msgstr "Nombre de instantánea"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:170
+msgid "Creation Time"
+msgstr "Momento de creación"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:198
+msgid "Monthly"
+msgstr "Cada mes"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:199
+msgid "Weekly"
+msgstr "Cada semana"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:200
+msgid "Daily"
+msgstr "Cada día"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:201
+msgid "Hourly"
+msgstr "Cada hora"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:202
+msgid "1/4 Hourly"
+msgstr "Cada cuarto de hora"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:222
+msgid "Snapshot can not be deleted"
+msgstr "La instantánea no se puede eliminar"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:223
+#, python-format
+msgid ""
+"%s has one or more dependent clones and will not be deleted. To delete this "
+"snapshot, first delete all datasets and snapshots cloned from this snapshot."
+msgstr ""
+"%s tiene uno o más duplicados y no se puede eliminar. Para eliminar esta "
+"instantánea, primero debe borrar todos sus conjuntos de datos e instantáneas "
+"duplicados."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:239
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:339
+msgid "1 snapshot will be deleted."
+msgstr "Se eliminará 1 instantánea."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:380
+msgid "Some snapshots could not be read"
+msgstr "No se ha podido leer algunas instantáneas"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:404
+msgid "Some snapshots could not be deleted"
+msgstr "No se ha podido eliminar algunas instantáneas"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/fileversion.py:328
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:178
+msgid "Invalid arguments count."
+msgstr "Recuento de argumentos no válidos."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/fileversion.py:330
+msgid ""
+"Version explorer requires 2 arguments :\n"
+"- The path of the root snapshot directory.\n"
+"- The filename to explore."
+msgstr ""
+"El explorador de versiones necesita 2 argumentos:\n"
+"- La ruta del directorio raíz de las instantáneas.\n"
+"- El nombre del archivo que se va a explorar."
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:116
+msgid "Invalid characters in snapshot name"
+msgstr "Caracteres no válidos en el nombre de la instantánea"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:117
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:147
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:179
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:215
+msgid "Error"
+msgstr "Error"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:118
+msgid ""
+"Allowed characters for snapshot names are :\n"
+"[a-z][A-Z][0-9][-_.:\n"
+"All invalid characters will be removed\n"
+msgstr ""
+"Los caracteres permitidos en los nombres de las instantáneas son:\n"
+"[a-z][A-Z][0-9][-_.:\n"
+"Se suprimirán todos los caracteres no válidos\n"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:146
+msgid "Error occured while creating the snapshot"
+msgstr "Error al crear la instantánea"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:155
+msgid "Snapshot created successfully"
+msgstr "La instantánea se creó correctamente"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:156
+msgid "Success"
+msgstr "Correcto"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:157
+#, python-format
+msgid ""
+"A snapshot of zfs filesystem %s\n"
+"named %s\n"
+"has been created.\n"
+msgstr ""
+"Una instantánea del sistema de archivos zfs %s\n"
+"llamada %s\n"
+"se ha creado.\n"
+
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:157
+#, python-format
+msgid ""
+"A snapshot of zfs filesystem %(zfs_fs)s\n"
+"named %(valid_name)s\n"
+"has been created.\n"
+msgstr ""
+"Una instantánea del sistema de archivos zfs %(zfs_fs)s\n"
+"llamada %(valid_name)s\n"
+"se ha creado.\n"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:180
+msgid ""
+"Snapshot Now requires 2 arguments :\n"
+"- The path of the directory to be snapshotted.\n"
+"- The zfs filesystem corresponding to this directory."
+msgstr ""
+"Tomar instantánea ahora necesita 2 argumentos:\n"
+"- La ruta del directorio del que se va a tomar la instantánea.\n"
+"- El sistema de archivos zfs correspondiente a este directorio."
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../data/time-slider.desktop.in.h:2
+msgid "Time Slider"
+msgstr "Deslizador de tiempo"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-delete.glade.h:9
+msgid "File System:"
+msgstr "Sistema de archivos:"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:4
+msgid "C_ustom:"
+msgstr "_Personalizar:"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
+msgid "Time Slider Manager"
+msgstr "Administrador del deslizador de tiempo"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#. Note to translators
+#. The second element is for internal matching and should not
+#. be translated under any circumstances.
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:184
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:197
+msgid "All"
+msgstr "Todos"
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:540
+msgid ""
+"Snapshot deletion requires administrative privileges to run. You have not "
+"been assigned the necessaryadministrative priviliges.\n"
+"\n"
+"Consult your system administrator "
+msgstr ""
+"La eliminación de la instantánea necesita privilegios administrativos. No se "
+"le ha asignado los correspondientes privilegios administrativos.\n"
+"\n"
+"Consulte al administrador del sistema"
 
 # COMMUNITY MESSAGE
 # COMMUNITY FUZZY
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
-msgid "Reduce backups when storage space usage exceeds:"
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:132
+#, python-format
+msgid ""
+"The snapshot manager service has been placed offline due to a dependency "
+"problem. The following dependency problems were found:\n"
+"\n"
+"%s\n"
+"\n"
+"Run \"svcs -xv\" from a command prompt for more information about these "
+"dependency problems."
 msgstr ""
-"Destruir las copias de seguridad cuando se sobrepase el uso del espacio de "
-"almacenamiento:"
+"El servicio de administrador de instantáneas se ha quedado sin conexión por "
+"un problema de dependencia. Se han detectado los siguientes problemas de "
+"dependencia:\n"
+"\n"
+"%s\n"
+"\n"
+"Ejecute \"svcs -xv\" desde un indicador de comandos para obtener más "
+"información sobre estos problemas de dependencia."
+
+#
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:216
+msgid ""
+"Snapshot Now requires administrative privileges to run. You have not been "
+"assigned the necessaryadministrative priviliges.\n"
+"\n"
+"Consult your system administrator "
+msgstr ""
+"Tomar instantánea ahora necesita privilegios administrativos. No se le han "
+"asignado los correspondientes privilegios administrativos.\n"
+"\n"
+"Consulte al administrador del sistema"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../data/time-slider-setup.desktop.in.h:2
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:7
-msgid "Time Slider Setup"
-msgstr "Configuración del deslizador de tiempo"
+#: ../data/time-slider.desktop.in.h:1
+msgid "Configure the system to take automatic snapshots of your data"
+msgstr ""
+"Configurar el sistema para tomar instantáneas de manera automática de los "
+"datos"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
@@ -73,30 +572,31 @@ msgstr "Opciones avanzadas"
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:4
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:5
 msgid "For advanced users"
 msgstr "Para usuarios avanzados"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:5
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
 msgid "Recommended for most users"
 msgstr "Recomendado para la mayoría de los usuarios"
 
-# COMMUNITY UNTRANS
+# COMMUNITY MESSAGE
+# COMMUNITY FUZZY
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
-msgid "Destroy oldest backups when storage space usage exceeds:"
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:7
+msgid "Reduce backups when storage space usage exceeds:"
 msgstr ""
-"Destruir la copias de seguridad más antiguas cuando el uso del espacio de "
-"almacenamiento supere:"
+"Destruir las copias de seguridad cuando se sobrepase el uso del espacio de "
+"almacenamiento:"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:9
 msgid "Time Slider backs up data regularly by taking timed ZFS Snapshots"
 msgstr ""
 "El deslizador de tiempo hace copias de seguridad de datos con regularidad "
@@ -105,58 +605,46 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:9
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:10
 msgid "_All"
 msgstr "_Todo"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:10
-msgid "_Custom:"
-msgstr "P_ersonalizar:"
+#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:12
+msgid "of file system capacity"
+msgstr "de capacidad de sistema de archivos"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
-msgid "of pool capacity"
-msgstr "de capacidad de la agrupación"
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:146
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:108
+msgid "Mount Point"
+msgstr "Punto de montaje"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#. !/usr/bin/env python
-#.
-#. CDDL HEADER START
-#.
-#. The contents of this file are subject to the terms of the
-#. Common Development and Distribution License (the "License").
-#. You may not use this file except in compliance with the License.
-#.
-#. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
-#. or http://www.opensolaris.org/os/licensing.
-#. See the License for the specific language governing permissions
-#. and limitations under the License.
-#.
-#. When distributing Covered Code, include this CDDL HEADER in each
-#. file and include the License file at usr/src/OPENSOLARIS.LICENSE.
-#. If applicable, add the following below this CDDL HEADER, with the
-#. fields enclosed by brackets "[]" replaced with your own identifying
-#. information: Portions Copyright [yyyy] [name of copyright owner]
-#.
-#. CDDL HEADER END
-#.
-#. Everything was OK
-#. Above USER threshhold level
-#. Above CRITICAL level
-#. Above EMERGENCY level
-#. Only report the most significant warning level
-#. Other, lesser problems can be dealt with later if not
-#. fixed after user intervention
-#. Leave the notification up for 15 minutes (15 * 60 * 1000) so that
-#. notifications don't stack up on the desktop.
-#: ../usr/share/time-slider/lib/time_slider/notification.py:85
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:154
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:111
+msgid "File System Name"
+msgstr "Nombre del sistema de archivos"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/deletegui.py:539
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:308
+#: ../usr/share/time-slider/lib/time_slider/snapnowui.py:214
+msgid "Insufficient Priviliges"
+msgstr "Los privilegios no son suficientes"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#: ../usr/share/time-slider/lib/time_slider/notification.py:88
 #, python-format
 msgid "Emergency: '%s' is full!"
 msgstr "Emergencia: '%s' se ha llenado"
@@ -164,7 +652,7 @@ msgstr "Emergencia: '%s' se ha llenado"
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/notification.py:86
+#: ../usr/share/time-slider/lib/time_slider/notification.py:89
 #, python-format
 msgid ""
 "The file system: '%s', is over %s%% full.\n"
@@ -181,7 +669,7 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/notification.py:95
+#: ../usr/share/time-slider/lib/time_slider/notification.py:98
 #, python-format
 msgid "Emergency: '%s' is almost full!"
 msgstr "Emergencia: '%s' se ha llenado casi del todo"
@@ -189,7 +677,7 @@ msgstr "Emergencia: '%s' se ha llenado casi del todo"
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/notification.py:96
+#: ../usr/share/time-slider/lib/time_slider/notification.py:99
 #, python-format
 msgid ""
 "The file system: '%s', exceeded %s%% of its total capacity. As an emerency "
@@ -207,7 +695,7 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/notification.py:107
+#: ../usr/share/time-slider/lib/time_slider/notification.py:110
 #, python-format
 msgid "Urgent: '%s' is almost full!"
 msgstr "Urgente: '%s' se ha llenado casi del todo"
@@ -215,7 +703,7 @@ msgstr "Urgente: '%s' se ha llenado casi del todo"
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/notification.py:108
+#: ../usr/share/time-slider/lib/time_slider/notification.py:111
 #, python-format
 msgid ""
 "The file system: '%s', exceeded %s%% of its total capacity. As a remedial "
@@ -235,7 +723,7 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/notification.py:119
+#: ../usr/share/time-slider/lib/time_slider/notification.py:122
 #, python-format
 msgid "Warning: '%s' is getting full"
 msgstr "Advertencia: '%s' se está llenando"
@@ -243,7 +731,7 @@ msgstr "Advertencia: '%s' se está llenando"
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/notification.py:120
+#: ../usr/share/time-slider/lib/time_slider/notification.py:123
 #, python-format
 msgid ""
 "'%s' exceeded %s%% of its total capacity. To fix this, Time Slider has "
@@ -262,101 +750,29 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#. No other values currently supported
-#. zpools is of the form "<pool1>,<pool2>,..."
-#. pool status is of the form "<pool1status,<pool2status>..."
-#. !/usr/bin/env python
-#.
-#. CDDL HEADER START
-#.
-#. The contents of this file are subject to the terms of the
-#. Common Development and Distribution License (the "License").
-#. You may not use this file except in compliance with the License.
-#.
-#. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
-#. or http://www.opensolaris.org/os/licensing.
-#. See the License for the specific language governing permissions
-#. and limitations under the License.
-#.
-#. When distributing Covered Code, include this CDDL HEADER in each
-#. file and include the License file at usr/src/OPENSOLARIS.LICENSE.
-#. If applicable, add the following below this CDDL HEADER, with the
-#. fields enclosed by brackets "[]" replaced with your own identifying
-#. information: Portions Copyright [yyyy] [name of copyright owner]
-#.
-#. CDDL HEADER END
-#.
-#. here we define the path constants so that other modules can use it.
-#. this allows us to get access to the shared files without having to
-#. know the actual location, we just use the location of the current
-#. file and use paths relative to that.
-#. the name of the gettext domain. because we have our translation files
-#. not in a global folder this doesn't really matter, setting it to the
-#. application name is a good idea tough.
-#. set up the glade gettext system and locales
-#. signal dictionary
-#. Set TreeViews
-#. FIXME: A bit hacky but it seems to work nicely
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:100
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:105
 msgid "Select"
 msgstr "Seleccionar"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:103
-msgid "Mount Point"
-msgstr "Punto de montaje"
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:106
-msgid "File System Name"
-msgstr "Nombre del sistema de archivos"
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
-#. Initialise SMF service instance state.
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:126
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:131
 msgid "Snapshot manager service dependency error"
 msgstr "Error de dependencia del servicio de administrador de instantáneas"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:127
-#, python-format
-msgid ""
-"The snapshot manager service has been placed offline due to a dependency "
-"problem. The following dependency problems were found:\n"
-"\n"
-"%s\n"
-"\n"
-"See the svcs(1) man page for more information"
-msgstr ""
-"El servicio de administrador de instantáneas se ha quedado sin conexión por "
-"un problema de dependencia. Se han detectado los siguientes problemas de "
-"dependencia:\n"
-"\n"
-"%s\n"
-"\n"
-"Para obtener más información, consulte la página de comando man svcs(1)."
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
-#. FIXME: Check transitional states
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:140
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:157
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:146
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:163
 msgid "Snapshot manager service error"
 msgstr "Error del servicio de administrador de instantáneas"
 
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:141
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:147
 msgid ""
 "The snapshot manager service has encountered a problem and has been disabled "
 "until the problem is fixed.\n"
@@ -371,7 +787,7 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:158
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:164
 msgid ""
 "The snapshot manager service does not appear to be installed on this "
 "system.\n"
@@ -386,43 +802,7 @@ msgstr ""
 # COMMUNITY UNTRANS
 # SUN CHANGED MESSAGE
 # SUN LING REVIEWED
-#. Emit a toggled signal so that the initial GUI state is consistent
-#. Check the snapshotting policy (UserData (default), or Custom)
-#. Show the advanced controls so the user can see the
-#. customised configuration.
-#. "false" or any other non "true" value
-#. Set the cleanup threshhold value
-#. Force the warning level to something practical
-#. on the lower end, and make it no greater than the
-#. critical level specified in the SVC instance.
-#. Ignore any possible changes to the snapshot configuration
-#. of filesystems if the service is disabled.
-#. So nothing else to do here.
-#. Set the service state last so that the ZFS filesystems
-#. are correctly tagged before the snapshot scripts check them
-#. The user security attributes checked are the following:
-#. 1. The "Primary Administrator" role
-#. 2. The "solaris.smf.manage.zfs-auto-snapshot" auth
-#. 3. The "Service Management" profile
-#. 4. The "ZFS Files System Management" profile.
-#.
-#. Valid combinations of the above are:
-#. - 1
-#. - 2 & 4
-#. - 3 & 4
-#. Note that an effective UID=0 will match any profile search so
-#. no need to check it explicitly.
-#. Run via gksu, which will prompt for the root password
-#. Shouldn't reach this point
-#. FIXME: Pop up an error dialog and exit.
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:297
-msgid "Insufficient Priviliges"
-msgstr "Los privilegios no son suficientes"
-
-# COMMUNITY UNTRANS
-# SUN CHANGED MESSAGE
-# SUN LING REVIEWED
-#: ../usr/share/time-slider/lib/time_slider/setupgui.py:298
+#: ../usr/share/time-slider/lib/time_slider/setupgui.py:309
 msgid ""
 "The snapshot manager service requires administrative privileges to run. You "
 "have not been assigned the necessaryadministrative priviliges.\n"
@@ -434,3 +814,17 @@ msgstr ""
 "administrativos.\n"
 "\n"
 "Consulte al administrador del sistema "
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#~ msgid "Destroy oldest backups when storage space usage exceeds:"
+#~ msgstr ""
+#~ "Destruir la copias de seguridad más antiguas cuando el uso del espacio de "
+#~ "almacenamiento supere:"
+
+# COMMUNITY UNTRANS
+# SUN CHANGED MESSAGE
+# SUN LING REVIEWED
+#~ msgid "of pool capacity"
+#~ msgstr "de capacidad de la agrupación"

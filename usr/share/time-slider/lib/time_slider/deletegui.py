@@ -176,9 +176,9 @@ class DeleteSnapManager:
             self.snaptreeview.append_column(creationcol)
 
 
-            # Note to translators
+            # Note to developers.
             # The second element is for internal matching and should not
-            # be translated under any circumstances.        
+            # be i18ned under any circumstances.        
             fsstore = gtk.ListStore(str, str)
             fslist = zfs.list_filesystems()
             fsstore.append([_("All"), None])
@@ -191,9 +191,9 @@ class DeleteSnapManager:
             self.fsfilterentry.pack_start(fsfilterentryCell)
 
             schedstore = gtk.ListStore(str, str)
-            # Note to translators
+            # Note to developers.
             # The second element is for internal matching and should not
-            # be translated under any circumstances.
+            # be i18ned under any circumstances.
             schedstore.append([_("All"), None])
             schedstore.append([_("Monthly"), "zfs-auto-snap:monthly"])
             schedstore.append([_("Weekly"), "zfs-auto-snap:weekly"])

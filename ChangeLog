@@ -1,3 +1,10 @@
+2009-02-19  Takao Fujiwara  <takao.fujiwara@sun.com>
+
+	* usr/share/time-slider/lib/time_slider/deletegui.py: updated
+	the comments because translators are confused it.
+	* usr/share/time-slider/lib/time_slider/snapnowui.py: updated
+	the gettext "%s" so that translators can change the oder of "%s".
+
 2009-02-05 Niall Power - <niall.power@sun.com>
 
 	* VERSION: bump to 0.2.5

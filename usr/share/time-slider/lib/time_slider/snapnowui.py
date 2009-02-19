@@ -154,9 +154,10 @@ class SnapshotNowDialog:
 				     gtk.BUTTONS_CLOSE,
 				     _("Snapshot created successfully"))
 	  dialog.set_title (_("Success"))
-	  dialog.format_secondary_text(_("A snapshot of zfs filesystem %s\n"
-				       "named %s\n"
-				       "has been created.\n") % (self.zfs_fs, valid_name))
+	  dialog.format_secondary_text(_("A snapshot of zfs filesystem %(zfs_fs)s\n"
+				       "named %(valid_name)s\n"
+				       "has been created.\n") %
+				       { "zfs_fs" : self.zfs_fs, "valid_name" : valid_name})
 	  dialog.run ()
 
 	sys.exit(1)
