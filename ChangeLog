@@ -1,3 +1,15 @@
+2009-03-01  Niall Power <niall.power@sun.com>
+
+	* VERSION: bump to 0.2.6
+	* Makefile: Pick up PYTHON environment variable. Enhancement for
+	  fix to 6754650
+	* usr/share/time-slider/lib/time_slider/setupgui.py: Allow filesystems
+	  to inherit properties from their parent instead of locally tagging
+	  every filesystem with the required property setting.
+	* usr/share/time-slider/lib/time_slider/zfs.py: Add an "inherit" argument
+	  to Filesystem.commit_state() to allow the fileystem to inherit from
+	  it's parent when setting the auto-snapshot property.
+
 2009-02-19  Takao Fujiwara  <takao.fujiwara@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/deletegui.py: updated

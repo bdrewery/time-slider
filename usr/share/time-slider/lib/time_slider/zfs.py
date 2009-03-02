@@ -265,18 +265,14 @@ class Filesystem:
         fin,fout = os.popen4(cmd)
         return long(fout.read().rstrip())
 
-    def commit_state(self, include):
-        if include == True:
+    def commit_state(self, include, inherit = False):
+        if inherit == True:
+            cmd = "pfexec /usr/sbin/zfs inherit com.sun:auto-snapshot %s" % (self.name)
+        elif include == True:
             cmd = "pfexec /usr/sbin/zfs set com.sun:auto-snapshot=true %s" % (self.name)
-            fin,fout = os.popen4(cmd)
-            # FIXME : Error checking needed
         else:
-            # Using inheritance could break the GUI model if a parent that the local
-            # filesystem inherits from changes it's value. So set a explicit local 
-            # property to prevent that from happening.
             cmd = "pfexec /usr/sbin/zfs set com.sun:auto-snapshot=false %s" % (self.name)
-            fin,fout = os.popen4(cmd)
-            # FIXME : Error checking needed.
+        fin,fout = os.popen4(cmd)
         return
 
     def list_snapshots(self, pattern = None):

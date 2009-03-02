@@ -61,6 +61,13 @@ from zfscontroller import ZFSController
 from smfmanager import SMFManager
 from rbac import RBACprofile
 
+class FilesystemIntention:
+
+    def __init__(self, name, selected, inherited):
+        self.name = name
+        self.selected = selected
+        self.inherited = inherited
+
 class SnapshotManager:
 
     def __init__(self, execpath):
@@ -79,7 +86,11 @@ class SnapshotManager:
                "on_deletesnapshots_clicked" : self.on_deletesnapshots_clicked}
         self.xml.signal_autoconnect(dic)
 
-        # Set TreeViews
+        # Used to store GUI filesystem selection state and the
+        # set of intended properties to apply to zfs filesystems.
+        self.uistatedic = {}
+        self.fsintentdic = {}
+
         self.liststorefs = gtk.ListStore(bool, str, str, gobject.TYPE_PYOBJECT)
         for fs in self.controller.zfs_fs:
             mountpoint = fs.mountpoint
@@ -205,6 +216,9 @@ class SnapshotManager:
             self.liststorefs.set_value(iter, 0, False)
 
     def on_ok_clicked(self, widget):
+        # Make sure the dictionaries are empty.
+        self.fsintentdic = {}
+        self.uistatedic = {}
         enabled = self.xml.get_widget("enablebutton").get_active()
         if enabled == False:
             self.smfmanager.disable_service()
@@ -218,8 +232,12 @@ class SnapshotManager:
                 self.smfmanager.set_selection_propval("false")
                 model.foreach(self.set_default_state)
             else:
-                model.foreach(self.set_fs_state)
                 self.smfmanager.set_selection_propval("true")
+                model.foreach(self.get_ui_state)
+            for fsname in self.uistatedic:
+                self.update_fs_state(fsname)
+            self.commit_intents()
+
             level = self.xml.get_widget("capspinbutton").get_value_as_int()
             self.smfmanager.set_warning_level(level)
             # Set the service state last so that the ZFS filesystems
@@ -258,21 +276,60 @@ class SnapshotManager:
         toprequest = toplevel.size_request()
         toplevel.resize(toprequest[0], toprequest[1] - myrequest[1])
 
+    def get_ui_state(self, model, path, iter):
+        fsname = self.liststorefs.get_value(iter, 2)    
+        enabled = self.liststorefs.get_value(iter, 0)
+        self.uistatedic[fsname] = enabled
+
     def set_default_state(self, model, path, iter):
-        fs = self.liststorefs.get_value(iter, 3)
-        mountpoint = self.liststorefs.get_value(iter, 1)
-        fs.commit_state(True)
+        fsname = self.liststorefs.get_value(iter, 2)
+        self.uistatedic[fsname] = True
 
-    def set_fs_state(self, model, path, iter):
-        fs = self.liststorefs.get_value(iter, 3)
-        included = self.liststorefs.get_value(iter, 0)
-        fs.commit_state(included)
+    def update_fs_state(self, fsname):
+        selected = self.uistatedic[fsname]
+        try:
+            fstag = self.fsintentdic[fsname]
+            # Found so we can skip over.
+        except KeyError:
+            # Need to check parent value to see if
+            # we should set explicitly or just inherit.
+            path = fsname.rsplit("/", 1)
+            parentname = path[0]
+            if parentname == fsname:
+                # Means this filesystem is the root of the pool
+                # so we need to set it explicitly.
+                self.fsintentdic[fsname] = \
+                    FilesystemIntention(fsname, selected, False)
+            else:
+                parentintent = None
+                inherit = False
+                # Check if parent is already set and if so whether to
+                # inherit or override with a locally set property value.
+                try:
+                    # Parent has already been registered
+                    parentintent = self.fsintentdic[parentname]
+                except:
+                    # Parent not yet set, so do that recursively to figure
+                    # out if we need to inherit or set a local property on
+                    # this child filesystem.
+                    self.update_fs_state(parentname)
+                    parentintent = self.fsintentdic[parentname]
+                if parentintent.selected == selected:
+                    inherit = True
+                self.fsintentdic[fsname] = \
+                    FilesystemIntention(fsname, selected, inherit)
 
+    def commit_intents(self):
+        """Commits the intended filesystem selection actions based on the
+           user's UI configuration to disk"""
+        for fs in self.controller.zfs_fs:
+            intent = self.fsintentdic[fs.name]
+            fs.commit_state(intent.selected, intent.inherited)
+    
     def on_deletesnapshots_clicked(self, widget):
         cmdpath = os.path.join(os.path.dirname(self.execpath), \
                                 "../lib/time-slider-delete")
         fin,fout = os.popen4(cmdpath)
-
 
 def main(argv):
     rbacp = RBACprofile()

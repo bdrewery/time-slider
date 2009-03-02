@@ -5,10 +5,14 @@ INSTALL = /usr/sbin/install
 INSTALL_DATA = ${INSTALL} -u root -g bin -m 644 -f
 INSTALL_PROGRAM = ${INSTALL} -u root -g bin -f
 INSTALL_SCRIPT = ${INSTALL} -f
-PYTHON = /usr/bin/python
 RM = /usr/bin/rm -f
 RMRF = /usr/bin/rm -Rf
 RMDIR = /usr/bin/rmdir
+# Use python 2.4 if PYTHON environent is not set
+ifeq ($(strip $(PYTHON)),)
+PYTHON = /usr/bin/python2.4
+endif
+
 SUBDIRS = po data
 
 DISTFILES = Authors \
