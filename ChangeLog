@@ -1,3 +1,15 @@
+2009-04-07  Niall Power <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/time_slider/cleanupmanager.py
+	* usr/share/time-slider/lib/time_slider/deletegui.py
+	* usr/share/time-slider/lib/time_slider/smfmanager.py
+	* usr/share/time-slider/lib/time_slider/zfs.py
+	* usr/share/time-slider/lib/time_slider/zfscontroller.py:
+	  Use macro substitution to specify full paths to all spawned
+	  commands (zfs, zpool, svcadm, svccfg, svcprop, pfexec) so that
+	  commands work independently of user's PATH environment.
+	  Fixes opensolaris defect #7396
+
 2009-03-01  Niall Power <niall.power@sun.com>
 
 	* VERSION: bump to 0.2.6

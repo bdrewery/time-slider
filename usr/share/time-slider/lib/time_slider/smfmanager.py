@@ -28,6 +28,14 @@ SMFNAME = 'svc:/application/time-slider'
 ZFSPROPGROUP = "zfs"
 ZPOOLPROPGROUP = "zpool"
 
+# Commonly used command paths
+PFCMD = "/usr/bin/pfexec "
+SVCSCMD = "/usr/bin/svcs "
+SVCADMCMD = "/usr/sbin/svcadm "
+SVCCFGCMD = "/usr/sbin/svccfg "
+SVCPROPCMD = "/usr/bin/svcprop "
+
+
 class SMFManager(Exception):
 
     def __init__(self, instance_name=SMFNAME):
@@ -37,14 +45,14 @@ class SMFManager(Exception):
         self.customselection = self.get_selection_propval()
 
     def get_selection_propval(self):
-        cmd = "svcprop -c -p %s/%s %s" \
+        cmd = SVCPROPCMD + "-c -p %s/%s %s" \
                % (ZFSPROPGROUP, "custom-selection", self.instance_name)
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip ()
         return result
 
     def get_warning_level(self):
-        cmd = "svcprop -c -p %s/%s %s" \
+        cmd = SVCPROPCMD + "-c -p %s/%s %s" \
                % (ZPOOLPROPGROUP, "warning-level", self.instance_name)
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip ()
@@ -53,7 +61,7 @@ class SMFManager(Exception):
     def set_warning_level(self, value):
         if value > self.get_critical_level():
             raise ValueError, "Warning level can not exceed critical level"
-        cmd = "pfexec /usr/sbin/svccfg -s %s setprop " \
+        cmd = PFCMD + SVCCFGCMD + "-s %s setprop " \
               " %s/warning-level = integer: %s" \
                % (self.instance_name, ZPOOLPROPGROUP, value)
         fin,fout = os.popen4(cmd)
@@ -62,7 +70,7 @@ class SMFManager(Exception):
         return result
 
     def get_critical_level(self):
-        cmd = "svcprop -c -p %s/%s %s" \
+        cmd = SVCPROPCMD + "-c -p %s/%s %s" \
                % (ZPOOLPROPGROUP, "critical-level", self.instance_name)
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip ()
@@ -71,7 +79,7 @@ class SMFManager(Exception):
     def set_critical_level(self, value):
         if value > self.get_emergency_level():
             raise ValueError, "Critical level can not exceed emergency level"
-        cmd = "pfexec /usr/sbin/svccfg -s %s setprop " \
+        cmd = PFCMD + SVCCFGCMD + "-s %s setprop " \
               " %s/critical-level = integer: %s" \
                % (self.instance_name, ZPOOLPROPGROUP, value)
         fin,fout = os.popen4(cmd)
@@ -80,7 +88,7 @@ class SMFManager(Exception):
         return result
 
     def get_emergency_level(self):
-        cmd = "svcprop -c -p %s/%s %s" \
+        cmd = SVCPROPCMD + "-c -p %s/%s %s" \
                % (ZPOOLPROPGROUP, "emergency-level", self.instance_name)
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip ()
@@ -98,7 +106,7 @@ class SMFManager(Exception):
         return result
 
     def set_selection_propval(self, value):
-        cmd = "pfexec /usr/sbin/svccfg -s %s setprop " \
+        cmd = PFCMD + SVCCFGCMD + "-s %s setprop " \
               "%s/custom-selection = boolean: \'%s\'" \
                % (self.instance_name, ZFSPROPGROUP, value)
         fin,fout = os.popen4(cmd)
@@ -107,7 +115,7 @@ class SMFManager(Exception):
         return result
 
     def get_service_dependencies(self):
-        cmd = "svcs -H -o fmri -d " + self.instance_name
+        cmd = SVCSCMD + "-H -o fmri -d " + self.instance_name
         child = popen2.Popen4(cmd)
         ec = os.WEXITSTATUS(child.wait())
         result = child.fromchild.read().rstrip().split("\n")
@@ -116,7 +124,7 @@ class SMFManager(Exception):
     def find_dependency_errors(self):
         errors = []
         for dep in self.svcdeps:
-            cmd = "svcs -H -o state " + dep
+            cmd = SVCSCMD + "-H -o state " + dep
             fin,fout = os.popen4(cmd)
             result = fout.read().rstrip()
             if result != "online":
@@ -124,7 +132,7 @@ class SMFManager(Exception):
         return errors
 
     def get_service_state(self):
-        cmd = "svcs -H -o state " + self.instance_name
+        cmd = SVCSCMD + "-H -o state " + self.instance_name
         child = popen2.Popen4(cmd)
         ec = os.WEXITSTATUS(child.wait())
         # A return exit code of 1 indicates that svcadm has no knowledge
@@ -133,7 +141,7 @@ class SMFManager(Exception):
         return ec,result
 
     def refresh_service(self):
-        cmd = "pfexec /usr/sbin/svcadm refresh " + self.instance_name
+        cmd = PFCMD + SVCADMCMD + "refresh " + self.instance_name
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip()
         return result
@@ -141,18 +149,18 @@ class SMFManager(Exception):
     def disable_service (self):
         if self.svcstate == "disabled":
             return
-        cmd = "pfexec /usr/sbin/svcadm disable " + self.instance_name
+        cmd = PFCMD + SVCADMCMD + "disable " + self.instance_name
         fin,fout = os.popen4(cmd)
         self.svccode,self.svcstate = self.get_service_state()
         for dep in self.svcdeps:
-            cmd = "pfexec /usr/sbin/svcadm disable " + dep
+            cmd = PFCMD + SVCADMCMD + "disable " + dep
             fin,fout = os.popen4(cmd)
         #FIXME: Check return value/command output
 
     def enable_service (self):
         if (self.svcstate == "online" or self.svcstate == "degraded"):
             return
-        cmd = "pfexec /usr/sbin/svcadm enable -r " + self.instance_name
+        cmd = PFCMD + SVCADMCMD + "enable -r " + self.instance_name
         child = popen2.Popen4(cmd)
         ec = os.WEXITSTATUS(child.wait())
         result = child.fromchild.read().rstrip()

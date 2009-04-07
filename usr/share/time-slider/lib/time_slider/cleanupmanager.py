@@ -122,7 +122,7 @@ class CleanupManager:
                     # would accept more than one argument.
                     # We don't need to run this via pfexec since we're running
                     # as root already.
-                    cmd = "/usr/sbin/zfs destroy %s" % snaps[counter]
+                    cmd = zfs.ZFSCMD + "destroy %s" % snaps[counter]
                     os.system(cmd)
                     deletelist.append(snaps[counter])
                     counter += 1

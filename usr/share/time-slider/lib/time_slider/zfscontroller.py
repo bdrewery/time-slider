@@ -22,7 +22,7 @@
 
 import os
 
-from zfs import Filesystem
+from zfs import Filesystem, ZFSCMD
 
 
 class ZFSController:
@@ -33,7 +33,7 @@ class ZFSController:
             self.zfs_fs = self.__get_zfs_fs()
 
     def __are_zfs_datasets_available(self):
-        cmd = "zfs list"
+        cmd = ZFSCMD + "list"
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip()
         if result == "no datasets available":
@@ -42,7 +42,7 @@ class ZFSController:
 
     def __get_zfs_fs(self):
         """ Return a list of Filesystem objects, sorted by mountpoint """
-        cmd = "/usr/sbin/zfs list -H -t filesystem -o name -s mountpoint"
+        cmd = ZFSCMD + "list -H -t filesystem -o name -s mountpoint"
         fin,fout = os.popen4(cmd)
         result = fout.read()
         list_fs = []

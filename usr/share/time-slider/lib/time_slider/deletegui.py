@@ -451,7 +451,7 @@ class ScanSnapshots(threading.Thread):
     def __get_fs_mountpoints(self):
         """Returns a dictionary mapping: 
            {filesystem : mountpoint}"""
-        cmd = "zfs list -H -t filesystem -o name,mountpoint"
+        cmd = zfs.ZFSCMD + "list -H -t filesystem -o name,mountpoint"
         fin,fout,ferr = os.popen3(cmd)
         result = {}
         for line in fout:

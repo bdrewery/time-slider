@@ -23,6 +23,11 @@
 import os
 BYTESPERMB = 1048576
 
+# Commonly used command paths
+PFCMD = "/usr/bin/pfexec "
+ZFSCMD = "/usr/sbin/zfs "
+ZPOOLCMD = "/usr/sbin/zpool "
+
 class ZPool(Exception):
 
     def __init__(self, name):
@@ -68,7 +73,7 @@ class ZPool(Exception):
 
     def list_filesystems(self):
         result = []
-        cmd = "/usr/sbin/zfs list -t filesystem -H -o name"
+        cmd = ZFSCMD + "list -t filesystem -H -o name"
         fin,fout = os.popen4(cmd)
         for line in fout:
             try:
@@ -84,10 +89,10 @@ class ZPool(Exception):
         # We want pattern matching snapshots sorted by creation date.
         # Oldest snapshots get listed first
         if pattern != None:
-            cmd = "zfs list -t snapshot -o name -s creation | grep @%s" \
+            cmd = ZFSCMD + "list -t snapshot -o name -s creation | grep @%s" \
                    % (pattern)
         else:
-            cmd = "zfs list -t snapshot -o name -s creation"
+            cmd = ZFSCMD + "list -t snapshot -o name -s creation"
         fin,fout = os.popen4(cmd)
         snapshots = []
         for line in fout:
@@ -101,7 +106,7 @@ class ZPool(Exception):
 
     def __get_health(self):
         """ Gets pool health status: ("ONLINE", "DEGRADED" or "FAULTED")"""
-        cmd = "/usr/sbin/zpool list -H -o health %s" % (self.name)
+        cmd = ZPOOLCMD + "list -H -o health %s" % (self.name)
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip()
         return result
@@ -139,7 +144,7 @@ class Snapshot(Exception):
 
     def get_creation_time(self):
         if self.__creationTime == None:
-            cmd = "/usr/sbin/zfs get -H -p -o value creation %s" % (self.name)
+            cmd = ZFSCMD + "get -H -p -o value creation %s" % (self.name)
             fin,fout = os.popen4(cmd)
             self.__creationTime = long(fout.read().rstrip())
         return self.__creationTime
@@ -163,7 +168,7 @@ class Snapshot(Exception):
            False otherwise"""
         # Test existance of the snapshot by checking the output of a 
         # simple zfs get command on the snapshot
-        cmd = "/usr/sbin/zfs get -H -o name type %s" % self.name
+        cmd = ZFSCMD + "get -H -o name type %s" % self.name
         fin,fout,ferr = os.popen3(cmd)
         result = fout.read().rstrip()
         if result == self.name:
@@ -172,20 +177,20 @@ class Snapshot(Exception):
             return False
 
     def get_used_size(self):
-        cmd = "/usr/sbin/zfs get -H -p -o value used %s" % (self.name)
+        cmd = ZFSCMD + "get -H -p -o value used %s" % (self.name)
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip()
         return long(result)
 
     def get_referenced_size(self):
-        cmd = "/usr/sbin/zfs get -H -p -o value referenced %s" % (self.name)
+        cmd = ZFSCMD + "get -H -p -o value referenced %s" % (self.name)
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip()
         return long(result)
 
     def list_children(self):
         """Returns a recursive list of child snapshots of this snapshot"""  
-        cmd = "/usr/sbin/zfs list -t snapshot -H -r -o name %s | grep @%s" \
+        cmd = ZFSCMD + "list -t snapshot -H -r -o name %s | grep @%s" \
               % (self.fsname, self.snaplabel)
         fin,fout = os.popen4(cmd)
         result = []
@@ -197,7 +202,7 @@ class Snapshot(Exception):
 
     def has_clones(self):
         """Returns true if the snapshot as any dependent clones"""
-        cmd = "/usr/sbin/zfs list -H -o origin,name"
+        cmd = ZFSCMD + "list -H -o origin,name"
         fin,fout = os.popen4(cmd)
         for line in fout:
             details = line.rstrip().split()
@@ -207,7 +212,7 @@ class Snapshot(Exception):
         return False
 
     def destroy_snapshot(self, recursive = False):
-        cmd = "pfexec /usr/sbin/zfs destroy %s" % self.name
+        cmd = PFCMD + ZFSCMD + "destroy %s" % self.name
         fin,fout,ferr = os.popen3(cmd)
         # Check for any error output generated and
         # return it to caller if so.
@@ -242,7 +247,7 @@ class Filesystem:
         return return_string
 
     def __is_included(self):
-        cmd = "/usr/sbin/zfs get -H -o value com.sun:auto-snapshot %s" % (self.name)
+        cmd = ZFSCMD + "get -H -o value com.sun:auto-snapshot %s" % (self.name)
         fin,fout = os.popen4(cmd)
         if fout.read().rstrip() == "true":
             return True
@@ -250,28 +255,28 @@ class Filesystem:
             return False
 
     def __get_mountpoint(self):
-        cmd = "/usr/sbin/zfs get -H -o value mountpoint %s" % (self.name)
+        cmd = ZFSCMD + "get -H -o value mountpoint %s" % (self.name)
         fin,fout = os.popen4(cmd)
         result = fout.read().rstrip()
         return result
 
     def get_used_size(self):
-        cmd = "/usr/sbin/zfs get -H -p -o value used %s" % (self.name)
+        cmd = ZFSCMD + "get -H -p -o value used %s" % (self.name)
         fin,fout = os.popen4(cmd)
         return long(fout.read().rstrip())
 
     def get_available_size(self):
-        cmd = "/usr/sbin/zfs get -H -p -o value available %s" % (self.name)
+        cmd = ZFSCMD + "get -H -p -o value available %s" % (self.name)
         fin,fout = os.popen4(cmd)
         return long(fout.read().rstrip())
 
     def commit_state(self, include, inherit = False):
         if inherit == True:
-            cmd = "pfexec /usr/sbin/zfs inherit com.sun:auto-snapshot %s" % (self.name)
+            cmd = PFCMD + ZFSCMD + "inherit com.sun:auto-snapshot %s" % (self.name)
         elif include == True:
-            cmd = "pfexec /usr/sbin/zfs set com.sun:auto-snapshot=true %s" % (self.name)
+            cmd = PFCMD + ZFSCMD + "set com.sun:auto-snapshot=true %s" % (self.name)
         else:
-            cmd = "pfexec /usr/sbin/zfs set com.sun:auto-snapshot=false %s" % (self.name)
+            cmd = PFCMD + ZFSCMD + "set com.sun:auto-snapshot=false %s" % (self.name)
         fin,fout = os.popen4(cmd)
         return
 
@@ -279,10 +284,10 @@ class Filesystem:
         # We want pattern matching snapshots sorted by creation date.
         # Oldest snapshots get listed first
         if pattern != None:
-            cmd = "zfs list -t snapshot -o name -s creation | grep %s@%s" \
+            cmd = ZFSCMD + "list -t snapshot -o name -s creation | grep %s@%s" \
                     % (self.name, pattern)
         else:
-            cmd = "zfs list -t snapshot -o name -s creation | grep %s@" \
+            cmd = ZFSCMD + "list -t snapshot -o name -s creation | grep %s@" \
                     %(self.name)
         fin,fout = os.popen4(cmd)
         snapshots = []
@@ -294,7 +299,7 @@ class Filesystem:
         return self.included
 
     def list_children(self):
-        cmd = "/usr/sbin/zfs list -H -r -t filesystem -o name %s" % (self.name)
+        cmd = ZFSCMD + "list -H -r -t filesystem -o name %s" % (self.name)
         fin,fout = os.popen4(cmd)
         result = []
         for line in fout:
@@ -305,10 +310,10 @@ class Filesystem:
 def list_filesystems(pattern = None):
     # We want pattern matching filesystems sorted by name.
     if pattern != None:
-        cmd = "zfs list -H -t filesystem -o name -s name | grep %s" \
+        cmd = ZFSCMD + "list -H -t filesystem -o name -s name | grep %s" \
                 % (pattern)
     else:
-        cmd = "zfs list -H -t filesystem -o name -s name"
+        cmd = ZFSCMD + "list -H -t filesystem -o name -s name"
     fin,fout = os.popen4(cmd)
     filesystems = []
     for line in fout:
@@ -322,10 +327,10 @@ def list_snapshots(pattern = None):
     # machine usable format. This is faster than calling zfs get
     # for each snapshot (of which there could be thousands)
     if pattern != None:
-        cmd = "zfs get -H -p -o value,name creation | grep @%s | sort"\
+        cmd = ZFSCMD + "get -H -p -o value,name creation | grep @%s | sort"\
                 % (pattern)
     else:
-        cmd = "zfs get -H -p -o value,name creation | grep @ | sort"
+        cmd = ZFSCMD + "get -H -p -o value,name creation | grep @ | sort"
     fin,fout = os.popen4(cmd)
     snapshots = []
     for line in fout:
@@ -337,7 +342,7 @@ def list_cloned_snapshots():
     """Returns a list of snapshots that have
        cloned filesystems associated with them. Cloned filesystems
        should not be displayed to the user for deletion"""
-    cmd = "zfs list -H -o origin"
+    cmd = ZFSCMD + "list -H -o origin"
     fin,fout,ferr = os.popen3(cmd)
     result = []
     for line in fout:
@@ -351,7 +356,7 @@ def list_cloned_snapshots():
 
 def list_zpools():
     result = []
-    cmd = "/usr/sbin/zpool list -H -o name"
+    cmd = ZPOOLCMD + "list -H -o name"
     fin,fout = os.popen4(cmd)
     for line in fout:
         result.append(line.rstrip())
