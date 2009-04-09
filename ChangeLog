@@ -1,3 +1,9 @@
+2009-04-09 Erwann Chenede - <erwann.chenede@sun.com>
+
+	* /usr/share/time-slider/lib/time_slider/fileversion.py:
+	  removed hard dependency on external thumbnailer and meld 
+	  fixes #7502
+
 2009-04-07  Niall Power <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/cleanupmanager.py

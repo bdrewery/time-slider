@@ -29,6 +29,8 @@ import threading
 import subprocess
 import string
 import gnomevfs
+import gnome.ui
+#import traceback
 
 try:
 	import pygtk
@@ -89,18 +91,18 @@ class File:
 
 	def  get_icon (self):
 		#try thumnailer first
-		p = subprocess.Popen (["/usr/bin/tracker-thumbnailer", 
-					self.path,
-					self.info.get_content_type(), 
-					"normal"],
-				       stdout=subprocess.PIPE,
-				       stderr=subprocess.PIPE)
-		stdout_value, stderr_value = p.communicate ()
-		if p.returncode == 0:
-			return  gtk.gdk.pixbuf_new_from_file (string.rstrip (stdout_value))
-		else:
-			#get the themed icon
-			return gtk.icon_theme_get_default().choose_icon (self.info.get_icon().get_property ("names"), 48,  gtk.ICON_LOOKUP_USE_BUILTIN).load_icon ()
+		icon_factory = gnome.ui.ThumbnailFactory(gnome.ui.THUMBNAIL_SIZE_NORMAL)
+		mtime = os.path.getmtime(self.path)
+		uri = gnomevfs.make_uri_from_input(self.path)
+		thumb =  icon_factory.lookup (uri, mtime)
+		if thumb:
+		  return gtk.gdk.pixbuf_new_from_file (thumb)
+	        thumb = icon_factory.generate_thumbnail (uri, self.info.get_content_type())
+		if thumb:
+		  icon_factory.save_thumbnail (thumb, uri, mtime)
+		  return thumb
+		 #fallback get the themed icon
+		return gtk.icon_theme_get_default().choose_icon (self.info.get_icon().get_property ("names"), 48,  gtk.ICON_LOOKUP_USE_BUILTIN).load_icon ()
 
 	def  get_size (self):
 		amount = self.info.get_size ()
@@ -135,6 +137,7 @@ class File:
 
 
 class FileVersionWindow:
+	meld_hint_displayed = False
 
 	def __init__(self, snap_path, file):
 		self.snap_path = snap_path
@@ -218,14 +221,14 @@ class FileVersionWindow:
 	def on_current_file_button_clicked (self, widget):
 		application = gnomevfs.mime_get_default_application (gnomevfs.get_mime_type(gnomevfs.make_uri_from_input(self.filename)))
 		if application:
-			subprocess.Popen ([application[2], self.filename])
+			subprocess.Popen (str.split (application[2]) + [self.filename])
 
 	def on_treeview_row_activated (self, treeview, path, column):
 		(model, iter) = treeview.get_selection ().get_selected ()
 		filename = model.get (iter, 1)[0]
 		application = gnomevfs.mime_get_default_application (gnomevfs.get_mime_type(gnomevfs.make_uri_from_input(filename)))
 		if application:
-			subprocess.Popen ([application[2], filename])
+			subprocess.Popen (str.split (application[2]) + [filename])
 
 	def on_treeview_cursor_changed (self, treeview):
 		if not self.button_init:
@@ -236,7 +239,18 @@ class FileVersionWindow:
 	def on_compare_button_clicked (self, widget):
 		(model, iter) = self.treeview.get_selection ().get_selected ()
 		filename = model.get (iter, 1)[0]
-		subprocess.Popen (["/usr/bin/meld",self.filename, filename])
+		if os.path.exists ("/usr/bin/meld"):
+		  subprocess.Popen (["/usr/bin/meld",self.filename, filename])
+		else:
+		  if not self.meld_hint_displayed:
+		    dialog = gtk.MessageDialog(None, 0, gtk.MESSAGE_INFO, gtk.BUTTONS_CLOSE, _("Hint"))
+		    dialog.set_title (_("Hint"))
+		    dialog.format_secondary_text(_("Installing the optional meld package will enhance the file comparison visualization"))
+		    dialog.run ()
+		    dialog.destroy ()
+		    self.meld_hint_displayed = True
+		  p1 = subprocess.Popen(["/usr/bin/diff", "-u", self.filename, filename], stdout=subprocess.PIPE)
+		  p2 = subprocess.Popen(str.split ("/usr/bin/zenity --text-info --editable"), stdin=p1.stdout, stdout=subprocess.PIPE)
 
 
 class VersionScanner(threading.Thread):
@@ -298,6 +312,7 @@ class VersionScanner(threading.Thread):
 
 	def critical_section_enter (self):
 #		print "in critical_section enter"
+#		print traceback.print_stack ()
 		if  not self._stopevent.isSet ():
 			gtk.gdk.threads_enter()
 			return True
@@ -333,11 +348,8 @@ def main(argv):
 			"- The filename to explore."))
 		dialog.run()
 		sys.exit (2)
-	
+
 	window = FileVersionWindow(args[0], args[1])
+	gtk.gdk.threads_enter()
 	gtk.main()
-
-
-#FileVersionWindow("/shared/test/.zfs/snapshot/12-11-08:534849865/", "/shared/test/dsa")
-#FileVersionWindow("/shared/erwannc/.zfs/snapshot/test/Documents", "/shared/erwannc/Documents/desktop 2008.11.pdf")
-#gtk.main ()
+	gtk.gdk.threads_leave()
