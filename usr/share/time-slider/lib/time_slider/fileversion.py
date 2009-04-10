@@ -271,11 +271,8 @@ class VersionScanner(threading.Thread):
 		num_dirs = len(dirs)
 		current_dir = 1
 
-		if not self.critical_section_enter():
-			return None
-		self.w.progress.set_pulse_step (1.0 / num_dirs)
-		self.w.progress.set_text ("Scanning for older versions (%d/%d)" % (current_dir, num_dirs))
-		self.critical_section_leave ()
+		gobject.idle_add (self.w.progress.set_pulse_step,  (1.0 / num_dirs))
+		gobject.idle_add (self.w.progress.set_text,  ("Scanning for older versions (%d/%d)" % (current_dir, num_dirs)))
 
 		versions = [File (self.w.filename)]
 
@@ -284,49 +281,25 @@ class VersionScanner(threading.Thread):
 				file = File ("%s%s/%s" % (snap_path, dir, path_after_snap))
 				if file.exist :
 					if file.add_if_unique(versions):
-						if not self.critical_section_enter():
-							return None
-						self.w.add_file (file)
-						self.critical_section_leave ()
-				if not self.critical_section_enter():
-					return None
+						gobject.idle_add (self.w.add_file, file)
 				fraction = self.w.progress.get_fraction ()
 				fraction += self.w.progress.get_pulse_step ()
 				if fraction > 1:
 					fraction = 1
-				self.w.progress.set_fraction (fraction)
+
+				gobject.idle_add (self.w.progress.set_fraction, fraction)
 				current_dir += 1
-				self.w.progress.set_text ("Scanning for older versions (%d/%d)" % (current_dir, num_dirs))
-				self.critical_section_leave ()
+				gobject.idle_add (self.w.progress.set_text, "Scanning for older versions (%d/%d)" % (current_dir, num_dirs))
 			else:
 				return None
 
-		if not self.critical_section_enter():
-			return None
-		self.w.progress.hide ()
-		self.w.older_versions_label.set_markup ("<b>Older Versions</b> (%d) " % (len(versions) - 1))
+		gobject.idle_add(self.w.progress.hide)
+		gobject.idle_add(self.w.older_versions_label.set_markup , "<b>Older Versions</b> (%d) " % (len(versions) - 1))
 		# sort by date
-		self.w.date_column.emit ("clicked")
-		self.w.date_column.emit ("clicked")
-		self.critical_section_leave ()
-
-	def critical_section_enter (self):
-#		print "in critical_section enter"
-#		print traceback.print_stack ()
-		if  not self._stopevent.isSet ():
-			gtk.gdk.threads_enter()
-			return True
-		return False
-
-	def critical_section_leave (self):
-#		print "in critical_section leave"
-		if  not self._stopevent.isSet ():
-			gtk.gdk.threads_leave()
-			return True
-		return False
-
+		gobject.idle_add(self.w.date_column.emit, "clicked")
+		gobject.idle_add(self.w.date_column.emit, "clicked")
+	
 	def join(self, timeout=None):
-		self.critical_section_leave ()
 		self._stopevent.set ()
 		threading.Thread.join(self, timeout)
 

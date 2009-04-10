@@ -1,3 +1,9 @@
+2009-04-10 Erwann Chenede - <erwann.chenede@sun.com>
+
+	* /usr/share/time-slider/lib/time_slider/fileversion.py:
+	  used gobject.idle_add instead of gtk.gdk.threads_* fixes
+	  7319
+
 2009-04-09 Erwann Chenede - <erwann.chenede@sun.com>
 
 	* /usr/share/time-slider/lib/time_slider/fileversion.py:
