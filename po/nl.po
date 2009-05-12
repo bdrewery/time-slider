@@ -7,83 +7,83 @@ msgstr ""
        "Project-Id-Version: time-slider HEAD\n"
        "Report-Msgid-Bugs-To: \n"
        "POT-Creation-Date: 2009-02-10 22:37+0900\n"
-       "PO-Revision-Date: 2009-04-10 22:37+0900\n"
-       "Last-Translator: desktop-discuss@opensolaris.org\n"
-       "Language-Team:  Polish OpenSolaris Team <LL@li.org>\n"
+       "PO-Revision-Date: 2009-03-16 22:14+0900\n"
+       "Last-Translator: Marlen K. Waaijer <marlen.k.waaijer@ieee.org>\n"
+       "Language-Team: Dutch OpenSolaris Team <LL@li.org>\n"
        "MIME-Version: 1.0\n"
        "Content-Type: text/plain; charset=UTF-8\n"
        "Content-Transfer-Encoding: 8bit\n"
 
 #: ../data/time-slider.desktop.in.h:1
 msgid "Configure the system to take automatic snapshots of your data"
-msgstr "Skonfiguruj system do automatycznego wykonywania migawek twoich danych "
+msgstr "Configureer het systeem om automatische momentopnamen van je gegevens te nemen"
 
 #: ../data/time-slider.desktop.in.h:2
 msgid "Time Slider"
-msgstr "Time Slider"
+msgstr "Tijd glijder"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:2
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:241
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:341
 #, no-c-format, python-format
 msgid "%d snapshots will be deleted."
-msgstr "%d migawki zostaną usunięte"
+msgstr "%d momentopnamen zullen worden verwijdert"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:3
 msgid "<b>Summary</b>"
-msgstr "<b>Podsumowanie</b>"
+msgstr "<b>Samenvatting</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:4
 msgid "D_eselect All"
-msgstr "O_dznacz wszystkie"
+msgstr "D_eselecteer alle"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:5
 msgid "Delete Snapshots"
-msgstr "Usuwam migawki"
+msgstr "Verwijder momentopnamen"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:6
 msgid "Deleting Snapshots"
-msgstr "Usuwanie migawki"
+msgstr "Momentopnames worden verwijdert"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:7
 msgid "Deleting snapshots..."
-msgstr "Usuwanie migawek..."
+msgstr "Momentopnamen worden verwijdert..."
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:8
 msgid "Exit when done. "
-msgstr "Wyjdź kiedy skończysz. "
+msgstr "Sluit af als je klaar bent. "
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:9
 msgid "File System:"
-msgstr "System plików:"
+msgstr "Bestand systeem:"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:10
 msgid "Name:"
-msgstr "Nazwa:"
+msgstr "Naam:"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:11
 msgid "Press Delete to continue."
-msgstr "Naciśnij Delete żeby kontynuować. "
+msgstr "Druk delete om door te gaan."
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:12
 msgid "Scanning snapshots..."
-msgstr "Wyszukuje migawki..."
+msgstr "Momentopnamen aan het scanderen..."
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:13
 msgid "Select ZFS snapshots to delete from the list below."
-msgstr "Wybierz migawki ZFS do usunięcia z listy poniżej."
+msgstr "Kies de te verwijderen ZFS momentopnamen van de lijst beneden. "
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:1
 msgid "<b>Enable Time Slider</b>"
-msgstr "<b>Włącz Time Slider</b>"
+msgstr "<b>Schakel tijd slijder in</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:2
 msgid "<b>File Systems To Back Up</b>"
-msgstr "<b>System plików do Back Up</b>"
+msgstr "<b>Bestand systemen voor backup</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:3
 msgid "Advanced Options"
-msgstr "Zaawansowane opcje"
+msgstr "Geavanceerde opties"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:4
 msgid "C_ustom:"
@@ -91,51 +91,51 @@ msgstr "C_ustom:"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:5
 msgid "For advanced users"
-msgstr "Dla zaawansowanych użytkowników"
+msgstr "Voor geavanceerde gebruikers"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
 msgid "Recommended for most users"
-msgstr "Rekomendowane dla większości użytkowników"
+msgstr "Aanbevolen voor de meeste gebruikers"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:7
 msgid "Reduce backups when storage space usage exceeds:"
-msgstr "Zmniejsz liczbę backupów kiedy przestrzeń przechowywania przekroczy:"
+msgstr "Verminder back-ups als opslagruimte gebruik meer bedraagt dan:"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
 msgid "Time Slider Manager"
-msgstr "Menadżer Time Slider"
+msgstr "Tijd glijder beheerder"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:9
 msgid "Time Slider backs up data regularly by taking timed ZFS Snapshots"
-msgstr "Time Slider regularnie robi kopię zapasową danych poprzez migawkę ZFS"
+msgstr "Tijd glijder maakt reservekopie&#235;n van gegevens door het nemen van een regelmatige ZFS momentopnamen"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:10
 msgid "_All"
-msgstr "_Wszystkie"
+msgstr "_Alle"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
 msgid "_Delete Snapshots..."
-msgstr "_Usuwanie Migawki..."
+msgstr "_Verwijder momentopnames..."
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:12
 msgid "of file system capacity"
-msgstr "możliwości systemu plików"
+msgstr "van bestand systeem capaciteit"
 
 #: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:1
 msgid "Take a snapshot now"
-msgstr "Zrób migawkę teraz"
+msgstr "Neem nu een momentopname"
 
 #: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:2
 msgid "Take a snapshot of "
-msgstr "Zrób migawkę "
+msgstr "Neem een momentopname van "
 
 #: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:3
 msgid "with the name :"
-msgstr "z nazwą:"
+msgstr "met de naam :"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:1
 msgid "10 Mo"
-msgstr "10 Mo"
+msgstr "10 MO"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:2
 msgid "19/01/09"
@@ -143,75 +143,75 @@ msgstr "19/01/09"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:3
 msgid "<b>Current Version</b>"
-msgstr "<b> Wersja bieżąca</b>"
+msgstr "<b>Huidige versie</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:4
 msgid "<b>Older Versions</b>"
-msgstr "</b>Starsza Wersja</b>"
+msgstr "<b>Oudere versies</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:5
 msgid "Double click to open the file"
-msgstr "Kliknij dwa razy, żeby otworzyć plik"
+msgstr "Dubbelklik om het bestand te openen"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:6
 msgid "Open the current version of the file"
-msgstr "Otwórz bieżącą wersję pliku"
+msgstr "Open de huidige versie van het bestand"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:7
 msgid "Scanning for older versions"
-msgstr "Wyszukuje starsze wersje"
+msgstr "Zoeken naar oudere versies"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:8
 msgid "Time Slider File Version Explorer"
-msgstr "Time Slider File Version Explorer"
+msgstr "Tijd slijder bestand versie onverzoeker"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:9
 msgid "compare"
-msgstr "porównaj"
+msgstr "vergelijk"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:10
 msgid "filename"
-msgstr "nazwa pliku"
+msgstr "bestand naam"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:11
 msgid "gtk-close"
-msgstr "gtk-zamknij"
+msgstr "gtk-sluiten"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:12
 msgid "last modified : "
-msgstr "ostatnia modyfikacja : "
+msgstr "laatst bewerkt : "
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:13
 msgid "name :"
-msgstr "nazwa:"
+msgstr "name :"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:14
 msgid "size : "
-msgstr "rozmiar: "
+msgstr "grootte : "
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:115
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:305
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:87
 msgid "Legacy"
-msgstr "Legacy"
+msgstr "Legaat"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:146
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:108
 msgid "Mount Point"
-msgstr "Punkt montowania"
+msgstr "Monteer punt"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:154
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:111
 msgid "File System Name"
-msgstr "Nazwa systemu plików"
+msgstr "Bestand systeem naam"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:162
 msgid "Snapshot Name"
-msgstr "Nazwa migawki"
+msgstr "Momentopname naam"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:170
 msgid "Creation Time"
-msgstr "Czas utworzenia"
+msgstr "Aanmaaktijd"
 
 #. Note to translators
 #. The second element is for internal matching and should not
@@ -219,31 +219,31 @@ msgstr "Czas utworzenia"
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:184
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:197
 msgid "All"
-msgstr "Wszystkie"
+msgstr "Alle"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:198
 msgid "Monthly"
-msgstr "Miesięcznie"
+msgstr "Maandelijks"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:199
 msgid "Weekly"
-msgstr "Tygodniowo"
+msgstr "Wekelijks"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:200
 msgid "Daily"
-msgstr "Dziennie"
+msgstr "Dagelijks"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:201
 msgid "Hourly"
-msgstr "Co godzinę"
+msgstr "Ieder uur"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:202
 msgid "1/4 Hourly"
-msgstr "Co 15 minut"
+msgstr "Ieder kwartier"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:222
 msgid "Snapshot can not be deleted"
-msgstr "Migawka nie może byś usunięta"
+msgstr "Momentopname kan niet gewist worden"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:223
 #, python-format
@@ -251,27 +251,27 @@ msgid ""
 "%s has one or more dependent clones and will not be deleted. To delete this "
 "snapshot, first delete all datasets and snapshots cloned from this snapshot."
 msgstr ""
-       "%s has one or more dependent clones and will not be deleted. To delete this "
-       "snapshot, first delete all datasets and snapshots cloned from this snapshot."
+       "% s heeft een of meer afhankelijke klonen en zal niet worden verwijderd. Om deze momentopname te verwijderen,"
+       "moeten eerst alle gekloonde datasets en momentopnames van deze momentopname verwijdert worden."
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:239
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:339
 msgid "1 snapshot will be deleted."
-msgstr "1 migawka będzie usunięta"
+msgstr "1 momentopname zal niet verwijdert worden"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:380
 msgid "Some snapshots could not be read"
-msgstr "Nie można odczytać niektórych migawek"
+msgstr "Sommige momentopnames konden niet gelezen worden"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:404
 msgid "Some snapshots could not be deleted"
-msgstr "Nie można usunąć niektórych migawek"
+msgstr "Sommige momentopnames konden niet verwijdert worden"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:539
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:308
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:214
 msgid "Insufficient Priviliges"
-msgstr "Niewystarczające uprawnienia"
+msgstr "Onvoldoende Privileges"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:540
 msgid ""
@@ -280,15 +280,15 @@ msgid ""
 "\n"
 "Consult your system administrator "
 msgstr ""
-       "Snapshot deletion requires administrative privileges to run. You have not "
-       "been assigned the necessaryadministrative priviliges.\n"
+       "Momentopname verwijdering vereist administratieve privileges om te lopen. Je hebt niet "
+       "de nodige administratieve privileges.\n"
        "\n"
-       "Consult your system administrator "
+       "Raadpleeg je systeembeheerder "
 
 #: ../usr/share/time-slider/lib/time_slider/fileversion.py:328
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:178
 msgid "Invalid arguments count."
-msgstr "Niepoprawna liczba argumentów."
+msgstr "Ongeldige argumenten aantal."
 
 #: ../usr/share/time-slider/lib/time_slider/fileversion.py:330
 msgid ""
@@ -296,14 +296,14 @@ msgid ""
 "- The path of the root snapshot directory.\n"
 "- The filename to explore."
 msgstr ""
-       "Wersja przeglądarki potrzebuje 2 argumenty :\n"
-       "-Ścieżkę do głównego katalogu migawek.\n"
-       "Nazwę pliku do zbadania."
+       "Versie ontdekker vereist 2 argumenten:\n"
+       "- Het pad van de root locatie voor de momentopname.\n"
+       "- De bestandsnaam te die gezocht wordt."
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:88
 #, python-format
 msgid "Emergency: '%s' is full!"
-msgstr "Uwaga: '%s' jest zapełniony"
+msgstr "Alarm: '% s' is vol!"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:89
 #, python-format
@@ -313,15 +313,15 @@ msgid ""
 "To fix this problem, delete any unnecessary files on '%s', or add disk space "
 "(see ZFS documentation)."
 msgstr ""
-       "The file system: '%s', is over %s%% full.\n"
-       "As an emergency measure, Time Slider has destroyed all of its backups.\n"
-       "To fix this problem, delete any unnecessary files on '%s', or add disk space "
-       "(see ZFS documentation)."
+       "Het bestandssysteem: '%s' is meer dan% s%% vol. \n"
+       "Als een noodmaatregel, Time Slider heeft alle back-ups vernietigd. \n"
+       "Om dit probleem te verhelpen, verwijdert u overbodige bestanden op '% s' of voeg schijfruimte"
+       "(zie documentatie ZFS)."
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:98
 #, python-format
 msgid "Emergency: '%s' is almost full!"
-msgstr "Uwaga: '%s' jest prawie zapełniony"
+msgstr "Noodgeval: '% s' is bijna vol!"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:99
 #, python-format
@@ -331,15 +331,15 @@ msgid ""
 "the disk becoming full. To prevent this from happening again, delete any "
 "unnecessary files on '%s', or add disk space (see ZFS documentation).\n"
 msgstr ""
-       "The file system: '%s', exceeded %s%% of its total capacity. As an emerency "
-       "measure, Time Slider has has destroyed most or all of its backups to prevent "
-       "the disk becoming full. To prevent this from happening again, delete any "
-       "unnecessary files on '%s', or add disk space (see ZFS documentation).\n"
+       "Het bestandssysteem: '%s', heeft %s%% van de totale capaciteit overschreden. Als een noodmaatregel,"
+       "Time Slider heeft de meeste of alle back-ups verwijdert om te voorkomen "
+       "dat de hardeschijf vol wordt. Om te voorkomen dat dit weer gebeurt verwijder "
+       "alle onnodige bestanden op '%s' of vermeerder de hardeschijf ruimte(zie ZFS documentatie).\n"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:110
 #, python-format
 msgid "Urgent: '%s' is almost full!"
-msgstr "Pilne: '%s' jest prawie zapełniony!"
+msgstr "Urgent: '% s' is bijna vol!"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:111
 #, python-format
@@ -350,16 +350,16 @@ msgid ""
 "To prevent this from happening again, delete any unnecessary files on '%s', "
 "or add disk space (see ZFS documentation)."
 msgstr ""
-       "The file system: '%s', exceeded %s%% of its total capacity. As a remedial "
-       "measure, Time Slider has destroyed some backups, and will destroy more, "
-       "eventually all, as capacity continues to diminish.\n"
-       "To prevent this from happening again, delete any unnecessary files on '%s', "
-       "or add disk space (see ZFS documentation)."
+       "Het bestandssysteem: '%s', heeft %s%% van de totale capaciteit overschreden. Zoals een corrigerende"
+       "maatregel, Time Slider heeft een aantal back-ups vernietigd, en zal daarmee doorgaan , "
+       "totdat uiteindelijk alle back-ups vernietigd zijn, zolang de capaciteit blijft afnemen.\n"
+       "Om te voorkomen dat dit opnieuw gebeurt, verwijder alle overbodige bestanden op '%s',"
+       "of voeg schrijfruimte toe (zie ZFS documentatie)."
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:122
 #, python-format
 msgid "Warning: '%s' is getting full"
-msgstr "Ostrzeżenie: '%s' staję się pełny"
+msgstr "Waarschuwing: '%s' wordt voller en voller"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:123
 #, python-format
@@ -369,20 +369,19 @@ msgid ""
 "to diminish.\n"
 "To prevent this from happening again, delete any unnecessary files on '%s', "
 "or add disk space (see ZFS documentation)."
-msgstr ""
-       "'%s' exceeded %s%% of its total capacity. To fix this, Time Slider has "
-       "destroyed some recent backups, and will destroy more as capacity continues "
-       "to diminish.\n"
-       "To prevent this from happening again, delete any unnecessary files on '%s', "
-       "or add disk space (see ZFS documentation)."
+msgstr " '%s' overschreed %s%% van de totale capaciteit. Om dit op te lossen, Time Slider heeft "
+       "enkele recente back-ups vernietigd, en zal nog meer vernietigen als de capaciteit blijft "
+       "afnemen.\n"
+       "Om te voorkomen dat dit opnieuw gebeurt, verwijdert overbodige bestanden op '%s',"
+       "of voeg schijfruimte toe (zie ZFS documentatie)."
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:105
 msgid "Select"
-msgstr "Wybierz"
+msgstr "Selecteer"
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:131
 msgid "Snapshot manager service dependency error"
-msgstr "Błąd usługi menadżera migawek"
+msgstr "Momentopname manager service afhankelijkheid fout"
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:132
 #, python-format
@@ -395,18 +394,18 @@ msgid ""
 "Run \"svcs -xv\" from a command prompt for more information about these "
 "dependency problems."
 msgstr ""
-       "The snapshot manager service has been placed offline due to a dependency "
-       "problem. The following dependency problems were found:\n"
+       "De momentopname manager dienst is uitgeschakeld wegens een afhankelijkheids"
+       "probleem. De volgende afhankelijkheidsproblemen waren gevonden:\n"
        "\n"
        "%s\n"
        "\n"
-       "Run \"svcs -xv\" from a command prompt for more information about these "
-       "dependency problems."
+       "Typ de opdrachtregel \" svcs -xv\" in een commandovenster voor meer informatie over deze "
+       "afhankelijkheidsproblemen."
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:146
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:163
 msgid "Snapshot manager service error"
-msgstr "Błąd menadżera migawek"
+msgstr "Momentopname manager service fout"
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:147
 msgid ""
@@ -415,10 +414,10 @@ msgid ""
 "\n"
 "See the svcs(1) man page for more information."
 msgstr ""
-       "The snapshot manager service has encountered a problem and has been disabled "
-       "until the problem is fixed.\n"
+       "De momentopname manager dienst heeft een probleem ondergaan en is uitgeschakeld "
+       "totdat het probleem is opgelost.\n"
        "\n"
-       "See the svcs(1) man page for more information."
+       "Zie de Svcs (1) man pagina voor meer informatie."
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:164
 msgid ""
@@ -427,10 +426,10 @@ msgid ""
 "\n"
 "See the svcs(1) man page for more information."
 msgstr ""
-       "The snapshot manager service does not appear to be installed on this "
-       "system.\n"
+       "De momentopname manager dienst blijkt niet geïnstalleerd te zijn op dit"
+       "systeem.\n"
        "\n"
-       "See the svcs(1) man page for more information."
+       "Zie de svcs(1) man pagina voor meer informatie."
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:309
 msgid ""
@@ -439,21 +438,21 @@ msgid ""
 "\n"
 "Consult your system administrator "
 msgstr ""
-       "The snapshot manager service requires administrative privileges to run. You "
-       "have not been assigned the necessaryadministrative priviliges.\n"
+       "De momentopname manager service vereist administratieve privileges om te lopen. U"
+       "heeft niet de vereiste administratieve privileges. \n"
        "\n"
-       "Consult your system administrator "
+       "Raadpleeg uw systeembeheerder "
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:116
 msgid "Invalid characters in snapshot name"
-msgstr "Niedozwolone znaki w nazwie migawki"
+msgstr "Ongeldige tekens in momentopname naam"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:117
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:147
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:179
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:215
 msgid "Error"
-msgstr "Błąd"
+msgstr "Fout"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:118
 msgid ""
@@ -461,21 +460,21 @@ msgid ""
 "[a-z][A-Z][0-9][-_.:\n"
 "All invalid characters will be removed\n"
 msgstr ""
-       "Dozwolone znaki w nazwie migawki :\n"
-       "[a-z][A-Z][0-9][-_.:\n"
-       "Wszystkie inne znaki zostaną usunięte\n"
+       "Geldige tekens voor momentopname namen zijn:\n"
+       "[a-z] [A-Z] [0-9 ][-_.: \n"
+       "Alle ongeldig tekens worden verwijderd\n"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:146
 msgid "Error occured while creating the snapshot"
-msgstr "Wystąpił błąd podczas tworzenia migawki"
+msgstr "Fout opgetreden tijdens het maken van de momentopname"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:155
 msgid "Snapshot created successfully"
-msgstr "Migawka została utworzona"
+msgstr "Momentopname gemaakt"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:156
 msgid "Success"
-msgstr "Powodzenie"
+msgstr "Succes"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:157
 #, python-format
@@ -484,8 +483,9 @@ msgid ""
 "named %s\n"
 "has been created.\n"
 msgstr ""
-       "Migawka systemu plików zfs %s\n"
-       "nazwana %s\n"
+       "Een momentopname van zfs bestandssysteem%s\n"
+       "genaamd%s \n"
+       "is gemaakt.\n"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:157
 #, python-format
@@ -494,8 +494,9 @@ msgid ""
 "named %(valid_name)s\n"
 "has been created.\n"
 msgstr ""
-       "Utworzono migawkę systemu plików zfs %(zfs_fs)s\n"
-       "o nazwie %(valid_name)s\n"
+       "Een momentopname van zfs bestandssystem %(zfs_fs)s\n"
+       "genaamd %(valid_name)s\n"
+       "was gemaakt.\n"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:180
 msgid ""
@@ -503,9 +504,9 @@ msgid ""
 "- The path of the directory to be snapshotted.\n"
 "- The zfs filesystem corresponding to this directory."
 msgstr ""
-       "Migawka potrzebuje teraz 2 argumenty :\n"
-       "- Ścieszkę dostępu do katalogu z którego migawka ma zostać utworzona.\n"
-       "- System plików zfs powiązany z katalogiem."
+       "Momentopname vereist nu 2 argumenten :\n"
+       "- Het pad van de locatie waarvan een momentopname van gemaakt wordt.\n"
+       "- De zfs bestandssysteem dat met deze locatie correspondeert."
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:216
 msgid ""
@@ -514,7 +515,7 @@ msgid ""
 "\n"
 "Consult your system administrator "
 msgstr ""
-       "Snapshot Now requires administrative privileges to run. You have not been "
-       "assigned the necessaryadministrative priviliges.\n"
+       "Momentopname vereist nu administratieve privileges om te lopen. Je hebt niet "
+       "de nodige administratieve privileges. \n"
        "\n"
-       "Consult your system administrator "
+       "Raadpleeg uw systeembeheerder "

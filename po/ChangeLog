@@ -1,3 +1,8 @@
+2009-05-12  Harry Fu  <harry.fu@sun.com>
+
+	* LINGUAS: new languages are added - ar,id,nl
+	* *.po: Updated cs/hu/pl with the latest translations.
+
 2009-02-19  Takao Fujiwara  <takao.fujiwara@sun.com>
 
 	* POTFILES.in: Added time-slider-version.glade and fileversion.py

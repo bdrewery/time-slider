@@ -1,218 +1,217 @@
-# Copyright (C) 2008 Sun Microsystems, Inc
-# This file is distributed under the same license as the time-slider package.
+# Copyright (C) 2009 Sun Microsystems, Inc
+# This file is distributed under the same license as the nwam-manager package.
 #
-# Desktop Discuss <desktop-discuss@opensolaris.org>
-#
+# Desktop Discuss <desktop-discuss@opensolaris.org> 
 msgid ""
 msgstr ""
-"Project-Id-Version: time-slider HEAD\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-02-10 22:37+0900\n"
-"PO-Revision-Date: 2008-10-01 21:35+0900\n"
-"Last-Translator: desktop-discuss@opensolaris.org\n"
-"Language-Team: desktop-discuss@opensolaris.org\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
+       "Project-Id-Version: time-slider HEAD\n"
+       "Report-Msgid-Bugs-To: \n"
+       "POT-Creation-Date: 2009-02-10 22:37+0900\n"
+       "PO-Revision-Date: 2009-04-10 22:37+0900\n"
+       "Last-Translator: desktop-discuss@opensolaris.org\n"
+       "Language-Team:  Czech OpenSolaris Team <LL@li.org>\n"
+       "MIME-Version: 1.0\n"
+       "Content-Type: text/plain; charset=UTF-8\n"
+       "Content-Transfer-Encoding: 8bit\n"
 
 #: ../data/time-slider.desktop.in.h:1
 msgid "Configure the system to take automatic snapshots of your data"
-msgstr ""
+msgstr "Nakonfigurujte si systém tak, aby vytvářel automatické snímky Vašich dat"
 
 #: ../data/time-slider.desktop.in.h:2
 msgid "Time Slider"
-msgstr ""
+msgstr "Time Slider"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:2
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:241
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:341
 #, no-c-format, python-format
 msgid "%d snapshots will be deleted."
-msgstr ""
+msgstr "%d snímky budou smazány."
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:3
 msgid "<b>Summary</b>"
-msgstr ""
+msgstr "<b>Shrnutí</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:4
 msgid "D_eselect All"
-msgstr ""
+msgstr "V_yřadit vše"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:5
 msgid "Delete Snapshots"
-msgstr ""
+msgstr "Smazat snímky"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:6
 msgid "Deleting Snapshots"
-msgstr ""
+msgstr "Mažu snímky"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:7
 msgid "Deleting snapshots..."
-msgstr ""
+msgstr "Mažu snímky..."
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:8
 msgid "Exit when done. "
-msgstr ""
+msgstr "Ukončit po dokončení. "
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:9
 msgid "File System:"
-msgstr ""
+msgstr "Souborový systém:"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:10
 msgid "Name:"
-msgstr ""
+msgstr "Jméno:"
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:11
 msgid "Press Delete to continue."
-msgstr ""
+msgstr "Stiskněte Smazat pro pokračování."
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:12
 msgid "Scanning snapshots..."
-msgstr ""
+msgstr "Skenuji snímky..."
 
 #: ../usr/share/time-slider/glade/time-slider-delete.glade.h:13
 msgid "Select ZFS snapshots to delete from the list below."
-msgstr ""
+msgstr "Vyberte ZFS snímek ze seznamu, který má být smazán."
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:1
 msgid "<b>Enable Time Slider</b>"
-msgstr ""
+msgstr "<b>Povolit Time Slider</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:2
 msgid "<b>File Systems To Back Up</b>"
-msgstr ""
+msgstr "<b>Záloha souborového systému</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:3
 msgid "Advanced Options"
-msgstr ""
+msgstr "Rozšířené možnosti"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:4
 msgid "C_ustom:"
-msgstr ""
+msgstr "V_lastní"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:5
 msgid "For advanced users"
-msgstr ""
+msgstr "Pro pokročilé uživatele"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:6
 msgid "Recommended for most users"
-msgstr ""
+msgstr "Doporučeno pro většinu uživatelů"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:7
 msgid "Reduce backups when storage space usage exceeds:"
-msgstr ""
+msgstr "Zmenšit zálohy pokud úložný prostor překročí:"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:8
 msgid "Time Slider Manager"
-msgstr ""
+msgstr "Správce pro Time Slider"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:9
 msgid "Time Slider backs up data regularly by taking timed ZFS Snapshots"
-msgstr ""
+msgstr "Time Slider zálohuje pravidelně data pomocí časových ZFS smínků"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:10
 msgid "_All"
-msgstr ""
+msgstr "_Vše"
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:11
 msgid "_Delete Snapshots..."
-msgstr ""
+msgstr "_Smazat snímek..."
 
 #: ../usr/share/time-slider/glade/time-slider-setup.glade.h:12
 msgid "of file system capacity"
-msgstr ""
+msgstr "kapacity souborového systému"
 
 #: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:1
 msgid "Take a snapshot now"
-msgstr ""
+msgstr "Pořídit snímek nyní"
 
 #: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:2
 msgid "Take a snapshot of "
-msgstr ""
+msgstr "Pořídit snímek "
 
 #: ../usr/share/time-slider/glade/time-slider-snapshot.glade.h:3
 msgid "with the name :"
-msgstr ""
+msgstr "s názvem:"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:1
 msgid "10 Mo"
-msgstr ""
+msgstr "Pondělí 10"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:2
 msgid "19/01/09"
-msgstr ""
+msgstr "19/01/09"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:3
 msgid "<b>Current Version</b>"
-msgstr ""
+msgstr "<b>Současná verze</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:4
 msgid "<b>Older Versions</b>"
-msgstr ""
+msgstr "<b>Starší verze</b>"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:5
 msgid "Double click to open the file"
-msgstr ""
+msgstr "Dvojitým kliknutím na soubor, tento soubor otevřete"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:6
 msgid "Open the current version of the file"
-msgstr ""
+msgstr "Otevřete soubor současné verze"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:7
 msgid "Scanning for older versions"
-msgstr ""
+msgstr "Skenuji pro starší verze"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:8
 msgid "Time Slider File Version Explorer"
-msgstr ""
+msgstr "Time Slider - Průzkumník verzí "
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:9
 msgid "compare"
-msgstr ""
+msgstr "porovnat"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:10
 msgid "filename"
-msgstr ""
+msgstr "jméno souboru"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:11
 msgid "gtk-close"
-msgstr ""
+msgstr "gtk-close"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:12
 msgid "last modified : "
-msgstr ""
+msgstr "Naposledy změněn : "
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:13
 msgid "name :"
-msgstr ""
+msgstr "jméno :"
 
 #: ../usr/share/time-slider/glade/time-slider-version.glade.h:14
 msgid "size : "
-msgstr ""
+msgstr "velikost : "
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:115
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:305
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:87
 msgid "Legacy"
-msgstr ""
+msgstr "Odkaz"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:146
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:108
 msgid "Mount Point"
-msgstr ""
+msgstr "Místo připojení"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:154
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:111
 msgid "File System Name"
-msgstr ""
+msgstr "Jméno souborového systému"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:162
 msgid "Snapshot Name"
-msgstr ""
+msgstr "Jméno snímku"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:170
 msgid "Creation Time"
-msgstr ""
+msgstr "Čas vytvoření"
 
 #. Note to translators
 #. The second element is for internal matching and should not
@@ -220,31 +219,31 @@ msgstr ""
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:184
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:197
 msgid "All"
-msgstr ""
+msgstr "Vše"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:198
 msgid "Monthly"
-msgstr ""
+msgstr "Měsíčně"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:199
 msgid "Weekly"
-msgstr ""
+msgstr "Týdně"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:200
 msgid "Daily"
-msgstr ""
+msgstr "Denně"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:201
 msgid "Hourly"
-msgstr ""
+msgstr "Každou hodinu"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:202
 msgid "1/4 Hourly"
-msgstr ""
+msgstr "Každou 1/4 hodinu"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:222
 msgid "Snapshot can not be deleted"
-msgstr ""
+msgstr "Snímek nemůže být smazán"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:223
 #, python-format
@@ -252,25 +251,26 @@ msgid ""
 "%s has one or more dependent clones and will not be deleted. To delete this "
 "snapshot, first delete all datasets and snapshots cloned from this snapshot."
 msgstr ""
+       "%s má jednu nebo více závislých klonů a nemůže být smazán. Abyste mohli odstranit tento snímek, musíte nejdříve smazat všechny jeho datové sady a a jeho klony."
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:239
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:339
 msgid "1 snapshot will be deleted."
-msgstr ""
+msgstr "1 snímek bude smazán"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:380
 msgid "Some snapshots could not be read"
-msgstr ""
+msgstr "Některé snímky nelze přečíst"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:404
 msgid "Some snapshots could not be deleted"
-msgstr ""
+msgstr "Některé snímky nemohou být smazány"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:539
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:308
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:214
 msgid "Insufficient Priviliges"
-msgstr ""
+msgstr "Nedostatečná práva"
 
 #: ../usr/share/time-slider/lib/time_slider/deletegui.py:540
 msgid ""
@@ -279,11 +279,13 @@ msgid ""
 "\n"
 "Consult your system administrator "
 msgstr ""
+       "Smazání snímku požaduje administrátorská práva. Vy tato práva nemáte.\n"
+       "Kontaktujte Vašeho správce systému "
 
 #: ../usr/share/time-slider/lib/time_slider/fileversion.py:328
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:178
 msgid "Invalid arguments count."
-msgstr ""
+msgstr "Neplatný počet argumentů."
 
 #: ../usr/share/time-slider/lib/time_slider/fileversion.py:330
 msgid ""
@@ -291,11 +293,14 @@ msgid ""
 "- The path of the root snapshot directory.\n"
 "- The filename to explore."
 msgstr ""
+       "Průzkumník verzí požaduje 2 argumenty: \n"
+       "- Cestu k adresáři se snímky kořenového adresáře"
+       "- Jméno souboru, které se má prozkoumat"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:88
 #, python-format
 msgid "Emergency: '%s' is full!"
-msgstr ""
+msgstr "Stav nouze: '%s' je plný!"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:89
 #, python-format
@@ -305,11 +310,14 @@ msgid ""
 "To fix this problem, delete any unnecessary files on '%s', or add disk space "
 "(see ZFS documentation)."
 msgstr ""
+       "Souborový systém: '%s', z %s%% je přeplněn.\n"
+       "Time Slider smazal všechny jeho zálohy jako nouzové opatření.\n"
+       "Chcete-li odstranit tento problém, smažte nepotřebné soubory na '%s' nebo přidejte více místa (viz ZFS dokumentace)."
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:98
 #, python-format
 msgid "Emergency: '%s' is almost full!"
-msgstr ""
+msgstr "Stav nouze: '%s' je skoro plný!"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:99
 #, python-format
@@ -319,11 +327,12 @@ msgid ""
 "the disk becoming full. To prevent this from happening again, delete any "
 "unnecessary files on '%s', or add disk space (see ZFS documentation).\n"
 msgstr ""
+       "Souborový systém '%s', překročil %s%% jeho celkové kapacity. Jako nouzové opatření Time Slider odstranil většinu jeho záloh, aby předešel zaplnění disku. Smažte nepotřebné soubory na '%s' nebo přidejte místa, abyste se tomuto problému příště vyhnuli (viz ZFS dokumentace).\n"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:110
 #, python-format
 msgid "Urgent: '%s' is almost full!"
-msgstr ""
+msgstr "Naléhavé: '%s' je skoro plný!"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:111
 #, python-format
@@ -334,11 +343,16 @@ msgid ""
 "To prevent this from happening again, delete any unnecessary files on '%s', "
 "or add disk space (see ZFS documentation)."
 msgstr ""
+"The file system: '%s', exceeded %s%% of its total capacity. As a remedial "
+"measure, Time Slider has destroyed some backups, and will destroy more, "
+"eventually all, as capacity continues to diminish.\n"
+"To prevent this from happening again, delete any unnecessary files on '%s', "
+"or add disk space (see ZFS documentation)."
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:122
 #, python-format
 msgid "Warning: '%s' is getting full"
-msgstr ""
+msgstr "Upozornění: '% s' se zaplňuje"
 
 #: ../usr/share/time-slider/lib/time_slider/notification.py:123
 #, python-format
@@ -349,14 +363,18 @@ msgid ""
 "To prevent this from happening again, delete any unnecessary files on '%s', "
 "or add disk space (see ZFS documentation)."
 msgstr ""
+"'%s', překročil %s%% jeho celkové kapacity. Time Slider odstranil některé jeho zálohy a odstraní více, pokud se kapacita bude nadále snižovat.\n"
+"To prevent this from happening again, delete any unnecessary files on '%s', "
+"or add disk space (see ZFS documentation)."
+
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:105
 msgid "Select"
-msgstr ""
+msgstr "Vybrat"
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:131
 msgid "Snapshot manager service dependency error"
-msgstr ""
+msgstr "Chyba v závislostech ve službě Správce snímků"
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:132
 #, python-format
@@ -369,11 +387,17 @@ msgid ""
 "Run \"svcs -xv\" from a command prompt for more information about these "
 "dependency problems."
 msgstr ""
+       "Služba Správce snímků byla umístěna offline kvůli problémům v závislostech. Následující chyby v závislostech byly nalezeny: \n"
+       "\n"
+       "%s\n"
+"\n"
+"Run \"svcs -xv\" from a command prompt for more information about these "
+"dependency problems."
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:146
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:163
 msgid "Snapshot manager service error"
-msgstr ""
+msgstr "Chyba ve službě Správce snímků"
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:147
 msgid ""
@@ -382,6 +406,9 @@ msgid ""
 "\n"
 "See the svcs(1) man page for more information."
 msgstr ""
+       "Služba Správce snímku zaznamenala problém a byla proto vypnuta, dokud problém nebude vyřešen. \n"
+       "\n"
+       "See the svcs(1) man page for more information."
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:164
 msgid ""
@@ -390,6 +417,9 @@ msgid ""
 "\n"
 "See the svcs(1) man page for more information."
 msgstr ""
+       "Služba Správce snímků se nezdá, že by byla nainstalována na tomto systému. \n"
+       "\n"
+       "See the svcs(1) man page for more information."
 
 #: ../usr/share/time-slider/lib/time_slider/setupgui.py:309
 msgid ""
@@ -398,17 +428,20 @@ msgid ""
 "\n"
 "Consult your system administrator "
 msgstr ""
+       "Služba Správce snímkl požaduje administrátorská práva. Vy tato práva nemáte.\n"
+       "\n"
+       "Kontaktujte Vašeho správce systému "
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:116
 msgid "Invalid characters in snapshot name"
-msgstr ""
+msgstr "Neplatný znak v názvu snímku"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:117
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:147
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:179
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:215
 msgid "Error"
-msgstr ""
+msgstr "Chyba"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:118
 msgid ""
@@ -416,18 +449,21 @@ msgid ""
 "[a-z][A-Z][0-9][-_.:\n"
 "All invalid characters will be removed\n"
 msgstr ""
+       "Povolené znaky pro název snímku jsou následující: \n"
+       "[a-z][A-Z][0-9][-_.:\n"
+       "Všechny neplatné znaky budou odstraněny\n"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:146
 msgid "Error occured while creating the snapshot"
-msgstr ""
+msgstr "Vyskytla se chyba při vytváření snímku"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:155
 msgid "Snapshot created successfully"
-msgstr ""
+msgstr "Snímek byl vytvořen úspěšně"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:156
 msgid "Success"
-msgstr ""
+msgstr "Úspěch"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:157
 #, python-format
@@ -436,6 +472,8 @@ msgid ""
 "named %s\n"
 "has been created.\n"
 msgstr ""
+       "Byl vytvořen snímek ZFS souborového systému %s\n"
+       "s názvem %s\n"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:157
 #, python-format
@@ -444,6 +482,8 @@ msgid ""
 "named %(valid_name)s\n"
 "has been created.\n"
 msgstr ""
+       "Byl vytvořen snímek ZFS souborového systému%(zfs_fs)s\n"
+       "s názvem %(valid_name)s\n"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:180
 msgid ""
@@ -451,6 +491,9 @@ msgid ""
 "- The path of the directory to be snapshotted.\n"
 "- The zfs filesystem corresponding to this directory."
 msgstr ""
+       "Snímek nyní požaduje 2 argumenty: \n"
+       "- Cestu k adresáři, kde má být snímek vytvořen"
+       "- zfs souborový systém odpovídající tomuto adresáři"
 
 #: ../usr/share/time-slider/lib/time_slider/snapnowui.py:216
 msgid ""
@@ -459,3 +502,6 @@ msgid ""
 "\n"
 "Consult your system administrator "
 msgstr ""
+       "Snímek nyní vyžaduje administrátorská práva. Vy tato práva nemáte. \n"
+       "\n"
+       "Kontaktujte Vašeho správce systému "
