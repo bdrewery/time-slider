@@ -97,7 +97,7 @@ class SMFManager(Exception):
     def set_emergency_level(self, value):
         if value > 100:
             raise ValueError, "Emergency level can not exceed emergency 100"
-        cmd = "pfexec /usr/sbin/svccfg -s %s setprop " \
+        cmd = PFCMD +  SVCCFGCMD + "-s %s setprop " \
               " %s/emergency-level = integer: %s" \
                % (self.instance_name, ZPOOLPROPGROUP, value)
         fin,fout = os.popen4(cmd)
@@ -176,7 +176,7 @@ class SMFManager(Exception):
             return True
         return False
 	
-    def __repr__(self):
+    def __str__(self):
         ret = "SMF Instance:\n" +\
               "\tName:\t\t\t%s\n" % (self.instance_name) +\
               "\tCustom Selction:\t%s\n" % (self.customselection) +\
@@ -189,5 +189,5 @@ class SMFManager(Exception):
 
 if __name__ == "__main__":
   S = SMFManager('svc:/application/time-slider')
-  print S.__repr__()
+  print S
 

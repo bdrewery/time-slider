@@ -76,14 +76,14 @@ class SnapshotManager:
         self.xml = gtk.glade.XML("%s/../../glade/time-slider-setup.glade" \
                                   % (os.path.dirname(__file__)))
         # signal dictionary	
-        dic = {"on_ok_clicked" : self.on_ok_clicked,
+        dic = {"on_ok_clicked" : self.__on_ok_clicked,
                "on_cancel_clicked" : gtk.main_quit,
                "on_snapshotmanager_delete_event" : gtk.main_quit,
-               "on_enablebutton_toggled" : self.on_enablebutton_toggled,
-               "on_defaultfsradio_toggled" : self.on_defaultfsradio_toggled,
-               "on_selectfsradio_toggled" : self.on_selectfsradio_toggled,
-               "on_capspinbutton_value_changed" : self.on_capspinbutton_value_changed,
-               "on_deletesnapshots_clicked" : self.on_deletesnapshots_clicked}
+               "on_enablebutton_toggled" : self.__on_enablebutton_toggled,
+               "on_defaultfsradio_toggled" : self.__on_defaultfsradio_toggled,
+               "on_selectfsradio_toggled" : self.__on_selectfsradio_toggled,
+               "on_capspinbutton_value_changed" : self.__on_capspinbutton_value_changed,
+               "on_deletesnapshots_clicked" : self.__on_deletesnapshots_clicked}
         self.xml.signal_autoconnect(dic)
 
         # Used to store GUI filesystem selection state and the
@@ -93,10 +93,10 @@ class SnapshotManager:
 
         self.liststorefs = gtk.ListStore(bool, str, str, gobject.TYPE_PYOBJECT)
         for fs in self.controller.zfs_fs:
-            mountpoint = fs.mountpoint
+            mountpoint = fs.get_mountpoint()
             if (mountpoint == "legacy"):
                 mountpoint = _("Legacy")
-            if fs.is_included() == True:
+            if fs.get_auto_snap() == True:
                 self.liststorefs.append([True, mountpoint, fs.name, fs])
             else:
                 self.liststorefs.append([False, mountpoint, fs.name, fs])
@@ -122,9 +122,9 @@ class SnapshotManager:
         self.TvMountpointCol = gtk.TreeViewColumn(_("File System Name"),
                                                   self.cell2, text=2)
         self.fstv.append_column(self.TvMountpointCol)
-        self.cell0.connect('toggled', self.row_toggled)
+        self.cell0.connect('toggled', self.__row_toggled)
         self.fsframe = self.xml.get_widget("filesysframe")
-        self.fsframe.connect('unmap', self.fsframe_unmap)
+        self.fsframe.connect('unmap', self.__fsframe_unmap)
 
         # Initialise SMF service instance state.
         self.smfmanager = SMFManager()
@@ -206,7 +206,7 @@ class SnapshotManager:
         else:
             spinButton.set_value(70)
 
-    def row_toggled(self, renderer, path):
+    def __row_toggled(self, renderer, path):
         model = self.fstv.get_model()
         iter = model.get_iter(path)
         state = renderer.get_active()
@@ -215,7 +215,7 @@ class SnapshotManager:
         else:
             self.liststorefs.set_value(iter, 0, False)
 
-    def on_ok_clicked(self, widget):
+    def __on_ok_clicked(self, widget):
         # Make sure the dictionaries are empty.
         self.fsintentdic = {}
         self.uistatedic = {}
@@ -230,13 +230,13 @@ class SnapshotManager:
             snapuserdata = self.xml.get_widget("defaultfsradio").get_active()
             if snapuserdata == True:
                 self.smfmanager.set_selection_propval("false")
-                model.foreach(self.set_default_state)
+                model.foreach(self.__set_default_state)
             else:
                 self.smfmanager.set_selection_propval("true")
-                model.foreach(self.get_ui_state)
+                model.foreach(self.__get_ui_state)
             for fsname in self.uistatedic:
-                self.update_fs_state(fsname)
-            self.commit_intents()
+                self.__update_fs_state(fsname)
+            self.__commit_intents()
 
             level = self.xml.get_widget("capspinbutton").get_value_as_int()
             self.smfmanager.set_warning_level(level)
@@ -249,7 +249,7 @@ class SnapshotManager:
 
         gtk.main_quit()
 
-    def on_enablebutton_toggled(self, widget):
+    def __on_enablebutton_toggled(self, widget):
         expander = self.xml.get_widget("expander")    
         enabled = widget.get_active()
         self.xml.get_widget("filesysframe").set_sensitive(enabled)
@@ -257,18 +257,18 @@ class SnapshotManager:
         if (enabled == False):
             expander.set_expanded(False)
 
-    def on_defaultfsradio_toggled(self, widget):
+    def __on_defaultfsradio_toggled(self, widget):
         if widget.get_active() == True:
             self.xml.get_widget("fstreeview").set_sensitive(False)
 
-    def on_selectfsradio_toggled(self, widget):
+    def __on_selectfsradio_toggled(self, widget):
        if widget.get_active() == True:
             self.xml.get_widget("fstreeview").set_sensitive(True)
 
-    def on_capspinbutton_value_changed(self, widget):
+    def __on_capspinbutton_value_changed(self, widget):
         value = widget.get_value_as_int()
 
-    def fsframe_unmap(self, widget):
+    def __fsframe_unmap(self, widget):
         """Auto shrink the window by subtracting the frame's height
            requistion from the window's height requisition"""
         myrequest = widget.size_request()
@@ -276,16 +276,16 @@ class SnapshotManager:
         toprequest = toplevel.size_request()
         toplevel.resize(toprequest[0], toprequest[1] - myrequest[1])
 
-    def get_ui_state(self, model, path, iter):
+    def __get_ui_state(self, model, path, iter):
         fsname = self.liststorefs.get_value(iter, 2)    
         enabled = self.liststorefs.get_value(iter, 0)
         self.uistatedic[fsname] = enabled
 
-    def set_default_state(self, model, path, iter):
+    def __set_default_state(self, model, path, iter):
         fsname = self.liststorefs.get_value(iter, 2)
         self.uistatedic[fsname] = True
 
-    def update_fs_state(self, fsname):
+    def __update_fs_state(self, fsname):
         selected = self.uistatedic[fsname]
         try:
             fstag = self.fsintentdic[fsname]
@@ -312,24 +312,25 @@ class SnapshotManager:
                     # Parent not yet set, so do that recursively to figure
                     # out if we need to inherit or set a local property on
                     # this child filesystem.
-                    self.update_fs_state(parentname)
+                    self.__update_fs_state(parentname)
                     parentintent = self.fsintentdic[parentname]
                 if parentintent.selected == selected:
                     inherit = True
                 self.fsintentdic[fsname] = \
                     FilesystemIntention(fsname, selected, inherit)
 
-    def commit_intents(self):
+    def __commit_intents(self):
         """Commits the intended filesystem selection actions based on the
            user's UI configuration to disk"""
         for fs in self.controller.zfs_fs:
             intent = self.fsintentdic[fs.name]
-            fs.commit_state(intent.selected, intent.inherited)
-    
-    def on_deletesnapshots_clicked(self, widget):
+            fs.set_auto_snap(intent.selected, intent.inherited)
+
+    def __on_deletesnapshots_clicked(self, widget):
         cmdpath = os.path.join(os.path.dirname(self.execpath), \
-                                "../lib/time-slider-delete")
+                               "../lib/time-slider-delete")
         fin,fout = os.popen4(cmdpath)
+
 
 def main(argv):
     rbacp = RBACprofile()

@@ -44,6 +44,7 @@ class CleanupManager:
         self.zpools = []
         self.poolstatus = {}
         self.destroyedsnaps = []
+        self.deletelist = []
         smfmanager = SMFManager('svc:/application/time-slider:default')
         self.warningLevel = smfmanager.get_warning_level()
         self.__debug("Warning level value is:   %d%%" % self.warningLevel)
@@ -54,36 +55,31 @@ class CleanupManager:
         for poolname in zfs.list_zpools():
             # Do not try to examine FAULTED pools
             zpool = zfs.ZPool(poolname)
-            if zpool.health == "FAULTED":
+            if zpool.get_health() == "FAULTED":
                 pass
             else:
                 self.zpools.append(zpool)
-            self.__debug(zpool.__repr__())
-
-    def perform_purge(self):
-        keep = {}
-        keep["frequent"] = 0
-        keep["hourly"] = 0
-        keep["daily"] = 0
-        keep["weekly"] = 0
-        keep["monthly"] = 0
+            self.__debug(zpool)
+        self.keep = {}
+        self.keep["frequent"] = 0
+        self.keep["hourly"] = 0
+        self.keep["daily"] = 0
+        self.keep["weekly"] = 0
+        self.keep["monthly"] = 0
         for schedule in ["frequent", "hourly", "daily", "weekly", "monthly"]:
             instance = "svc:/system/filesystem/zfs/auto-snapshot:%s" % \
                            (schedule)
             cmd = "svcprop -c -p zfs/keep %s" % (instance)
             fin,fout,ferr = os.popen3(cmd)
-            keep[schedule] = int(fout.read()) 
+            self.keep[schedule] = int(fout.read()) 
 
-        """ Cleans out zero sized snapshots, kind of cautiously"""
-        deletelist = []
-        # Need to seperate out snapshots by filesystem.
-        for fsname in zfs.list_filesystems():
-            fs = zfs.Filesystem(fsname)
-            # We also split out by schedule. We want to delete 0 sized
+    def __prune_snapshots(self, dataset):
+        """Cleans out zero sized snapshots, kind of cautiously"""
+            # Per schedule: We want to delete 0 sized
             # snapshots but we need to keep at least one around (the most
             # recent one) for each schedule so that that overlap is 
             # maintained from frequent -> hourly -> daily etc.
-            # We start off with the smallest interval schedule first and
+            # Start off with the smallest interval schedule first and
             # move up. This increases the amount of data retained where
             # several snapshots are taken together like a frequent hourly
             # and daily snapshot taken at 12:00am. If 3 snapshots are all
@@ -96,41 +92,53 @@ class CleanupManager:
             # Doing it the other way however ensures that the data should
             # remain accessible to the user for at least a week as long as
             # the pool doesn't run low on available space before that.
-            for schedule in ["frequent", \
-                "hourly", "daily", "weekly", "monthly"]:
-                snaps = fs.list_snapshots("zfs-auto-snap:%s" % schedule)
-                try: # remove the newest one from the list.
-                    snaps.pop()
-                except IndexError:
-                    continue
-                for snapname in snaps:
-                    snapshot = zfs.Snapshot(snapname)
-                    if snapshot.get_used_size() == 0:
-                        deletelist.append(snapname)
-                        snapshot.destroy_snapshot()
-                        snaps.remove(snapname)
-                
-                # Deleting individual snapshots instead of recursive sets
-                # breaks the recursion chain and leaves child snapshots
-                # dangling so we need to take care of cleaning up the 
-                # snapshots here instead of relying on zfs-auto-snapshot SMF
-                # instances to do it.
-                target = len(snaps) - keep[schedule]
-                counter = 0
-                while counter <= target:
-                    # This could be so much more efficient if "zfs destroy"
-                    # would accept more than one argument.
-                    # We don't need to run this via pfexec since we're running
-                    # as root already.
-                    cmd = zfs.ZFSCMD + "destroy %s" % snaps[counter]
-                    os.system(cmd)
-                    deletelist.append(snaps[counter])
-                    counter += 1
-                
-        self.__debug("The following %d snapshots were deleted:" \
-                     % len(deletelist))
-        if self.debug == True and len(deletelist) > 0:
-            for item in deletelist:
+        for schedule in ["frequent", \
+            "hourly", "daily", "weekly", "monthly"]:
+            snaps = dataset.list_snapshots("zfs-auto-snap:%s" % schedule)
+            # Clone the list because we want to remove items from it
+            # while iterating through it.
+            remainingsnaps = snaps[:]
+            try: # remove the newest one from the list.
+                snaps.pop()
+            except IndexError:
+                continue
+            for snapname in snaps:
+                snapshot = zfs.Snapshot(snapname)
+                if snapshot.get_used_size() == 0:
+                    self.deletelist.append(snapname)
+                    self.__debug("Going to destroy zero sized: " + snapname)
+                    snapshot.destroy_snapshot()
+                    remainingsnaps.remove(snapname)
+            # Deleting individual snapshots instead of recursive sets
+            # breaks the recursion chain and leaves child snapshots
+            # dangling so we need to take care of cleaning up the 
+            # snapshots here instead of relying on zfs-auto-snapshot SMF
+            # instances to do it.
+            target = len(remainingsnaps) - self.keep[schedule]
+            counter = 0
+            while counter < target:
+                self.__debug("Going to destroy expired: " + \
+                             remainingsnaps[counter])
+		fs = zfs.Snapshot(remainingsnaps[counter])
+		fs.destroy_snapshot()
+                self.deletelist.append(remainingsnaps[counter])
+                counter += 1
+
+    def perform_purge(self):
+        """Cautiously cleans out zero sized snapshots"""
+        # Need to identify snapshots of both
+        # filesystems and volumes
+        names = zfs.list_filesystems()
+        names.extend(zfs.list_volumes())
+        for name in names:
+            data = zfs.ReadWritableDataset(name)
+            self.__prune_snapshots(data)
+
+        # Check self.debug first to prevent pointless loop iteration
+        if self.debug == True and len(self.deletelist) > 0:
+            self.__debug("The following %d snapshots were deleted:" \
+                         % len(self.deletelist))
+            for item in self.deletelist:
                 self.__debug(item)
 
     def needs_cleanup(self):
@@ -167,7 +175,7 @@ class CleanupManager:
             # the pool (hopefully).
             self.__debug("%s pool status after cleanup:" \
                          % zpool.name)
-            self.__debug(zpool.__repr__())
+            self.__debug(zpool)
         self.__debug("Cleanup completed. %d snapshots were destroyed" \
                      % len(self.destroyedsnaps))
         # Avoid needless list iteration for non-debug mode
@@ -382,8 +390,9 @@ class CleanupManager:
 def main(execpath):
 
     seriously = False
+    debug = False
     try:
-        opts,args = getopt.getopt(sys.argv[1:], "y", [])
+        opts,args = getopt.getopt(sys.argv[1:], "yd", [])
 
     except getopt.GetoptError:
         sys.stderr.write("time-slider-cleanup is not a user executable program")
@@ -392,6 +401,8 @@ def main(execpath):
     for opt,arg in opts:
         if opt == "-y":
             seriously = True
+        if opt == "-d":
+            debug = True
 
     if seriously == False:
         sys.exit(1)
@@ -403,7 +414,7 @@ def main(execpath):
     syslog.openlog("time-slider-cleanup", 0, syslog.LOG_DAEMON)
     rbacp = RBACprofile()
     if rbacp.has_profile("Primary Administrator"):
-        cleanup = CleanupManager(execpath)
+        cleanup = CleanupManager(execpath, debug)
         cleanup.perform_purge()
         if cleanup.needs_cleanup() == True:
             cleanup.perform_cleanup()
