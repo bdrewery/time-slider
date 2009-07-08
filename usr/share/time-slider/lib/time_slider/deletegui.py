@@ -77,6 +77,7 @@ class DeleteSnapManager:
         maindialog = self.xml.get_widget("time-slider-delete")
         self.pulsedialog = self.xml.get_widget("pulsedialog")
         self.pulsedialog.set_transient_for(maindialog)
+        self.datasets = zfs.Datasets()
         if snapshots:
             maindialog.hide()
             self.shortcircuit = snapshots
@@ -180,9 +181,9 @@ class DeleteSnapManager:
             # The second element is for internal matching and should not
             # be i18ned under any circumstances.        
             fsstore = gtk.ListStore(str, str)
-            fslist = zfs.list_filesystems()
+            fslist = self.datasets.list_filesystems()
             fsstore.append([_("All"), None])
-            for fsname in fslist:
+            for fsname,fsmount in fslist:
                 fsstore.append([fsname, fsname])
             self.fsfilterentry = self.xml.get_widget("fsfilterentry")
             self.fsfilterentry.set_model(fsstore)
@@ -209,7 +210,7 @@ class DeleteSnapManager:
             self.schedfilterentry.set_active(0)
             self.fsfilterentry.set_active(0)
         else:
-            cloned = zfs.list_cloned_snapshots()
+            cloned = self.datasets.list_cloned_snapshots()
             for snapname in self.shortcircuit:
                 # Filter out snapshots that are the root 
                 # of cloned filesystems or volumes
@@ -442,6 +443,7 @@ class ScanSnapshots(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.errors = []
+        self.datasets = zfs.Datasets()
         self.snapshots = []
 
     def run(self):
@@ -460,9 +462,9 @@ class ScanSnapshots(threading.Thread):
         return result
 
     def rescan(self):
-        cloned = zfs.list_cloned_snapshots()
+        cloned = self.datasets.list_cloned_snapshots()
         self.snapshots = []
-        snaplist = zfs.list_snapshots()
+        snaplist = self.datasets.list_snapshots()
         for snapname,snaptime in snaplist:  
             # Filter out snapshots that are the root 
             # of cloned filesystems or volumes

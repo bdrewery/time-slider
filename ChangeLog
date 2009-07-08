@@ -1,3 +1,23 @@
+2009-07-08 Niall Power - <niall.power@sun.com>
+
+	* VERSION: bump to 0.2.10
+	* Fix defect 8667 in following source files:
+	* usr/share/time-slider/lib/time_slider/cleanupmanager.py: Refactor
+	  code to modified zfs.py APIs, remove some dead code, make capacity
+	  checks conditional where possible.
+	* usr/share/time-slider/lib/time_slider/deletegui.py: minor code 
+	  refactoring to match zfs.py API changes.
+	* usr/share/time-slider/lib/time_slider/setupgui.py: Remove references
+	  to zfscontroller module which has been removed. Uses zfs.py 
+	  exclusively now. Refactor for zfs.py changes
+	* usr/share/time-slider/lib/time_slider/zfscontroller.py: removed.
+	  Very little functionality and nothing that shouldn't be in zfs.py
+	* usr/share/time-slider/lib/time_slider/zfs/py: New class definition
+	  for "Datasets" which stores all system snapshots, filesystems and
+	  volumes in a cache. Existing Dataset, Filesystem, Snapshot and Volume
+	  class methods now use the global Datasets cache for querying and
+	  listing instead of making zfs(1m) spawned commands.
+ 
 2009-05-13 Harry Fu - <harry.fu@sun.com>
 
 	* VERSION: bump to 0.2.9

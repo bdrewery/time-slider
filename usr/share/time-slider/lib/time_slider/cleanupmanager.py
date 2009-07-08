@@ -55,11 +55,12 @@ class CleanupManager:
         for poolname in zfs.list_zpools():
             # Do not try to examine FAULTED pools
             zpool = zfs.ZPool(poolname)
-            if zpool.get_health() == "FAULTED":
+            if zpool.health == "FAULTED":
                 pass
             else:
                 self.zpools.append(zpool)
             self.__debug(zpool)
+        self.datasets = zfs.Datasets()
         self.keep = {}
         self.keep["frequent"] = 0
         self.keep["hourly"] = 0
@@ -128,11 +129,12 @@ class CleanupManager:
         """Cautiously cleans out zero sized snapshots"""
         # Need to identify snapshots of both
         # filesystems and volumes
-        names = zfs.list_filesystems()
-        names.extend(zfs.list_volumes())
-        for name in names:
-            data = zfs.ReadWritableDataset(name)
-            self.__prune_snapshots(data)
+        for name,mountpoint in self.datasets.list_filesystems():
+            dataset = zfs.ReadWritableDataset(name)
+            self.__prune_snapshots(dataset)
+        for name in self.datasets.list_volumes():
+            dataset = zfs.ReadWritableDataset(name)
+            self.__prune_snapshots(dataset)
 
         # Check self.debug first to prevent pointless loop iteration
         if self.debug == True and len(self.deletelist) > 0:
@@ -155,15 +157,15 @@ class CleanupManager:
             if capacity > self.warningLevel:
                 self.run_warning_cleanup(zpool)
                 self.poolstatus[zpool.name] = 1
-            capacity = zpool.get_capacity()
+                capacity = zpool.get_capacity()
             if capacity > self.criticalLevel:
                 self.run_critical_cleanup(zpool)
                 self.poolstatus[zpool.name] = 2
-            capacity = zpool.get_capacity()
+                capacity = zpool.get_capacity()
             if capacity > self.emergencyLevel:
                 self.run_emergency_cleanup(zpool)
                 self.poolstatus[zpool.name] = 3
-            capacity = zpool.get_capacity()
+                capacity = zpool.get_capacity()
             if capacity > self.emergencyLevel:
                 self.run_emergency_cleanup(zpool)
                 self.poolstatus[zpool.name] = 4
@@ -188,16 +190,14 @@ class CleanupManager:
     def run_warning_cleanup(self, zpool):
         self.__debug("Performing warning level cleanup on %s" % \
                      zpool.name)
-        if zpool.get_capacity() > self.warningLevel:
-            self.run_cleanup(zpool, "daily", self.warningLevel)
+        self.run_cleanup(zpool, "daily", self.warningLevel)
         if zpool.get_capacity() > self.warningLevel:
             self.run_cleanup(zpool, "hourly", self.warningLevel)
 
     def run_critical_cleanup(self, zpool):
         self.__debug("Performing critical level cleanup on %s" % \
                      zpool.name)
-        if zpool.get_capacity() > self.criticalLevel:
-            self.run_cleanup(zpool, "weekly", self.criticalLevel)
+        self.run_cleanup(zpool, "weekly", self.criticalLevel)
         if zpool.get_capacity() > self.criticalLevel:
             self.run_cleanup(zpool, "daily", self.criticalLevel)
         if zpool.get_capacity() > self.criticalLevel:
@@ -206,8 +206,7 @@ class CleanupManager:
     def run_emergency_cleanup(self, zpool):
         self.__debug("Performing emergency level cleanup on %s" % \
                      zpool.name)
-        if zpool.get_capacity() > self.emergencyLevel:
-            self.run_cleanup(zpool, "monthly", self.emergencyLevel)
+        self.run_cleanup(zpool, "monthly", self.emergencyLevel)
         if zpool.get_capacity() > self.emergencyLevel:
             self.run_cleanup(zpool, "weekly", self.emergencyLevel)
         if zpool.get_capacity() > self.emergencyLevel:
@@ -218,11 +217,11 @@ class CleanupManager:
             self.run_cleanup(zpool, "frequent", self.emergencyLevel)
 
     def run_cleanup(self, zpool, schedule, threshold):
-        clonedsnaps = zfs.list_cloned_snapshots()
+        clonedsnaps = self.datasets.list_cloned_snapshots()
 
         # Build a list of snapshots in the given schedule, that are not
         # cloned, and sort the result in reverse chronological order.
-        snapshots = [s for s in \
+        snapshots = [s for s,t in \
                         zpool.list_snapshots("zfs-auto-snap:%s" % schedule) \
                         if not s in clonedsnaps]
         snapshots.reverse()
@@ -232,9 +231,6 @@ class CleanupManager:
                               "No more %s snapshots left" \
                                % schedule)
                 return
-
-            percentover = zpool.get_capacity() - threshold
-            sizeover = zpool.get_total_size() * percentover / 100
 
             """This is not an exact science. Deleteing a zero sized 
             snapshot can have unpredictable results. For example a

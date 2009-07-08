@@ -21,6 +21,8 @@
 #
 
 import os
+import re
+
 BYTESPERMB = 1048576
 
 # Commonly used command paths
@@ -28,20 +30,177 @@ PFCMD = "/usr/bin/pfexec "
 ZFSCMD = "/usr/sbin/zfs "
 ZPOOLCMD = "/usr/sbin/zpool "
 
+
+class Datasets:
+    """
+    Container class for all zfs datasets. Maintains a centralised
+    list of datasets (generated on demand) and accessor methods. 
+    Also allows clients to notify when a refresh might be necessary.
+    """
+    # Class wide instead of per-instance in order to avoid duplication
+    filesystems = None
+    volumes = None
+    snapshots = None
+
+    def list_filesystems(self, pattern = None):
+        """
+        List pattern matching filesystems sorted by name.
+        
+        Keyword arguments:
+        pattern -- Filter according to pattern (default None)
+        """
+        filesystems = []
+        if Datasets.filesystems == None:
+            Datasets.filesystems = []
+            cmd = ZFSCMD + "list -H -t filesystem -o name,mountpoint -s name"
+            fin,fout = os.popen4(cmd)
+            for line in fout:
+                line = line.rstrip().split()
+                Datasets.filesystems.append([line[0], line[1]])
+
+        if pattern == None:
+            filesystems = Datasets.filesystems[:]
+        else:
+            # Regular expression pattern to match "pattern" parameter.
+            regexpattern = ".*%s.*" % pattern
+            patternobj = re.compile(regexpattern)
+
+            for fsname,fsmountpoint in Datasets.filesystems:
+                patternmatchobj = re.match(patternobj, fsname)
+                if patternmatchobj != None:
+                    filesystems.append(fsname, fsmountpoint)
+        return filesystems
+
+    def list_volumes(self, pattern = None):
+        """
+        List pattern matching volumes sorted by name.
+        
+        Keyword arguments:
+        pattern -- Filter according to pattern (default None)
+        """
+        volumes = []
+        if Datasets.volumes == None:
+            Datasets.volumes = []
+            cmd = ZFSCMD + "list -H -t volume -o name -s name"
+            fin,fout = os.popen4(cmd)
+            for line in fout:
+                Datasets.volumes.append(line.rstrip())
+
+        if pattern == None:
+            volumes = Datasets.volumes[:]
+        else:
+            # Regular expression pattern to match "pattern" parameter.
+            regexpattern = ".*%s.*" % pattern
+            patternobj = re.compile(regexpattern)
+
+            for volname in Datasets.volumes:
+                patternmatchobj = re.match(patternobj, volname)
+                if patternmatchobj != None:
+                    volumes.append(volname)
+        return volumes
+
+    def list_snapshots(self, pattern = None):
+        """
+        List pattern matching snapshots sorted by creation date.
+        Oldest listed first
+        
+        Keyword arguments:
+        pattern -- Filter according to pattern (default None)
+        """
+        snapshots = []
+        if Datasets.snapshots == None:
+            Datasets.snapshots = []
+            cmd = ZFSCMD + "get -H -p -o value,name creation | grep @ | sort"
+            fin,fout = os.popen4(cmd)
+            for line in fout:
+                line = line.rstrip().split()
+                Datasets.snapshots.append([line[1], long(line[0])])
+
+        if pattern == None:
+            snapshots = Datasets.snapshots[:]
+        else:
+            # Regular expression pattern to match "pattern" parameter.
+            regexpattern = "@.*%s" % pattern
+            patternobj = re.compile(regexpattern)
+
+            for snapname,snaptime in Datasets.snapshots:
+                patternmatchobj = re.match(patternobj, snapname)
+                if patternmatchobj != None:
+                    snapshots.append([snapname, snaptime])
+        return snapshots
+
+    def list_cloned_snapshots(self):
+        """
+        Returns a list of snapshots that have cloned filesystems
+        dependent on them.
+        Snapshots with cloned filesystems can not be destroyed
+        unless dependent cloned filesystems are first destroyed.
+        """
+        cmd = ZFSCMD + "list -H -o origin"
+        fin,fout,ferr = os.popen3(cmd)
+        result = []
+        for line in fout:
+            details = line.rstrip()
+            if details != "-":
+                try:
+                    result.index(details)
+                except ValueError:
+                    result.append(details)
+        return result
+
+    def refresh_snapshots(self):
+        """
+        Should be called when snapshots have been created or deleted
+        and a rescan should be performed. Rescan gets deferred until
+        next invocation of zfs.Dataset.list_snapshots()
+        """
+        # FIXME in future.
+        # This is a little sub-optimal because we should be able to modify
+        # the snapshot list in place in some situations and regenerate the 
+        # snapshot list without calling out to zfs(1m). But on the
+        # pro side, we will pick up any new snapshots since the last
+        # scan that we would be otherwise unaware of.
+        Datasets.snapshots = None
+
+
 class ZPool(Exception):
     """
     Base class for ZFS storage pool objects
     """
     def __init__(self, name):
         self.name = name
+        self.health = self.__get_health()
+        self.__datasets = Datasets()
+        self.__filesystems = None
+        self.__volumes = None
+        self.__snapshots = None
+
+    def __get_health(self):
+        """
+        Returns pool health status: 'ONLINE', 'DEGRADED' or 'FAULTED'
+        """
+        cmd = ZPOOLCMD + "list -H -o health %s" % (self.name)
+        fin,fout = os.popen4(cmd)
+        result = fout.read().rstrip()
+        return result
 
     def get_capacity(self):
         """
         Returns the percentage of total pool storage in use.
+        Calculated based on the "used" and "available" properties
+        of the pool's top-level filesystem because the values account
+        for reservations and quotas of children in their calculations,
+        giving a more practical indication of how much capacity is used
+        up on the pool.
         """
-        used = self.get_used_size()
-        size = self.get_total_size()
-        return 100 * float(used) / float(size)
+        if self.health == "FAULTED":
+            raise "PoolFaulted"
+
+        cmd = ZFSCMD + "get -H -p -o value used,available %s" % (self.name)
+        fin,fout,ferr = os.popen3(cmd)
+        used = float(fout.readline().rstrip())
+        available = float(fout.readline().rstrip())
+        return 100.0 * used/(used + available)
 
     def get_available_size(self):
         """
@@ -51,11 +210,10 @@ class ZPool(Exception):
         # zpool(1) doesn't report available space in
         # units suitable for calulations but zfs(1)
         # can so use it to find the value for the
-        # filesystem matching the pool. The values
-        # are close enough that they can be treated
-        # as the same thing.
-        filesystems = self.list_filesystems()
-        poolfs = Filesystem(filesystems[0])
+        # filesystem matching the pool.
+        # The root filesystem of the pool is simply
+        # the pool name.
+        poolfs = Filesystem(self.name)
         avail = poolfs.get_available_size()
         return avail
 
@@ -67,105 +225,86 @@ class ZPool(Exception):
         # Same as ZPool.get_available_size(): zpool(1)
         # doesn't generate suitable out put so use
         # zfs(1) on the toplevel filesystem
-        if self.get_health() == "FAULTED":
+        if self.health == "FAULTED":
             raise "PoolFaulted"
-        filesystems = self.list_filesystems()
-        poolfs = Filesystem(filesystems[0])
+        poolfs = Filesystem(self.name)
         used = poolfs.get_used_size()
         return used
-
-    def get_total_size(self):
-        """
-        Get total size of this Zpool.
-        Answer in bytes.
-        """
-        if self.get_health() == "FAULTED":
-            raise "PoolFaulted"
-        used = self.get_used_size()
-        avail = self.get_available_size()
-        return used + avail
 
     def list_filesystems(self):
         """
         Return a list of filesystems on this Zpool.
         List is sorted by name.
         """
-        result = []
-        cmd = ZFSCMD + "list -t filesystem -H -o name | egrep ^%s" \
-            % (self.name)
-        fin,fout = os.popen4(cmd)
-        for line in fout:
-            try:
-                index = line.index(self.name)
-                if index == 0:
-                    result.append(line.rstrip())
-            except ValueError:
-                pass
-        result.sort()
-        return result
+        if self.__filesystems == None:
+            result = []
+            regexpattern = "^%s" % self.name
+            patternobj = re.compile(regexpattern)
+            for fsname,fsmountpoint in self.__datasets.list_filesystems():
+                patternmatchobj = re.match(patternobj, fsname)
+                if patternmatchobj != None:
+                    result.append([fsname, fsmountpoint])
+            result.sort()
+            self.__filesystems = result
+        
+        return self.__filesystems
 
     def list_volumes(self):
         """
         Return a list of volumes (zvol) on this Zpool
         List is sorted by name
         """
-        result = []
-        cmd = ZFSCMD + "list -t volume -H -o name | egrep ^%s" \
-            % (self.name)
-        fin,fout = os.popen4(cmd)
-        for line in fout:
-            try:
-                index = line.index(self.name)
-                if index == 0:
-                    result.append(line.rstrip())
-            except ValueError:
-                pass
-        result.sort()
-        return result
+        if self.__volumes == None:
+            result = []
+            regexpattern = "^%s" % self.name
+            patternobj = re.compile(regexpattern)
+            for volname in self.__datasets.list_volumes():
+                patternmatchobj = re.match(patternobj, volname)
+                if patternmatchobj != None:
+                    result.append(volname)
+            result.sort()
+            self.__volumes = result
+        return self.__volumes
 
-    def list_snapshots(self, pattern=None):
+    def list_snapshots(self, pattern = None):
         """
-        List pattern matching snapshots sorted by ascending creation date.
-        
+        List pattern matching snapshots sorted by creation date.
+        Oldest listed first
            
         Keyword arguments:
-        pattern -- Filter according to pattern (default None)
+        pattern -- Filter according to pattern (default None)   
         """
-        if pattern != None:
-            cmd = ZFSCMD + "list -t snapshot -o name " + \
-                  "-s creation | egrep ^%s.*@.*%s" \
-                  % (self.name, pattern)
+        # If there isn't a list of snapshots for this dataset
+        # already, create it now and store it in order to save
+        # time later for potential future invocations.
+        if Datasets.snapshots == None:
+            self.__snapshots = None
+        if self.__snapshots == None:
+            result = []
+            regexpattern = "^%s.*@"  % self.name
+            patternobj = re.compile(regexpattern)
+            for snapname,snaptime in self.__datasets.list_snapshots():
+                patternmatchobj = re.match(patternobj, snapname)
+                if patternmatchobj != None:
+                    result.append([snapname, snaptime])
+            # Results already sorted by creation time
+            self.__snapshots = result
+        if pattern == None:
+            return self.__snapshots
         else:
-            cmd = ZFSCMD + "list -t snapshot -o name " + \
-                  "-s creation | egrep ^%s.*@" \
-                  % (self.name)
-        fin,fout = os.popen4(cmd)
-        snapshots = []
-        for line in fout:
-            try:
-                index = line.index(self.name)
-                if index == 0:
-                    snapshots.append(line.rstrip())
-            except ValueError:
-                pass
-        return snapshots
-
-    def get_health(self):
-        """
-        Returns pool health status: 'ONLINE', 'DEGRADED' or 'FAULTED'
-        """
-        cmd = ZPOOLCMD + "list -H -o health %s" % (self.name)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip()
-        return result
+            snapshots = []
+            regexpattern = "^%s.*@.*%s" % (self.name, pattern)
+            patternobj = re.compile(regexpattern)
+            for snapname,snaptime in self.__snapshots:
+                patternmatchobj = re.match(patternobj, snapname)
+                if patternmatchobj != None:
+                    snapshots.append([snapname, snaptime])
+            return snapshots
 
     def __str__(self):
         return_string = "ZPool name: " + self.name
-        return_string = return_string + "\n\tHealth: " + self.get_health()
+        return_string = return_string + "\n\tHealth: " + self.health
         try:
-            return_string = return_string + \
-                            "\n\tTotal Size: " + \
-                            str(self.get_total_size()/BYTESPERMB) + "Mb"
             return_string = return_string + \
                             "\n\tUsed: " + \
                             str(self.get_used_size()/BYTESPERMB) + "Mb"
@@ -179,6 +318,7 @@ class ZPool(Exception):
             pass
         return return_string
 
+
 class ReadableDataset:
     """
     Base class for Filesystem, Volume and Snapshot classes
@@ -186,9 +326,8 @@ class ReadableDataset:
     """
     def __init__(self, name, creation = None):
         self.name = name
-        self.__creationTime = None
-        if creation:
-            self.__creationTime = creation
+        self.__creationTime = creation
+        self.datasets = Datasets()
 
     def __str__(self):
         return_string = "ReadableDataset name: " + self.name + "\n"
@@ -262,7 +401,7 @@ class Snapshot(ReadableDataset, Exception):
         return long(result)
 
     def list_children(self):
-        """Returns a recursive list of child snapshots of this snapshot""" 
+        """Returns a recursive list of child snapshots of this snapshot"""
         cmd = ZFSCMD + "list -t snapshot -H -r -o name %s | grep @%s" \
               % (self.fsname, self.snaplabel)
         fin,fout = os.popen4(cmd)
@@ -288,6 +427,10 @@ class Snapshot(ReadableDataset, Exception):
         """Permanently remove this snapshot from the filesystem"""
         cmd = PFCMD + ZFSCMD + "destroy %s" % self.name
         fin,fout,ferr = os.popen3(cmd)
+        # Clear the global snapshot cache so that a rescan will be
+        # triggered on the next call to Datasets.list_snapshots()
+        self.datasets.refresh_snapshots()
+        
         # Check for any error output generated and
         # return it to caller if so.
         error = ferr.read()
@@ -298,10 +441,14 @@ class Snapshot(ReadableDataset, Exception):
 
     def __str__(self):
         return_string = "Snapshot name: " + self.name
-        return_string = return_string + "\n\tCreation time: " + str(self.get_creation_time())
-        return_string = return_string + "\n\tUsed Size: " + str(self.get_used_size())
-        return_string = return_string + "\n\tReferenced Size: " + str(self.get_referenced_size())
+        return_string = return_string + "\n\tCreation time: " \
+                        + str(self.get_creation_time())
+        return_string = return_string + "\n\tUsed Size: " \
+                        + str(self.get_used_size())
+        return_string = return_string + "\n\tReferenced Size: " \
+                        + str(self.get_referenced_size())
         return return_string
+
 
 class ReadWritableDataset(ReadableDataset):
     """
@@ -311,6 +458,7 @@ class ReadWritableDataset(ReadableDataset):
     """
     def __init__(self, name, creation = None):
         ReadableDataset.__init__(self, name, creation)
+        self.__snapshots = None
 
     def __str__(self):
         return_string = "ReadWritableDataset name: " + self.name + "\n"
@@ -338,19 +486,32 @@ class ReadWritableDataset(ReadableDataset):
         Keyword arguments:
         pattern -- Filter according to pattern (default None)   
         """
-        if pattern != None:
-            cmd = ZFSCMD + "list -H -t snapshot -o name " + \
-                  "-s creation | egrep ^%s@.*%s" \
-                  % (self.name, pattern)
+        # If there isn't a list of snapshots for this dataset
+        # already, create it now and store it in order to save
+        # time later for potential future invocations.
+        if Datasets.snapshots == None:
+            self.__snapshots = None
+        if self.__snapshots == None:
+            result = []
+            regexpattern = "^%s@" % self.name
+            patternobj = re.compile(regexpattern)
+            for snapname,snaptime in self.datasets.list_snapshots():
+                patternmatchobj = re.match(patternobj, snapname)
+                if patternmatchobj != None:
+                    result.append([snapname, snaptime])
+            # Results already sorted by creation time
+            self.__snapshots = result
+        if pattern == None:
+            return self.__snapshots
         else:
-            cmd = ZFSCMD + "list -H -t snapshot -o name " + \
-                  "-s creation | egrep ^%s@" \
-                  % (self.name)
-        fin,fout = os.popen4(cmd)
-        snapshots = []
-        for line in fout:
-            snapshots.append(line.rstrip())
-        return snapshots
+            snapshots = []
+            regexpattern = "^%s@.*%s" % (self.name, pattern)
+            patternobj = re.compile(regexpattern)
+            for snapname,snaptime in self.__snapshots:
+                patternmatchobj = re.match(patternobj, snapname)
+                if patternmatchobj != None:
+                    snapshots.append(snapname)
+            return snapshots
 
     def set_auto_snap(self, include, inherit = False):
         if inherit == True:
@@ -368,8 +529,9 @@ class ReadWritableDataset(ReadableDataset):
 
 class Filesystem(ReadWritableDataset):
     """ZFS Filesystem class"""
-    def __init__(self, name):
+    def __init__(self, name, mountpoint = None):
         ReadWritableDataset.__init__(self, name)
+        self.__mountpoint = mountpoint
 
     def __str__(self):
         return_string = "Filesystem name: " + self.name + \
@@ -383,10 +545,12 @@ class Filesystem(ReadWritableDataset):
         return return_string
 
     def get_mountpoint(self):
-        cmd = ZFSCMD + "get -H -o value mountpoint %s" % (self.name)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip()
-        return result
+        if (self.__mountpoint == None):
+            cmd = ZFSCMD + "get -H -o value mountpoint %s" % (self.name)
+            fin,fout = os.popen4(cmd)
+            result = fout.read().rstrip()
+            self.__mountpoint = result
+        return self.__mountpoint
 
     def list_children(self):
         cmd = ZFSCMD + "list -H -r -t filesystem -o name %s" % (self.name)
@@ -397,6 +561,7 @@ class Filesystem(ReadWritableDataset):
                 result.append(line.rstrip())
         return result
 
+
 class Volume(ReadWritableDataset):
     """
     ZFS Volume Class
@@ -404,86 +569,12 @@ class Volume(ReadWritableDataset):
     unique from ReadWritableDataset parent class.
     """
     def __init__(self, name):
-        ReadableDataset.__init__(self, name)
+        ReadWritableDataset.__init__(self, name)
 
     def __str__(self):
         return_string = "Volume name: " + self.name + "\n"
         return return_string
 
-def list_filesystems(pattern = None):
-    """
-    List pattern matching filesystems sorted by name.
-    
-    Keyword arguments:
-    pattern -- Filter according to pattern (default None)
-    """
-    if pattern != None:
-        cmd = ZFSCMD + "list -H -t filesystem -o name -s name | grep %s" \
-              % (pattern)
-    else:
-        cmd = ZFSCMD + "list -H -t filesystem -o name -s name"
-    fin,fout = os.popen4(cmd)
-    filesystems = []
-    for line in fout:
-        filesystems.append(line.rstrip())
-    return filesystems
-
-def list_volumes(pattern = None):
-    """
-    List pattern matching volumes sorted by name.
-    
-    Keyword arguments:
-    pattern -- Filter according to pattern (default None)
-    """
-    if pattern != None:
-        cmd = ZFSCMD + "list -H -t volume -o name -s name | grep %s" \
-              % (pattern)
-    else:
-        cmd = ZFSCMD + "list -H -t volume -o name -s name"
-    fin,fout = os.popen4(cmd)
-    volumes = []
-    for line in fout:
-        volumes.append(line.rstrip())
-    return volumes
-
-def list_snapshots(pattern = None):
-    """
-    List pattern matching snapshots sorted by creation date.
-    Oldest listed first
-    
-    Keyword arguments:
-    pattern -- Filter according to pattern (default None)
-    """
-    if pattern != None:
-        cmd = ZFSCMD + "get -H -p -o value,name creation | grep @%s | sort"\
-                % (pattern)
-    else:
-        cmd = ZFSCMD + "get -H -p -o value,name creation | grep @ | sort"
-    fin,fout = os.popen4(cmd)
-    snapshots = []
-    for line in fout:
-        line = line.rstrip().split()
-        snapshots.append([line[1], long(line[0])])
-    return snapshots
-
-def list_cloned_snapshots():
-    """
-    Returns a list of snapshots that have cloned filesystems
-    dependent on them.
-    Snapshots with cloned filesystems can not be destroyed
-    unless dependent cloned filesystems are first destroyed.
-    """
-    cmd = ZFSCMD + "list -H -o origin"
-    fin,fout,ferr = os.popen3(cmd)
-    result = []
-    for line in fout:
-        details = line.rstrip()
-        if details != "-":
-            try:
-                result.index(details)
-            except ValueError:
-                result.append(details)
-    return result
 
 def list_zpools():
     """Returns a list of all zpools on the system"""
@@ -494,17 +585,24 @@ def list_zpools():
         result.append(line.rstrip())
     return result
 
+
 if __name__ == "__main__":
     for zpool in list_zpools():
         pool = ZPool(zpool)
         print pool
-        for filesys in pool.list_filesystems():
-            fs = Filesystem(filesys)
+        for filesys,mountpoint in pool.list_filesystems():
+            fs = Filesystem(filesys, mountpoint)
             print fs
-            for snapshot in fs.list_snapshots():
-                snap = Snapshot(snapshot)
+            print "\tSnapshots:"
+            for snapshot, snaptime in fs.list_snapshots():
+                snap = Snapshot(snapshot, snaptime)
+                print "\t" + snap.name
+            print "\n"
         for volname in pool.list_volumes():
             vol = Volume(volname)
             print vol
-            for snapshot in vol.list_snapshots():
-                snap = Snapshot(snapshot)
+            print "\tSnapshots:"
+            for snapshot, snaptime in vol.list_snapshots():
+                snap = Snapshot(snapshot, snaptime)
+                print "\t" + snap.name
+            print "\n"

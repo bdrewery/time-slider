@@ -57,7 +57,7 @@ GETTEXT_DOMAIN = 'time-slider'
 gtk.glade.bindtextdomain(GETTEXT_DOMAIN, LOCALE_PATH)
 gtk.glade.textdomain(GETTEXT_DOMAIN)
 
-from zfscontroller import ZFSController
+import zfs
 from smfmanager import SMFManager
 from rbac import RBACprofile
 
@@ -72,7 +72,7 @@ class SnapshotManager:
 
     def __init__(self, execpath):
         self.execpath = execpath
-        self.controller = ZFSController()
+        self.__datasets = zfs.Datasets()
         self.xml = gtk.glade.XML("%s/../../glade/time-slider-setup.glade" \
                                   % (os.path.dirname(__file__)))
         # signal dictionary	
@@ -92,10 +92,13 @@ class SnapshotManager:
         self.fsintentdic = {}
 
         self.liststorefs = gtk.ListStore(bool, str, str, gobject.TYPE_PYOBJECT)
-        for fs in self.controller.zfs_fs:
-            mountpoint = fs.get_mountpoint()
-            if (mountpoint == "legacy"):
+        filesystems = self.__datasets.list_filesystems()
+        for fsname,fsmountpoint in filesystems:
+            if (fsmountpoint == "legacy"):
                 mountpoint = _("Legacy")
+            else:
+                mountpoint = fsmountpoint
+            fs = zfs.Filesystem(fsname, fsmountpoint)
             if fs.get_auto_snap() == True:
                 self.liststorefs.append([True, mountpoint, fs.name, fs])
             else:
@@ -105,8 +108,9 @@ class SnapshotManager:
         self.fstv.set_sensitive(False)
         # FIXME: A bit hacky but it seems to work nicely
         self.fstv.set_size_request(10,
-                                   100 + (len(self.controller.zfs_fs) - 2) *
+                                   100 + (len(filesystems) - 2) *
                                    10)
+        del filesystems
         self.fstv.set_model(self.liststorefs)
 
         self.cell0 = gtk.CellRendererToggle()
@@ -322,9 +326,13 @@ class SnapshotManager:
     def __commit_intents(self):
         """Commits the intended filesystem selection actions based on the
            user's UI configuration to disk"""
-        for fs in self.controller.zfs_fs:
-            intent = self.fsintentdic[fs.name]
-            fs.set_auto_snap(intent.selected, intent.inherited)
+        for fsname,fsmountpoint in self.__datasets.list_filesystems():
+            fs = zfs.Filesystem(fsname, fsmountpoint)
+            try:
+                intent = self.fsintentdic[fsname]
+                fs.set_auto_snap(intent.selected, intent.inherited)
+            except IndexError:
+                pass
 
     def __on_deletesnapshots_clicked(self, widget):
         cmdpath = os.path.join(os.path.dirname(self.execpath), \
