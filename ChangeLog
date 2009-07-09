@@ -17,6 +17,19 @@
 	  volumes in a cache. Existing Dataset, Filesystem, Snapshot and Volume
 	  class methods now use the global Datasets cache for querying and
 	  listing instead of making zfs(1m) spawned commands.
+
+2009-05-18 Niall Power - <niall.power@sun.com>
+
+        * usr/share/time-slider/lib/time_slider/cleanupmanager.py
+          Cleanup both Filesystem and Volume snapshots. Fixes d.o.o 8454
+        * usr/share/time-slider/lib/time_slider/setupgui.py: Prepend private
+          class methods with "__" in accordance with python coding standards.
+        * usr/share/time-slider/lib/time_slider/smfmanager.py: Use predefined
+          macros for ZFS commands instead of hardcoding path in the code.
+        * usr/share/time-slider/lib/time_slider/zfs.py: Improve object
+          hierarchy and inheritance tree. Rename some methods for improved
+          clarity of purpose. Improve method and function documentation.
+          Add capability to deal with ZFS volumes. Fixes d.o.o 8454 & 8685
  
 2009-05-13 Harry Fu - <harry.fu@sun.com>
 
