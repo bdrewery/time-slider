@@ -1,4 +1,4 @@
-#!/bin/ksh
+#!/usr/bin/env python2.6
 #
 # CDDL HEADER START
 #
@@ -19,30 +19,27 @@
 #
 # CDDL HEADER END
 #
-#
-# Copyright 2006 Sun Microsystems, Inc.  All rights reserved.
-# Use is subject to license terms.
-#
-# ident	"%Z%%M%	%I%	%E% SMI"
 
-. /lib/svc/share/smf_include.sh
 
-case "$1" in
-'start')
+import dbus
+import dbus.service
+import dbus.mainloop
+import dbus.mainloop.glib
 
-	[ ! -x /usr/lib/time-sliderd ] && exit $SMF_EXIT_ERR_CONFIG
 
-	/usr/lib/time-sliderd
-	err=$?
-	if [ $err -ne 0 ]; then
-		echo "Time Slider failed to start: error $err"
-		exit $SMF_EXIT_ERR_FATAL
-	fi
-	;;
-*)
-        echo "Usage: $0 { start }"
-	exit $SMF_EXIT_ERR_FATAL 
-        ;;
-esac
+class AutoSnap(dbus.service.Object):
+    """
+    D-Bus object for Time Slider's auto snapshot features.
+    """
+    def __init__(self, bus, path, snapshotmanager):
+        self.snapshotmanager = snapshotmanager
+        self._bus = bus
+        dbus.service.Object.__init__(self,
+                                     bus,
+                                     path)
 
-exit $SMF_EXIT_OK
+    # Remedial cleanup signal
+    @dbus.service.signal(dbus_interface="org.opensolaris.TimeSlider.autosnap",
+                         signature='suu')
+    def capacity_exceeded(self, pool, severity, threshhold):
+        pass

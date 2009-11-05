@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.6
 #
 # CDDL HEADER START
 #
@@ -453,12 +453,9 @@ class ScanSnapshots(threading.Thread):
     def __get_fs_mountpoints(self):
         """Returns a dictionary mapping: 
            {filesystem : mountpoint}"""
-        cmd = zfs.ZFSCMD + "list -H -t filesystem -o name,mountpoint"
-        fin,fout,ferr = os.popen3(cmd)
         result = {}
-        for line in fout:
-            line = line.rstrip().split()
-            result[line[0]] = line[1]
+        for filesys,mountpoint in self.datasets.list_filesystems():
+            result[filesys] = mountpoint
         return result
 
     def rescan(self):
@@ -494,9 +491,10 @@ class DeleteSnapshots(threading.Thread):
             # still exists before attempting to delete it. If it 
             # doesn't exist just silently ignore it.
             if snapshot.exists():
-                error = snapshot.destroy_snapshot()
-                if error:
-                    self.errors.append(error)
+                try:
+                    snapshot.destroy_snapshot()
+                except RuntimeError, inst:
+                    self.errors.append(str(inst))
             deleted += 1
             self.progress = deleted / (total * 1.0)
         self.completed = True

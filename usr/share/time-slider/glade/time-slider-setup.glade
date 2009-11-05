@@ -1,14 +1,14 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Wed Dec 17 12:21:29 2008 -->
+<?xml version="1.0"?>
 <glade-interface>
+  <!-- interface-requires gtk+ 2.6 -->
+  <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="toplevel">
     <property name="visible">True</property>
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Time Slider Manager</property>
-    <property name="window_position">GTK_WIN_POS_CENTER_ON_PARENT</property>
+    <property name="window_position">center-on-parent</property>
     <property name="icon_name">time-slider-setup</property>
-    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="type_hint">dialog</property>
     <signal name="delete_event" handler="on_snapshotmanager_delete_event"/>
     <child>
       <widget class="GtkVBox" id="vbox1">
@@ -25,7 +25,7 @@
                   <widget class="GtkCheckButton" id="enablebutton">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="response_id">0</property>
+                    <property name="receives_default">False</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_enablebutton_toggled"/>
                     <child>
@@ -39,6 +39,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
@@ -57,6 +58,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
@@ -69,14 +71,14 @@
                   <widget class="GtkFrame" id="filesysframe">
                     <property name="visible">True</property>
                     <property name="label_xalign">0</property>
-                    <property name="shadow_type">GTK_SHADOW_NONE</property>
+                    <property name="shadow_type">none</property>
                     <child>
                       <widget class="GtkAlignment" id="alignment7">
                         <property name="visible">True</property>
                         <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
-                          <widget class="GtkVBox" id="vbox2">
+                          <widget class="GtkVBox" id="vbox4">
                             <property name="visible">True</property>
                             <property name="spacing">12</property>
                             <child>
@@ -111,11 +113,11 @@
                                 </child>
                                 <child>
                                   <widget class="GtkRadioButton" id="selectfsradio">
+                                    <property name="label" translatable="yes">C_ustom:</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <property name="label" translatable="yes">C_ustom:</property>
+                                    <property name="receives_default">False</property>
                                     <property name="use_underline">True</property>
-                                    <property name="response_id">0</property>
                                     <property name="active">True</property>
                                     <property name="draw_indicator">True</property>
                                     <property name="group">defaultfsradio</property>
@@ -129,11 +131,11 @@
                                 </child>
                                 <child>
                                   <widget class="GtkRadioButton" id="defaultfsradio">
+                                    <property name="label" translatable="yes">_All</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <property name="label" translatable="yes">_All</property>
+                                    <property name="receives_default">False</property>
                                     <property name="use_underline">True</property>
-                                    <property name="response_id">0</property>
                                     <property name="active">True</property>
                                     <property name="draw_indicator">True</property>
                                     <signal name="toggled" handler="on_defaultfsradio_toggled"/>
@@ -146,14 +148,15 @@
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
+                                <property name="position">0</property>
                               </packing>
                             </child>
                             <child>
                               <widget class="GtkScrolledWindow" id="scrolledwindow2">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                                <property name="hscrollbar_policy">automatic</property>
+                                <property name="vscrollbar_policy">automatic</property>
                                 <child>
                                   <widget class="GtkTreeView" id="fstreeview">
                                     <property name="visible">True</property>
@@ -179,6 +182,7 @@
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">False</property>
+                                    <property name="position">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -191,12 +195,13 @@
                                         <property name="can_focus">True</property>
                                         <property name="adjustment">0 0 100 1 10 0</property>
                                         <property name="numeric">True</property>
-                                        <property name="update_policy">GTK_UPDATE_IF_VALID</property>
+                                        <property name="update_policy">if-valid</property>
                                         <signal name="value_changed" handler="on_capspinbutton_value_changed"/>
                                       </widget>
                                       <packing>
                                         <property name="expand">False</property>
                                         <property name="fill">False</property>
+                                        <property name="position">0</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -265,6 +270,9 @@
               </packing>
             </child>
           </widget>
+          <packing>
+            <property name="position">0</property>
+          </packing>
         </child>
         <child>
           <widget class="GtkHBox" id="hbox1">
@@ -276,7 +284,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="on_deletesnapshots_clicked"/>
                 <child>
                   <widget class="GtkHBox" id="hbox2">
@@ -287,6 +294,9 @@
                         <property name="visible">True</property>
                         <property name="stock">gtk-delete</property>
                       </widget>
+                      <packing>
+                        <property name="position">0</property>
+                      </packing>
                     </child>
                     <child>
                       <widget class="GtkLabel" id="deletebutton">
@@ -304,35 +314,41 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
               <widget class="GtkHButtonBox" id="hbuttonbox1">
                 <property name="visible">True</property>
                 <property name="spacing">6</property>
-                <property name="layout_style">GTK_BUTTONBOX_END</property>
+                <property name="layout_style">end</property>
                 <child>
                   <widget class="GtkButton" id="cancel">
+                    <property name="label">gtk-cancel</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="label">gtk-cancel</property>
                     <property name="use_stock">True</property>
-                    <property name="response_id">0</property>
                     <signal name="clicked" handler="on_cancel_clicked"/>
                   </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
                 </child>
                 <child>
                   <widget class="GtkButton" id="ok">
+                    <property name="label">gtk-ok</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="label">gtk-ok</property>
                     <property name="use_stock">True</property>
-                    <property name="response_id">0</property>
                     <signal name="clicked" handler="on_ok_clicked"/>
                   </widget>
                   <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
@@ -346,6 +362,72 @@
             <property name="expand">False</property>
             <property name="fill">False</property>
             <property name="position">1</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkDialog" id="pulsedialog">
+    <property name="border_width">5</property>
+    <property name="resizable">False</property>
+    <property name="modal">True</property>
+    <property name="window_position">center-on-parent</property>
+    <property name="icon_name">time-slider-setup</property>
+    <property name="type_hint">dialog</property>
+    <property name="deletable">False</property>
+    <property name="has_separator">False</property>
+    <child internal-child="vbox">
+      <widget class="GtkVBox" id="dialog-vbox6">
+        <property name="visible">True</property>
+        <property name="spacing">2</property>
+        <child>
+          <widget class="GtkVBox" id="vbox4">
+            <property name="visible">True</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">6</property>
+            <child>
+              <widget class="GtkLabel" id="label8">
+                <property name="visible">True</property>
+                <property name="xalign">0</property>
+                <property name="label" translatable="yes">Configuring Time Slider...</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkProgressBar" id="pulsebar">
+                <property name="visible">True</property>
+                <property name="activity_mode">True</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </widget>
+          <packing>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child internal-child="action_area">
+          <widget class="GtkHButtonBox" id="dialog-action_area6">
+            <property name="visible">True</property>
+            <property name="layout_style">end</property>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </widget>

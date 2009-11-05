@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.6
 #
 # CDDL HEADER START
 #
@@ -22,6 +22,9 @@
 
 import sys
 import os
+import subprocess
+import threading
+from autosnapsmf import enable_default_schedules, disable_default_schedules
 
 try:
     import pygtk
@@ -31,9 +34,11 @@ except:
 try:
     import gtk
     import gtk.glade
+    gtk.gdk.threads_init()
 except:
     sys.exit(1)
 try:
+    import glib
     import gobject
 except:
     sys.exit(1)
@@ -68,7 +73,7 @@ class FilesystemIntention:
         self.selected = selected
         self.inherited = inherited
 
-class SnapshotManager:
+class SetupManager:
 
     def __init__(self, execpath):
         self.execpath = execpath
@@ -85,6 +90,9 @@ class SnapshotManager:
                "on_capspinbutton_value_changed" : self.__on_capspinbutton_value_changed,
                "on_deletesnapshots_clicked" : self.__on_deletesnapshots_clicked}
         self.xml.signal_autoconnect(dic)
+        topLevel = self.xml.get_widget("toplevel")
+        self._pulseDialog = self.xml.get_widget("pulsedialog")
+        self._pulseDialog.set_transient_for(topLevel)
 
         # Used to store GUI filesystem selection state and the
         # set of intended properties to apply to zfs filesystems.
@@ -198,8 +206,8 @@ class SnapshotManager:
 
         # Set the cleanup threshhold value
         spinButton = self.xml.get_widget("capspinbutton")
-        critLevel = self.smfmanager.get_critical_level()
-        warnLevel = self.smfmanager.get_warning_level()
+        critLevel = self.smfmanager.get_cleanup_level("critical")
+        warnLevel = self.smfmanager.get_cleanup_level("warning")
 
         # Force the warning level to something practical
         # on the lower end, and make it no greater than the
@@ -209,6 +217,13 @@ class SnapshotManager:
             spinButton.set_value(warnLevel)
         else:
             spinButton.set_value(70)
+
+    def __monitor_setup(self, pulseBar):
+        if self._enabler.isAlive() == True:
+            pulseBar.pulse()
+            return True
+        else:
+            gtk.main_quit()   
 
     def __row_toggled(self, renderer, path):
         model = self.fstv.get_model()
@@ -226,13 +241,16 @@ class SnapshotManager:
         enabled = self.xml.get_widget("enablebutton").get_active()
         if enabled == False:
             self.smfmanager.disable_service()
+            disable_default_schedules() # auto-snapshot schedule instances
             # Ignore any possible changes to the snapshot configuration
             # of filesystems if the service is disabled.
             # So nothing else to do here.
+            gtk.main_quit()
         else:
+            self._pulseDialog.show()
             model = self.fstv.get_model()
-            snapuserdata = self.xml.get_widget("defaultfsradio").get_active()
-            if snapuserdata == True:
+            snapalldata = self.xml.get_widget("defaultfsradio").get_active()
+            if snapalldata == True:
                 self.smfmanager.set_selection_propval("false")
                 model.foreach(self.__set_default_state)
             else:
@@ -240,18 +258,11 @@ class SnapshotManager:
                 model.foreach(self.__get_ui_state)
             for fsname in self.uistatedic:
                 self.__update_fs_state(fsname)
-            self.__commit_intents()
-
-            level = self.xml.get_widget("capspinbutton").get_value_as_int()
-            self.smfmanager.set_warning_level(level)
-            # Set the service state last so that the ZFS filesystems
-            # are correctly tagged before the snapshot scripts check them
-            try:
-                self.smfmanager.enable_service()
-            except:
-                print "Problem enabling the service"
-
-        gtk.main_quit()
+            self._enabler = EnableService(self)
+            self._enabler.start()
+            glib.timeout_add(100,
+                             self.__monitor_setup,
+                             self.xml.get_widget("pulsebar"))
 
     def __on_enablebutton_toggled(self, widget):
         expander = self.xml.get_widget("expander")    
@@ -323,21 +334,55 @@ class SnapshotManager:
                 self.fsintentdic[fsname] = \
                     FilesystemIntention(fsname, selected, inherit)
 
-    def __commit_intents(self):
-        """Commits the intended filesystem selection actions based on the
-           user's UI configuration to disk"""
+    def commit_filesystem_selection(self):
+        """
+        Commits the intended filesystem selection actions based on the
+        user's UI configuration to disk
+        """
         for fsname,fsmountpoint in self.__datasets.list_filesystems():
             fs = zfs.Filesystem(fsname, fsmountpoint)
             try:
                 intent = self.fsintentdic[fsname]
                 fs.set_auto_snap(intent.selected, intent.inherited)
-            except IndexError:
+            except KeyError:
                 pass
+
+    def enable_service(self):
+        self.smfmanager.enable_service()
+
+    def set_cleanup_level(self):
+        """
+        Wrapper function to set the warning level cleanup threshold
+        value as a percentage of pool capacity.
+        """
+        level = self.xml.get_widget("capspinbutton").get_value_as_int()
+        self.smfmanager.set_cleanup_level("warning", level)
 
     def __on_deletesnapshots_clicked(self, widget):
         cmdpath = os.path.join(os.path.dirname(self.execpath), \
                                "../lib/time-slider-delete")
-        fin,fout = os.popen4(cmdpath)
+        p = subprocess.Popen(cmdpath, close_fds=True)
+
+
+class EnableService(threading.Thread):
+
+    def __init__(self, setupManager):
+        threading.Thread.__init__(self)
+        self._setupManager = setupManager
+
+    def run(self):
+        try:
+            # Set the service state last so that the ZFS filesystems
+            # are correctly tagged before the snapshot scripts check them
+            self._setupManager.commit_filesystem_selection()
+            self._setupManager.set_cleanup_level()
+            # First enable the auto-snapshot schedule instances
+            # These are just transient SMF configuration so
+            # shouldn't encounter any errors during enablement              
+            enable_default_schedules()
+            self._setupManager.enable_service()
+        except RuntimeError,message: #FIXME Do something more meaningful
+            print message
 
 
 def main(argv):
@@ -358,8 +403,11 @@ def main(argv):
             rbacp.has_profile("ZFS File System Management") and \
             (rbacp.has_auth("solaris.smf.manage.zfs-auto-snapshot") or \
                 rbacp.has_profile("Service Management")):
-        manager = SnapshotManager(argv)
+
+        manager = SetupManager(argv)
+        gtk.gdk.threads_enter()
         gtk.main()
+        gtk.gdk.threads_leave()
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):
         # Run via gksu, which will prompt for the root password
         os.execl("/usr/bin/gksu", "gksu", argv);

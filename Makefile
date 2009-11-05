@@ -8,9 +8,9 @@ INSTALL_SCRIPT = ${INSTALL} -f
 RM = /usr/bin/rm -f
 RMRF = /usr/bin/rm -Rf
 RMDIR = /usr/bin/rmdir
-# Use python 2.4 if PYTHON environent is not set
+# Use python 2.6 if PYTHON environent is not set
 ifeq ($(strip $(PYTHON)),)
-PYTHON = /usr/bin/python2.4
+PYTHON = /usr/bin/python2.6
 endif
 
 SUBDIRS = po data
@@ -24,6 +24,7 @@ DISTFILES = Authors \
 			lib \
 			usr \
 			var \
+			etc
 
 clean:
 	$(RM) usr/share/time-slider/lib/time_slider/*.pyc
@@ -47,12 +48,17 @@ install:
 	  make DESTDIR=$(DESTDIR) GETTEXT_PACKAGE=time-slider install; \
 	  cd ..;\
 	done
+	$(mkinstalldirs) $(DESTDIR)/etc/dbus-1/system.d
+	$(INSTALL_DATA) $(DESTDIR)/etc/dbus-1/system.d etc/dbus-1/system.d/time-slider.conf
+	$(mkinstalldirs) $(DESTDIR)/etc/xdg/autostart
+	$(INSTALL_DATA) $(DESTDIR)/etc/xdg/autostart etc/xdg/autostart/*.desktop
 	$(mkinstalldirs) $(DESTDIR)/lib/svc/method
 	$(INSTALL_SCRIPT) $(DESTDIR)/lib/svc/method lib/svc/method/time-slider
 	$(mkinstalldirs) $(DESTDIR)/usr/bin
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/bin usr/bin/time-slider-setup
 	$(mkinstalldirs) $(DESTDIR)/usr/lib
-	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-cleanup
+	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-sliderd
+	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-notify
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-delete
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-notify
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-snapshot
@@ -84,6 +90,8 @@ install:
 	done
 	$(mkinstalldirs) $(DESTDIR)/var/svc/manifest/application
 	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider.xml
+	$(mkinstalldirs) $(DESTDIR)/var/svc/manifest/system/filesystem
+	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/system/filesystem var/svc/manifest/system/filesystem/auto-snapshot.xml
 	$(PYTHON) py-compile.py
 	
 uninstall:
@@ -92,9 +100,12 @@ uninstall:
 	  make DESTDIR=$(DESTDIR) GETTEXT_PACKAGE=time-slider uninstall; \
 	  cd ..;\
 	done
+	$(RM) $(DESTDIR)/etc/dbus-1/system.d/time-slider.conf
+	$(RM) $(DESTDIR)/etc/xdg/autostart/time-slider-notify.desktop
 	$(RM) $(DESTDIR)/lib/svc/method/time-slider
 	$(RM) $(DESTDIR)/usr/bin/time-slider-setup
-	$(RM) $(DESTDIR)/usr/lib/time-slider-cleanup
+	$(RM) $(DESTDIR)/usr/lib/time-sliderd
+	$(RM) $(DESTDIR)/usr/lib/time-slider-notify
 	$(RM) $(DESTDIR)/usr/lib/time-slider-delete
 	$(RM) $(DESTDIR)/usr/lib/time-slider-notify
 	$(RM) $(DESTDIR)/usr/lib/time-slider-snapshot
@@ -102,3 +113,4 @@ uninstall:
 	$(RM) $(DESTDIR)/usr/share/icons/hicolor/*/apps/time-slider-setup.png
 	$(RMRF) $(DESTDIR)/usr/share/time-slider
 	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider.xml
+	$(RM) $(DESTDIR)/var/svc/manifest/system/filesystem/auto-snapshot.xml

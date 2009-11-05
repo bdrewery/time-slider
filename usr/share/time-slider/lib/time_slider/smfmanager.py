@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.6
 #
 # CDDL HEADER START
 #
@@ -20,154 +20,211 @@
 # CDDL HEADER END
 #
 
-import os
-import popen2
 
+import subprocess
+import threading
+
+#SMF EXIT CODES
+SMF_EXIT_OK          = 0
+SMF_EXIT_ERR_FATAL   = 95
+SMF_EXIT_ERR_CONFIG  = 96
+SMF_EXIT_MON_DEGRADE = 97
+SMF_EXIT_MON_OFFLINE = 98
+SMF_EXIT_ERR_NOSMF   = 99
+SMF_EXIT_ERR_PERM    = 100
+#SMF_EXIT_ERR_OTHER = non-zero
+
+cleanupTypes = ("warning", "critical", "emergency")
 
 SMFNAME = 'svc:/application/time-slider'
 ZFSPROPGROUP = "zfs"
 ZPOOLPROPGROUP = "zpool"
+DAEMONPROPGROUP = "daemon"
 
 # Commonly used command paths
-PFCMD = "/usr/bin/pfexec "
-SVCSCMD = "/usr/bin/svcs "
-SVCADMCMD = "/usr/sbin/svcadm "
-SVCCFGCMD = "/usr/sbin/svccfg "
-SVCPROPCMD = "/usr/bin/svcprop "
+PFCMD = "/usr/bin/pfexec"
+SVCSCMD = "/usr/bin/svcs"
+SVCADMCMD = "/usr/sbin/svcadm"
+SVCCFGCMD = "/usr/sbin/svccfg"
+SVCPROPCMD = "/usr/bin/svcprop"
 
 
 class SMFManager(Exception):
 
     def __init__(self, instance_name=SMFNAME):
         self.instance_name = instance_name
-        self.svccode,self.svcstate = self.get_service_state()
-        depcode,self.svcdeps = self.get_service_dependencies()
+        self.svccode,self.svcstate = self.__get_service_state()
+        self.svcdeps = self.get_service_dependencies()
         self.customselection = self.get_selection_propval()
+        self._cleanupLevels = {}
+        self._cleanupLevelsLock = threading.Lock()
+
+    def get_keep_empties(self):
+        cmd = [SVCPROPCMD, "-c", "-p", \
+               ZFSPROPGROUP + '/' + "keep-empties",\
+               self.instance_name]
+        try:
+            p = subprocess.Popen(cmd,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 close_fds=True) 
+            outdata,errdata = p.communicate()
+            err = p.wait()
+        except OSError, message:
+            raise RuntimeError, "%s subprocess error:\n %s" % \
+                                (cmd, str(message))
+        if err != 0:
+            raise RuntimeError, '%s failed with exit code %d\n%s' % \
+                                (str(cmd), err, errdata)
+        result = outdata.rstrip()
+        if result == "true":
+            return True
+        else:
+            return False
 
     def get_selection_propval(self):
-        cmd = SVCPROPCMD + "-c -p %s/%s %s" \
-               % (ZFSPROPGROUP, "custom-selection", self.instance_name)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip ()
+        cmd = [SVCPROPCMD, "-c", "-p", \
+               ZFSPROPGROUP + '/' + "custom-selection",\
+               self.instance_name]
+        try:
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True) 
+            outdata,errdata = p.communicate()
+            err = p.wait()
+        except OSError, message:
+            raise RuntimeError, "%s subprocess error:\n %s" % \
+                                (cmd, str(message))
+        if err != 0:
+            raise RuntimeError, '%s failed with exit code %d\n%s' % \
+                                (str(cmd), err, errdata)
+
+        result = outdata.rstrip()
         return result
 
-    def get_warning_level(self):
-        cmd = SVCPROPCMD + "-c -p %s/%s %s" \
-               % (ZPOOLPROPGROUP, "warning-level", self.instance_name)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip ()
-        return int(result)
+    def get_cleanup_level(self, cleanupType):
+        if cleanupType not in cleanupTypes:
+            raise KeyError("\'%s\' is not a valid cleanup type" % \
+                           (cleanupType))
+        self._cleanupLevelsLock.acquire()
 
-    def set_warning_level(self, value):
-        if value > self.get_critical_level():
-            raise ValueError, "Warning level can not exceed critical level"
-        cmd = PFCMD + SVCCFGCMD + "-s %s setprop " \
-              " %s/warning-level = integer: %s" \
-               % (self.instance_name, ZPOOLPROPGROUP, value)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip()
+        cmd = [SVCPROPCMD, "-c", "-p", \
+               ZPOOLPROPGROUP + '/' + "%s-level" % (cleanupType), \
+               self.instance_name]
+        try:
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
+            outdata,errdata = p.communicate()
+            err = p.wait()
+        except OSError, message:
+            raise RuntimeError, "%s subprocess error:\n %s" % \
+                                (cmd, str(message))
+        finally:
+            self._cleanupLevelsLock.release()
+        if err != 0:
+            raise RuntimeError, '%s failed with exit code %d\n%s' % \
+                                (str(cmd), err, errdata)
+        level = int(outdata.rstrip())
+
+        return level
+
+    def set_cleanup_level(self, cleanupType, level):
+        if cleanupType not in cleanupTypes:
+            raise KeyError("\'%s\' is not a valid cleanup type" % \
+                           (cleanupType))
+        if level < 0:
+            raise ValueError("Cleanup level value can not not be negative")
+        if cleanupType == "warning" and \
+            level > self.get_cleanup_level("critical"):
+            raise ValueError("Warning cleanup level value can not exceed " + \
+                             "critical cleanup level value")
+        elif cleanupType == "critical" and \
+            level > self.get_cleanup_level("emergency"):
+            raise ValueError("Critical cleanup level value can not " + \
+                             "exceed emergency cleanup level value")
+        elif level > 100: # Emergency type value
+            raise ValueError("Cleanup level value can not exceed 100")
+
+        self._cleanupLevelsLock.acquire()
+        propname = "%s-level" % (cleanupType)
+        try:
+            cmd = [PFCMD, SVCCFGCMD, "-s", self.instance_name, "setprop", \
+               ZPOOLPROPGROUP + '/' + propname, "=", "integer: ", \
+               str(level)]
+            p = subprocess.Popen(cmd,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 close_fds=True)
+            outdata,errdata = p.communicate()
+            err = p.wait()
+        except OSError, message:
+            raise RuntimeError, "%s subprocess error:\n %s" % \
+                                (cmd, str(message))
+        else:
+            if err != 0:
+                raise RuntimeError, '%s failed with exit code %d\n%s' % \
+                                    (str(cmd), err, errdata)
+            self._cleanupLevels[cleanupType] = level
+        finally:
+            self._cleanupLevelsLock.release()
         self.refresh_service()
-        return result
-
-    def get_critical_level(self):
-        cmd = SVCPROPCMD + "-c -p %s/%s %s" \
-               % (ZPOOLPROPGROUP, "critical-level", self.instance_name)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip ()
-        return int(result)
-
-    def set_critical_level(self, value):
-        if value > self.get_emergency_level():
-            raise ValueError, "Critical level can not exceed emergency level"
-        cmd = PFCMD + SVCCFGCMD + "-s %s setprop " \
-              " %s/critical-level = integer: %s" \
-               % (self.instance_name, ZPOOLPROPGROUP, value)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip()
-        self.refresh_service()
-        return result
-
-    def get_emergency_level(self):
-        cmd = SVCPROPCMD + "-c -p %s/%s %s" \
-               % (ZPOOLPROPGROUP, "emergency-level", self.instance_name)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip ()
-        return int(result)
-
-    def set_emergency_level(self, value):
-        if value > 100:
-            raise ValueError, "Emergency level can not exceed emergency 100"
-        cmd = PFCMD +  SVCCFGCMD + "-s %s setprop " \
-              " %s/emergency-level = integer: %s" \
-               % (self.instance_name, ZPOOLPROPGROUP, value)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip()
-        self.refresh_service()
-        return result
 
     def set_selection_propval(self, value):
-        cmd = PFCMD + SVCCFGCMD + "-s %s setprop " \
-              "%s/custom-selection = boolean: \'%s\'" \
-               % (self.instance_name, ZFSPROPGROUP, value)
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip()
+        cmd = [PFCMD, SVCCFGCMD, "-s", self.instance_name, "setprop", \
+               ZFSPROPGROUP + '/' + "custom-selection", "=", "boolean: ", \
+               value]
+        p = subprocess.Popen(cmd, close_fds=True)
         self.refresh_service()
-        return result
 
     def get_service_dependencies(self):
-        cmd = SVCSCMD + "-H -o fmri -d " + self.instance_name
-        child = popen2.Popen4(cmd)
-        ec = os.WEXITSTATUS(child.wait())
-        result = child.fromchild.read().rstrip().split("\n")
-        return ec,result
+        cmd = [SVCSCMD, "-H", "-o", "fmri", "-d", self.instance_name]
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
+        result = p.stdout.read().rstrip().split("\n")
+        return result
+
+    def get_verbose(self):
+        cmd = [SVCPROPCMD, "-c", "-p", \
+               DAEMONPROPGROUP + '/' + "verbose", \
+               self.instance_name]
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
+        result = p.stdout.read().rstrip()
+        if result == "true":
+            return True
+        else:
+            return False
 
     def find_dependency_errors(self):
         errors = []
+        #FIXME - do this in one pass.
         for dep in self.svcdeps:
-            cmd = SVCSCMD + "-H -o state " + dep
-            fin,fout = os.popen4(cmd)
-            result = fout.read().rstrip()
+            cmd = [SVCSCMD, "-H", "-o", "state", dep]
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
+            result = p.stdout.read().rstrip()
             if result != "online":
                 errors.append("%s\t%s" % (result, dep))
         return errors
 
-    def get_service_state(self):
-        cmd = SVCSCMD + "-H -o state " + self.instance_name
-        child = popen2.Popen4(cmd)
-        ec = os.WEXITSTATUS(child.wait())
-        # A return exit code of 1 indicates that svcadm has no knowledge
-        # of the specified service
-        result = child.fromchild.read().rstrip()
-        return ec,result
+    def __get_service_state(self):
+        cmd = [SVCSCMD, "-H", "-o", "state", self.instance_name]
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
+        code = p.wait()
+        result = p.stdout.read().rstrip()
+        return code,result
 
     def refresh_service(self):
-        cmd = PFCMD + SVCADMCMD + "refresh " + self.instance_name
-        fin,fout = os.popen4(cmd)
-        result = fout.read().rstrip()
-        return result
+        cmd = [PFCMD, SVCADMCMD, "refresh", self.instance_name]
+        p = subprocess.Popen(cmd, close_fds=True)
 
     def disable_service (self):
         if self.svcstate == "disabled":
             return
-        cmd = PFCMD + SVCADMCMD + "disable " + self.instance_name
-        fin,fout = os.popen4(cmd)
-        self.svccode,self.svcstate = self.get_service_state()
-        for dep in self.svcdeps:
-            cmd = PFCMD + SVCADMCMD + "disable " + dep
-            fin,fout = os.popen4(cmd)
-        #FIXME: Check return value/command output
+        cmd = [PFCMD, SVCADMCMD, "disable", self.instance_name]
+        p = subprocess.Popen(cmd, close_fds=True)
+        self.svccode,self.svcstate = self.__get_service_state()
 
     def enable_service (self):
         if (self.svcstate == "online" or self.svcstate == "degraded"):
             return
-        cmd = PFCMD + SVCADMCMD + "enable -r " + self.instance_name
-        child = popen2.Popen4(cmd)
-        ec = os.WEXITSTATUS(child.wait())
-        result = child.fromchild.read().rstrip()
-        self.svccode,self.svcstate = self.get_service_state()
-        #raise Exception, "Enabling the service failed"
-        #FIXME: Check return value/command output
-
+        cmd = [PFCMD, SVCADMCMD, "enable", self.instance_name]
+        p = subprocess.Popen(cmd, close_fds=True)
+        self.svccode,self.svcstate = self.__get_service_state()
 
     def __eq__(self, other):
         if self.fs_name == other.fs_name and \
@@ -181,13 +238,24 @@ class SMFManager(Exception):
               "\tName:\t\t\t%s\n" % (self.instance_name) +\
               "\tCustom Selction:\t%s\n" % (self.customselection) +\
               "\tState:\t\t\t%s\n" % (self.svcstate) + \
-              "\tWarning Level:\t\t%d\n" % (self.get_warning_level()) + \
-              "\tCritical Level:\t\t%d\n" % (self.get_critical_level()) + \
-              "\tEmergency Level:\t%d" % (self.get_emergency_level())
+              "\tWarning Level:\t\t%d\n" % (self.get_cleanup_level("warning")) + \
+              "\tCritical Level:\t\t%d\n" % (self.get_cleanup_level("critical")) + \
+              "\tEmergency Level:\t%d" % (self.get_cleanup_level("emergency"))
         return ret
 
+def get_verbose ():
+    cmd = [SVCPROPCMD, "-c", "-p", \
+           DAEMONPROPGROUP + '/' + "verbose", \
+           SMFNAME]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
+    result = p.stdout.read().rstrip()
+    if result == "true":
+        return True
+    else:
+        return False
 
 if __name__ == "__main__":
   S = SMFManager('svc:/application/time-slider')
+  S.set_cleanup_level("warning", 90)
   print S
 

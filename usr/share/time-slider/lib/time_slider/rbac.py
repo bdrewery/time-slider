@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.6
 #
 # CDDL HEADER START
 #
@@ -21,6 +21,7 @@
 #
 
 import os
+import subprocess
 import pwd
 
 class RBACprofile:
@@ -43,10 +44,18 @@ class RBACprofile:
         self.auths = self.get_auths()
 
     def get_profiles(self):
-        cmd = "profiles " + self.name
+        cmd = ["/usr/bin/profiles", self.name]
         profiles = []
-        fin,fout = os.popen4(cmd)
-        for line in fout:
+        p = subprocess.Popen(cmd,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             close_fds=True)
+        outdata,errdata = p.communicate()
+        err = p.wait()
+        if err != 0:
+            raise RuntimeError, '%s failed w/ exit code %d\n%s' % \
+                                (str(cmd), err, errdata)
+        for line in outdata.split('\n'):
             if line.isspace():
                 continue
             else:
@@ -62,10 +71,18 @@ class RBACprofile:
         return profiles
 
     def get_auths(self):
-        cmd = "auths " + self.name
+        cmd = ["/usr/bin/auths", self.name]
         auths = []
-        fin,fout = os.popen4(cmd)
-        auths = fout.read().rstrip().split(",")
+        p = subprocess.Popen(cmd,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             close_fds=True)
+        outdata,errdata = p.communicate()
+        err = p.wait()
+        if err != 0:
+            raise RuntimeError, '%s failed w/ exit code %d\n%s' % \
+                                (str(cmd), err, errdata)
+        auths = outdata.rstrip().split(",")
         return auths
 
     def has_profile(self, profile):

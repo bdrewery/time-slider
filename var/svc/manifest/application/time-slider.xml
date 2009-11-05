@@ -42,10 +42,22 @@
 
 	<single_instance />
 
+	<!-- we need to be multi-user  -->
+	<dependency
+		name='multi-user'
+		grouping='require_all'
+		restart_on='none'
+		type='service'>
+		<service_fmri value='svc:/milestone/multi-user' />
+	</dependency>
+
+    <!-- These are the service instances that specify
+         snapshot taking parameters
+    -->
 	<dependency
 		name='auto-snapshot-svcs'
 		type='service'
-		grouping='require_all'
+		grouping='optional_all'
 		restart_on='refresh'>
 		<service_fmri value='svc:/system/filesystem/zfs/auto-snapshot:frequent' />
 		<service_fmri value='svc:/system/filesystem/zfs/auto-snapshot:hourly' />
@@ -59,18 +71,34 @@
 		name='start'
 		exec='/lib/svc/method/time-slider start'
 		timeout_seconds='60'>
+		<method_context>
+			<method_credential user='zfssnap' group='daemon' />
+		</method_context>
 	</exec_method>
 
 	<exec_method
 		type='method'
 		name='stop'
-		exec='/lib/svc/method/time-slider stop'
+		exec=':kill'
 		timeout_seconds='60'>
+		<method_context>
+			<method_credential user='zfssnap' group='daemon' />
+		</method_context>
+	</exec_method>
+
+	<exec_method
+		type='method'
+		name='refresh'
+		exec=':kill -HUP'
+		timeout_seconds='60'>
+		<method_context>
+			<method_credential user='zfssnap' group='daemon' />
+		</method_context>
 	</exec_method>
 
 	<property_group name='startd' type='framework'>
 		<propval name='duration' type='astring'
-			value='transient' />
+			value='contract' />
 	</property_group>
 
 	<property_group name='general' type='framework'>
@@ -80,8 +108,17 @@
 			value='solaris.smf.manage.zfs-auto-snapshot' />
 	</property_group>
 
+	<property_group name='daemon' type='application'>
+		<propval name='verbose' type='boolean' value='false'
+		   override='true'/>
+		<propval name='value_authorization' type='astring'
+			value='solaris.smf.manage.zfs-auto-snapshot' />
+	</property_group>
+
 	<property_group name='zfs' type='application'>
 		<propval name='custom-selection' type='boolean' value='false'
+		   override='true'/>
+        <propval name='keep-empties' type='boolean' value='false'
 		   override='true'/>
 		<propval name='value_authorization' type='astring'
 			value='solaris.smf.manage.zfs-auto-snapshot' />
