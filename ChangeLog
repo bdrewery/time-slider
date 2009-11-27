@@ -1,3 +1,9 @@
+2009-11-27 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/time_slider/timesliderd.py: fixed a date
+	  calculation bug whereby a schedule with a period in months next falls
+	  due on December. Was getting incorrectly modulused to 0.
+
 2009-11-04 Niall Power - <niall.power@sun.com>
 
 	* VERSION: bump to 0.2.95
