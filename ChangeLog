@@ -1,7 +1,3 @@
-2010-01-21 Harry Fu - <harry.fu@sun.com>
-
-	* po/*.po: Update translations.
-
 2009-11-27 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/timesliderd.py: fixed a date

@@ -1,3 +1,8 @@
+2010-01-21  Harry Fu  <harry.fu@sun.com
+
+	* LINGUAS: new languages are added - ca
+	* *.po: Updated with the latest translations.
+	
 2009-05-12  Harry Fu  <harry.fu@sun.com>
 
 	* LINGUAS: new languages are added - ar,id,nl
