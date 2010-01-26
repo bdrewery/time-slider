@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/python2.6
 #
 # CDDL HEADER START
 #
@@ -20,9 +20,9 @@
 # CDDL HEADER END
 #
 
-
 import subprocess
 import threading
+import util
 
 #SMF EXIT CODES
 SMF_EXIT_OK          = 0
@@ -53,7 +53,7 @@ class SMFManager(Exception):
 
     def __init__(self, instance_name=SMFNAME):
         self.instance_name = instance_name
-        self.svccode,self.svcstate = self.__get_service_state()
+        self.svcstate = self.__get_service_state()
         self.svcdeps = self.get_service_dependencies()
         self.customselection = self.get_selection_propval()
         self._cleanupLevels = {}
@@ -63,19 +63,7 @@ class SMFManager(Exception):
         cmd = [SVCPROPCMD, "-c", "-p", \
                ZFSPROPGROUP + '/' + "keep-empties",\
                self.instance_name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True) 
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         result = outdata.rstrip()
         if result == "true":
             return True
@@ -86,17 +74,7 @@ class SMFManager(Exception):
         cmd = [SVCPROPCMD, "-c", "-p", \
                ZFSPROPGROUP + '/' + "custom-selection",\
                self.instance_name]
-        try:
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True) 
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
-
+        outdata,errdata = util.run_command(cmd)
         result = outdata.rstrip()
         return result
 
@@ -110,17 +88,9 @@ class SMFManager(Exception):
                ZPOOLPROPGROUP + '/' + "%s-level" % (cleanupType), \
                self.instance_name]
         try:
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
+           outdata,errdata = util.run_command(cmd)
         finally:
             self._cleanupLevelsLock.release()
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
         level = int(outdata.rstrip())
 
         return level
@@ -144,23 +114,11 @@ class SMFManager(Exception):
 
         self._cleanupLevelsLock.acquire()
         propname = "%s-level" % (cleanupType)
+        cmd = [PFCMD, SVCCFGCMD, "-s", self.instance_name, "setprop", \
+            ZPOOLPROPGROUP + '/' + propname, "=", "integer: ", \
+            str(level)]
         try:
-            cmd = [PFCMD, SVCCFGCMD, "-s", self.instance_name, "setprop", \
-               ZPOOLPROPGROUP + '/' + propname, "=", "integer: ", \
-               str(level)]
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        else:
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                    (str(cmd), err, errdata)
+            util.run_command(cmd)
             self._cleanupLevels[cleanupType] = level
         finally:
             self._cleanupLevelsLock.release()
@@ -170,21 +128,21 @@ class SMFManager(Exception):
         cmd = [PFCMD, SVCCFGCMD, "-s", self.instance_name, "setprop", \
                ZFSPROPGROUP + '/' + "custom-selection", "=", "boolean: ", \
                value]
-        p = subprocess.Popen(cmd, close_fds=True)
+        util.run_command(cmd)
         self.refresh_service()
 
     def get_service_dependencies(self):
         cmd = [SVCSCMD, "-H", "-o", "fmri", "-d", self.instance_name]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
-        result = p.stdout.read().rstrip().split("\n")
+        outdata,errdata = util.run_command(cmd)
+        result = outdata.rstrip().split("\n")
         return result
 
     def get_verbose(self):
         cmd = [SVCPROPCMD, "-c", "-p", \
                DAEMONPROPGROUP + '/' + "verbose", \
                self.instance_name]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
-        result = p.stdout.read().rstrip()
+        outdata,errdata = util.run_command(cmd)
+        result = outdata.rstrip()
         if result == "true":
             return True
         else:
@@ -195,18 +153,17 @@ class SMFManager(Exception):
         #FIXME - do this in one pass.
         for dep in self.svcdeps:
             cmd = [SVCSCMD, "-H", "-o", "state", dep]
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
-            result = p.stdout.read().rstrip()
+            outdata,errdata = util.run_command(cmd)
+            result = outdata.rstrip()
             if result != "online":
                 errors.append("%s\t%s" % (result, dep))
         return errors
 
     def __get_service_state(self):
         cmd = [SVCSCMD, "-H", "-o", "state", self.instance_name]
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
-        code = p.wait()
-        result = p.stdout.read().rstrip()
-        return code,result
+        outdata,errdata = util.run_command(cmd)
+        result = outdata.rstrip()
+        return result
 
     def refresh_service(self):
         cmd = [PFCMD, SVCADMCMD, "refresh", self.instance_name]
@@ -217,14 +174,14 @@ class SMFManager(Exception):
             return
         cmd = [PFCMD, SVCADMCMD, "disable", self.instance_name]
         p = subprocess.Popen(cmd, close_fds=True)
-        self.svccode,self.svcstate = self.__get_service_state()
+        self.svcstate = self.__get_service_state()
 
     def enable_service (self):
         if (self.svcstate == "online" or self.svcstate == "degraded"):
             return
         cmd = [PFCMD, SVCADMCMD, "enable", self.instance_name]
         p = subprocess.Popen(cmd, close_fds=True)
-        self.svccode,self.svcstate = self.__get_service_state()
+        self.svcstate = self.__get_service_state()
 
     def __eq__(self, other):
         if self.fs_name == other.fs_name and \
@@ -243,16 +200,6 @@ class SMFManager(Exception):
               "\tEmergency Level:\t%d" % (self.get_cleanup_level("emergency"))
         return ret
 
-def get_verbose ():
-    cmd = [SVCPROPCMD, "-c", "-p", \
-           DAEMONPROPGROUP + '/' + "verbose", \
-           SMFNAME]
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
-    result = p.stdout.read().rstrip()
-    if result == "true":
-        return True
-    else:
-        return False
 
 if __name__ == "__main__":
   S = SMFManager('svc:/application/time-slider')

@@ -32,7 +32,16 @@
 <service
 	name='system/filesystem/zfs/auto-snapshot'
 	type='service'
-	version='0.'>
+	version='0.2.95'>
+
+	<!-- we need time-slider  -->
+	<dependency
+		name='time-slider'
+		grouping='require_all'
+		restart_on='refresh'
+		type='service'>
+		<service_fmri value='svc:/application/time-slider' />
+	</dependency>
 
         <exec_method
                 type='method'
@@ -240,17 +249,12 @@
 This service provides system configuration for taking automatic snapshots of ZFS
 filesystems.
 
-In order to use this service, you must enable the time-slider service at least one auto-snapshot
+In order to use this service, you must enable the time-slider service plus at least one auto-snapshot
 instance per set of automatic snapshots you want to take.
-The time-slider service will manage the creation and destruction of snapshot according to the definitions
+The time-slider service will manage the creation and destruction of snapshots according to the definitions
 of each auto-snapshot service instance.
 
 On stopping the service, time-slider will cease to take snapshots for the specific instance.
-
-
-By default, snapshots will be taken of any datasets resident on pools that are currently being scrubbed or resilvered. This can behaviour can be changed using the zfs/avoid scrub service property.
-
-Care should be taken when configuring backups to ensure that the time granularity of the cron job is sufficient to allow the backup to complete between invocations of each backup. We perform locking to ensure that two backups of the same filesystem cannot run simultaneously, but will move the service into "maintenance" state should this occur.
 			</loctext>
 		</description>
 	</template>

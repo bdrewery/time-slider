@@ -28,7 +28,7 @@
 <service
 	name='application/time-slider'
 	type='service'
-	version='0.1.0'>
+	version='0.2.95'>
 
 	<!-- This is the time-slider snapshot management service
 	     which is a simple monitor and configuration synchr-
@@ -53,7 +53,7 @@
 
     <!-- These are the service instances that specify
          snapshot taking parameters
-    -->
+
 	<dependency
 		name='auto-snapshot-svcs'
 		type='service'
@@ -65,7 +65,7 @@
 		<service_fmri value='svc:/system/filesystem/zfs/auto-snapshot:weekly' />
 		<service_fmri value='svc:/system/filesystem/zfs/auto-snapshot:monthly' />
 	</dependency>
-
+    -->
 	<exec_method
 		type='method'
 		name='start'

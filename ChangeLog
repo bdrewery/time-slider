@@ -1,3 +1,25 @@
+2010-01-26 Niall Power - <niall.power@sun.com>
+
+	* VERSION: bump to 0.2.96
+	* Use explicit path: "/usr/bin/python2.6" to reference python interpreter
+	  instead of relying on "/usr/bin/env" to find it.
+	* Add plugin framework to enable user defined plugins to be executed after
+	  snapshots get taken by time-sliderd. Plugins are based on the SMF service
+	  framework and plugins are defined as instances of the base SMV service:
+	  svc:/application/time-slider/plugin
+	* Provide a "zfs-send" plugin as a replacement for the zfs-auto-snapshot
+	  provided "backup-save-cmd" property.
+	* Add util.py to define two commoonly used utility functions: debug/logging
+	  and command spawning. Reduces lines of code and duplication.
+	* Refactor all python files to use util.run_command() convenience function
+	  where possible.
+	* Fix a bug where time-sliderd emits warnings and tries to cleanup pools
+	  upon which it creates no snapshots. Also make time-sliderd more descriminating
+	  in general and able to identify snapshots it created from backups of snapshots
+	  it create (via zfs send/receive) by checking for the auto-snapshot property
+	  corresponding to the filesystem/volume of snapshots.
+	* TODO: SMF code is a bit all over the place and could do with proper stucturing
+
 2009-11-27 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/timesliderd.py: fixed a date

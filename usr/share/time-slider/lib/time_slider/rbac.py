@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/python2.6
 #
 # CDDL HEADER START
 #
@@ -21,8 +21,9 @@
 #
 
 import os
-import subprocess
 import pwd
+
+import util
 
 class RBACprofile:
 
@@ -46,15 +47,7 @@ class RBACprofile:
     def get_profiles(self):
         cmd = ["/usr/bin/profiles", self.name]
         profiles = []
-        p = subprocess.Popen(cmd,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             close_fds=True)
-        outdata,errdata = p.communicate()
-        err = p.wait()
-        if err != 0:
-            raise RuntimeError, '%s failed w/ exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         for line in outdata.split('\n'):
             if line.isspace():
                 continue
@@ -73,15 +66,7 @@ class RBACprofile:
     def get_auths(self):
         cmd = ["/usr/bin/auths", self.name]
         auths = []
-        p = subprocess.Popen(cmd,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             close_fds=True)
-        outdata,errdata = p.communicate()
-        err = p.wait()
-        if err != 0:
-            raise RuntimeError, '%s failed w/ exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata  = util.run_command(cmd)
         auths = outdata.rstrip().split(",")
         return auths
 

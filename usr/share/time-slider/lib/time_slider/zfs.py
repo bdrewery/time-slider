@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/python2.6
 #
 # CDDL HEADER START
 #
@@ -25,6 +25,8 @@ import re
 import threading
 from bisect import insort
 
+import util
+
 BYTESPERMB = 1048576
 
 # Commonly used command paths
@@ -50,7 +52,7 @@ class Datasets(Exception):
     _volumeslock = threading.Lock()
     snapshotslock = threading.Lock()
 
-    def create_auto_snapshot_set(self, label, tag=None):
+    def create_auto_snapshot_set(self, label, tag = None):
         """
         Create a complete set of snapshots as if this were
         for a standard zfs-auto-snapshot operation.
@@ -79,19 +81,7 @@ class Datasets(Exception):
             overrideprop = "com.sun:auto-snapshot:" + tag
             scmd = [ZFSCMD, "list", "-H", "-t", "filesystem,volume",
                     "-o", "name," + overrideprop, "-s", "name"]
-            try:
-                p = subprocess.Popen(scmd,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     close_fds=True)
-                outdata,errdata = p.communicate()
-                err = p.wait()
-            except OSError, message:
-                raise RuntimeError, "%s subprocess error:\n %s" % \
-                                    (cmd, str(message))
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                    (str(cmd), err, errdata)
+            outdata,errdata = util.run_command(scmd)
             for line in outdata.rstrip().split('\n'):
                 line = line.split()
                 #Skip over unset values
@@ -101,19 +91,7 @@ class Datasets(Exception):
                     included.append(line[0])
                 elif line[1] == "false":
                     excluded.append(line[0])
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdat = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         for line in outdata.rstrip().split('\n'):
             line = line.split()
             #Only set values that aren't already set. Don't override
@@ -170,6 +148,58 @@ class Datasets(Exception):
         for name in single:
             dataset = ReadWritableDataset(name)
             dataset.create_snapshot(label, False)
+
+    def list_auto_snapshot_sets(self, tag = None):
+        """
+        Returns a list of zfs filesystems and volumes tagged with
+        the "com.sun:auto-snapshot" property set to "true", either
+        set locally or inherited. Snapshots are excluded from the
+        returned result.
+
+        Keyword Arguments:
+        tag:
+            A string indicating one of the standard auto-snapshot schedules
+            tags to check (eg. "frequent" will map to the tag:
+            com.sun:auto-snapshot:frequent). If specified as a zfs property
+            on a zfs dataset, the property corresponding to the tag will 
+            override the wildcard property: "com.sun:auto-snapshot"
+            Default value = None
+        """
+        #Get auto-snap property in two passes. First with the global
+        #value, then overriding with the label/schedule specific value
+
+        included = []
+        excluded = []
+
+        cmd = [ZFSCMD, "list", "-H", "-t", "filesystem,volume",
+               "-o", "name,com.sun:auto-snapshot", "-s", "name"]
+        if tag:
+            overrideprop = "com.sun:auto-snapshot:" + tag
+            scmd = [ZFSCMD, "list", "-H", "-t", "filesystem,volume",
+                    "-o", "name," + overrideprop, "-s", "name"]
+            outdata,errdata = util.run_command(scmd)
+            for line in outdata.rstrip().split('\n'):
+                line = line.split()
+                if line[1] == "true":
+                    included.append(line[0])
+                elif line[1] == "false":
+                    excluded.append(line[0])
+        outdata,errdata = util.run_command(cmd)
+        for line in outdata.rstrip().split('\n'):
+            line = line.split()
+            # Only set values that aren't already set. Don't override
+            try:
+                included.index(line[0])
+                continue
+            except ValueError:
+                try:
+                    excluded.index(line[0])
+                    continue
+                except ValueError:
+                    # Dataset is not listed in either list.
+                    if line[1] == "true":
+                        included.append(line[0])
+        return included
 
     def list_filesystems(self, pattern = None):
         """
@@ -318,19 +348,7 @@ class Datasets(Exception):
         unless dependent cloned filesystems are first destroyed.
         """
         cmd = [ZFSCMD, "list", "-H", "-o", "origin"]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait() 
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                    (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         result = []
         for line in outdata.rstrip().split('\n'):
             details = line.rstrip()
@@ -375,19 +393,7 @@ class ZPool(Exception):
         Returns pool health status: 'ONLINE', 'DEGRADED' or 'FAULTED'
         """
         cmd = [ZPOOLCMD, "list", "-H", "-o", "health", self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                    (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         result = outdata.rstrip()
         return result
 
@@ -405,20 +411,7 @@ class ZPool(Exception):
 
         cmd = [ZFSCMD, "get", "-H", "-p", "-o", "value", \
                "used,available", self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                    (str(cmd), err, errdata)
-
+        outdata,errdata = util.run_command(cmd)
         _used,_available = outdata.rstrip().split('\n')
         used = float(_used)
         available = float(_available) 
@@ -483,6 +476,35 @@ class ZPool(Exception):
             result.sort()
             self.__volumes = result
         return self.__volumes
+
+    def list_auto_snapshot_sets(self, tag=None):
+        """
+        Returns a list of zfs filesystems and volumes tagged with
+        the "com.sun:auto-snapshot" property set to "true", either
+        set locally or inherited. Snapshots are excluded from the
+        returned result. Results are not sorted.
+
+        Keyword Arguments:
+        tag:
+            A string indicating one of the standard auto-snapshot schedules
+            tags to check (eg. "frequent" will map to the tag:
+            com.sun:auto-snapshot:frequent). If specified as a zfs property
+            on a zfs dataset, the property corresponding to the tag will 
+            override the wildcard property: "com.sun:auto-snapshot"
+            Default value = None
+        """
+        result = []
+        allsets = self.__datasets.list_auto_snapshot_sets(tag)
+        if len(allsets) == 0:
+            return result
+
+        regexpattern = "^%s" % self.name
+        patternobj = re.compile(regexpattern)
+        for datasetname in allsets:
+            patternmatchobj = re.match(patternobj, datasetname)
+            if patternmatchobj != None:
+                result.append(datasetname)
+        return result
 
     def list_snapshots(self, pattern = None):
         """
@@ -557,19 +579,7 @@ class ReadableDataset:
         if self.__creationTime == None:
             cmd = [ZFSCMD, "get", "-H", "-p", "-o", "value", "creation",
                    self.name]
-            try:
-                p = subprocess.Popen(cmd,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     close_fds=True)
-                outdata,errdata = p.communicate()
-                err = p.wait()
-            except OSError, message:
-                raise RuntimeError, "%s subprocess error:\n %s" % \
-                                    (cmd, str(message))
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                    (str(cmd), err, errdata)
+            outdata,errdata = util.run_command(cmd)
             self.__creationTime = long(outdata.rstrip())
         return self.__creationTime
 
@@ -590,10 +600,11 @@ class ReadableDataset:
             err = p.wait()
         except OSError, message:
             raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
+                            (command, str(message))
         if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+            # Doesn't exist
+            return False
+
         result = outdata.rstrip()
         if result == self.name:
             return True
@@ -602,21 +613,21 @@ class ReadableDataset:
 
     def get_used_size(self):
         cmd = [ZFSCMD, "get", "-H", "-p", "-o", "value", "used", self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         return long(outdata.rstrip())
 
+    def get_user_property(self, prop):
+        cmd = [ZFSCMD, "get", "-s", "local", "-H", "-o", "value", prop, self.name]
+        outdata,errdata = util.run_command(cmd)
+        return outdata.rstrip()
+
+    def set_user_property(self, prop, value):
+        cmd = [PFCMD, ZFSCMD, "set", "%s=%s" % (prop, value), self.name]
+        outdata,errdata = util.run_command(cmd)
+    
+    def unset_user_property(self, prop):
+        cmd = [PFCMD, ZFSCMD, "inherit", prop, self.name]
+        outdata,errdata = util.run_command(cmd)
 
 class Snapshot(ReadableDataset, Exception):
     """
@@ -655,19 +666,7 @@ class Snapshot(ReadableDataset, Exception):
         cmd = [ZFSCMD, "get", "-H", "-p", \
                "-o", "value", "referenced", \
                self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         return long(outdata.rstrip())
 
     def list_children(self):
@@ -675,19 +674,7 @@ class Snapshot(ReadableDataset, Exception):
         cmd = [ZFSCMD,
                "list", "-t", "snapshot", "-H", "-r", "-o", "name",
                self.fsname]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         result = []
         for line in outdata.rstrip().split('\n'):
             if re.search("@%s" % (self.snaplabel), line) and \
@@ -698,19 +685,7 @@ class Snapshot(ReadableDataset, Exception):
     def has_clones(self):
         """Returns True if the snapshot has any dependent clones"""
         cmd = [ZFSCMD, "list", "-H", "-o", "origin,name"]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         for line in outdata.rstrip().split('\n'):
             details = line.rstrip().split()
             if details[0] == self.name and \
@@ -718,28 +693,72 @@ class Snapshot(ReadableDataset, Exception):
                 return True
         return False
 
-    def destroy_snapshot(self, recursive=False):
-        """Permanently remove this snapshot from the filesystem"""
+    def destroy_snapshot(self, deferred=True):
+        """
+        Permanently remove this snapshot from the filesystem
+        Performs deferred destruction by default.
+        """
         # Be sure it genuninely exists before trying to destroy it
         if self.exists() == False:
             return
-        cmd = [PFCMD, ZFSCMD, "destroy", self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        if deferred == False:
+            cmd = [PFCMD, ZFSCMD, "destroy", self.name]
+        else:
+            cmd = [PFCMD, ZFSCMD, "destroy", "-d", self.name]
+
+        outdata,errdata = util.run_command(cmd)
         # Clear the global snapshot cache so that a rescan will be
         # triggered on the next call to Datasets.list_snapshots()
         self.datasets.refresh_snapshots()
+
+    def hold(self, tag):
+        """
+        Place a hold on the snapshot with the specified "tag" string.
+        """
+        # FIXME - fails if hold is already held
+        # Be sure it genuninely exists before trying to destroy it
+        if self.exists() == False:
+            return
+
+        cmd = [PFCMD, ZFSCMD, "hold", tag, self.name]
+        outdata,errdata = util.run_command(cmd)
+
+    def holds(self):
+        """
+        Returns a list of user hold tags for this snapshot
+        """
+        cmd = [ZFSCMD, "holds", self.name]
+        results = []
+        outdata,errdata = util.run_command(cmd)
+
+        for line in outdata.rstrip().split('\n'):
+            if len(line) == 0:
+                continue
+            # The first line heading columns are  NAME TAG TIMESTAMP
+            # Filter that line out.
+            line = line.split()
+            if (line[0] != "NAME" and line[1] != "TAG"):
+                results.append(line[1])
+        return results
+
+    def release(self, tag,):
+        """
+        Release the hold on the snapshot with the specified "tag" string.
+        """
+        #FIXME raises exception if no hold exists.
+        # Be sure it genuninely exists before trying to destroy it
+        if self.exists() == False:
+            return
+
+        cmd = [PFCMD, ZFSCMD, "release", tag, self.name]
+
+        outdata,errdata = util.run_command(cmd)
+        # Releasing the snapshot might cause it get automatically
+        # deleted by zfs.
+        # Clear the global snapshot cache so that a rescan will be
+        # triggered on the next call to Datasets.list_snapshots()
+        self.datasets.refresh_snapshots()
+
 
     def __str__(self):
         return_string = "Snapshot name: " + self.name
@@ -772,19 +791,7 @@ class ReadWritableDataset(ReadableDataset):
                "com.sun:auto-snapshot", self.name]
         cmd = [ZFSCMD, "get", "-H", "-o", "value", \
                "com.sun:auto-snapshot", self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         if outdata.rstrip() == "true":
             return True
         else:
@@ -793,19 +800,7 @@ class ReadWritableDataset(ReadableDataset):
     def get_available_size(self):
         cmd = [ZFSCMD, "get", "-H", "-p", "-o", "value", "available", \
                self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         return long(outdata.rstrip())
 
     def create_snapshot(self, snaplabel, recursive = False):
@@ -826,19 +821,7 @@ class ReadWritableDataset(ReadableDataset):
         if recursive == True:
             cmd.append("-r")
         cmd.append("%s@%s" % (self.name, snaplabel))
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         self.datasets.refresh_snapshots()
 
     def list_children(self):
@@ -848,19 +831,7 @@ class ReadWritableDataset(ReadableDataset):
         # Not for the forseeable future though.
         cmd = [ZFSCMD, "list", "-H", "-r", "-t", "filesystem,volume",
                "-o", "name", self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         result = []
         for line in outdata.rstrip().split('\n'):
             if line.rstrip() != self.name:
@@ -915,19 +886,7 @@ class ReadWritableDataset(ReadableDataset):
         else:
             cmd = [PFCMD, ZFSCMD, "set", "com.sun:auto-snapshot=false", \
                    self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         return
 
 
@@ -952,19 +911,7 @@ class Filesystem(ReadWritableDataset):
         if (self.__mountpoint == None):
             cmd = [ZFSCMD, "get", "-H", "-o", "value", "mountpoint", \
                    self.name]
-            try:
-                p = subprocess.Popen(cmd,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     close_fds=True)
-                outdata,errdata = p.communicate()
-                err = p.wait()
-            except OSError, message:
-                raise RuntimeError, "%s subprocess error:\n %s" % \
-                                    (cmd, str(message))
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                    (str(cmd), err, errdata)
+            outdata,errdata = util.run_command(cmd)
             result = outdata.rstrip()
             self.__mountpoint = result
         return self.__mountpoint
@@ -972,19 +919,7 @@ class Filesystem(ReadWritableDataset):
     def list_children(self):
         cmd = [ZFSCMD, "list", "-H", "-r", "-t", "filesystem", "-o", "name",
                self.name]
-        try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-        except OSError, message:
-            raise RuntimeError, "%s subprocess error:\n %s" % \
-                                (cmd, str(message))
-        if err != 0:
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
         result = []
         for line in outdata.rstrip().split('\n'):
             if line.rstrip() != self.name:
@@ -1010,20 +945,7 @@ def list_zpools():
     """Returns a list of all zpools on the system"""
     result = []
     cmd = [ZPOOLCMD, "list", "-H", "-o", "name"]
-    try:
-        p = subprocess.Popen(cmd,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             close_fds = 0)
-        outdata,errdata = p.communicate()
-        err = p.wait()
-    except OSError, message:
-        raise RuntimeError, "%s subprocess error:\n %s" % \
-                            (cmd, str(message))
-        
-    if err != 0:
-        raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                            (str(cmd), err, errdata)
+    outdata,errdata = util.run_command(cmd)
     for line in outdata.rstrip().split('\n'):
         result.append(line.rstrip())
     return result

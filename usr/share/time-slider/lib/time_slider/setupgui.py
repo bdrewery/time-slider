@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/python2.6
 #
 # CDDL HEADER START
 #
@@ -139,45 +139,9 @@ class SetupManager:
         self.fsframe.connect('unmap', self.__fsframe_unmap)
 
         # Initialise SMF service instance state.
-        self.smfmanager = SMFManager()
-        if self.smfmanager.svccode == 0:
-            if self.smfmanager.svcstate == "disabled":
-                self.xml.get_widget("enablebutton").set_active(False)
-            elif self.smfmanager.svcstate == "offline":
-                self.xml.get_widget("toplevel").set_sensitive(False)
-                errors = ''.join("%s\n" % (error) for error in \
-                    self.smfmanager.find_dependency_errors())
-                dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
-                                           0,
-                                           gtk.MESSAGE_ERROR,
-                                           gtk.BUTTONS_CLOSE,
-                                           _("Snapshot manager service dependency error"))
-                dialog.format_secondary_text(_("The snapshot manager service has "
-                                             "been placed offline due to a dependency "
-                                             "problem. The following dependency problems "
-                                             "were found:\n\n%s\n\nRun \"svcs -xv\" from "
-                                             "a command prompt for more information about "
-                                             "these dependency problems.") % errors)
-                dialog.run()
-                sys.exit(1)
-            elif self.smfmanager.svcstate == "maintenance":
-                self.xml.get_widget("toplevel").set_sensitive(False)
-                dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
-                                           0,
-                                           gtk.MESSAGE_ERROR,
-                                           gtk.BUTTONS_CLOSE,
-                                           _("Snapshot manager service error"))
-                dialog.format_secondary_text(_("The snapshot manager service has "
-                                             "encountered a problem and has been "
-                                             "disabled until the problem is fixed."
-                                             "\n\nSee the svcs(1) man page for more "
-                                             "information."))
-                dialog.run()
-                sys.exit(1)
-            else:
-                # FIXME: Check transitional states 
-                self.xml.get_widget("enablebutton").set_active(True)
-        elif self.smfmanager.svccode == 1:
+        try:
+            self.smfmanager = SMFManager()
+        except RuntimeError,message:
             self.xml.get_widget("toplevel").set_sensitive(False)
             dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
                                        0,
@@ -188,9 +152,48 @@ class SetupManager:
                                          "not appear to be installed on this "
                                          "system."
                                          "\n\nSee the svcs(1) man page for more "
-                                         "information."))
+                                         "information."
+                                         "\n\nDetails:\n%s")%(message))
             dialog.run()
             sys.exit(1)
+
+        if self.smfmanager.svcstate == "disabled":
+            self.xml.get_widget("enablebutton").set_active(False)
+        elif self.smfmanager.svcstate == "offline":
+            self.xml.get_widget("toplevel").set_sensitive(False)
+            errors = ''.join("%s\n" % (error) for error in \
+                self.smfmanager.find_dependency_errors())
+            dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
+                                        0,
+                                        gtk.MESSAGE_ERROR,
+                                        gtk.BUTTONS_CLOSE,
+                                        _("Snapshot manager service dependency error"))
+            dialog.format_secondary_text(_("The snapshot manager service has "
+                                            "been placed offline due to a dependency "
+                                            "problem. The following dependency problems "
+                                            "were found:\n\n%s\n\nRun \"svcs -xv\" from "
+                                            "a command prompt for more information about "
+                                            "these dependency problems.") % errors)
+            dialog.run()
+            sys.exit(1)
+        elif self.smfmanager.svcstate == "maintenance":
+            self.xml.get_widget("toplevel").set_sensitive(False)
+            dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
+                                        0,
+                                        gtk.MESSAGE_ERROR,
+                                        gtk.BUTTONS_CLOSE,
+                                        _("Snapshot manager service error"))
+            dialog.format_secondary_text(_("The snapshot manager service has "
+                                            "encountered a problem and has been "
+                                            "disabled until the problem is fixed."
+                                            "\n\nSee the svcs(1) man page for more "
+                                            "information."))
+            dialog.run()
+            sys.exit(1)
+        else:
+            # FIXME: Check transitional states 
+            self.xml.get_widget("enablebutton").set_active(True)
+
 
         # Emit a toggled signal so that the initial GUI state is consistent
         self.xml.get_widget("enablebutton").emit("toggled")

@@ -58,11 +58,11 @@ install:
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/bin usr/bin/time-slider-setup
 	$(mkinstalldirs) $(DESTDIR)/usr/lib
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-sliderd
-	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-notify
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-delete
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-notify
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-snapshot
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-version
+	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-zfssend
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps usr/share/icons/hicolor/16x16/apps/time-slider-setup.png
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/24x24/apps
@@ -90,6 +90,7 @@ install:
 	done
 	$(mkinstalldirs) $(DESTDIR)/var/svc/manifest/application
 	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider.xml
+	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider-plugin.xml
 	$(mkinstalldirs) $(DESTDIR)/var/svc/manifest/system/filesystem
 	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/system/filesystem var/svc/manifest/system/filesystem/auto-snapshot.xml
 	$(PYTHON) py-compile.py
@@ -105,12 +106,13 @@ uninstall:
 	$(RM) $(DESTDIR)/lib/svc/method/time-slider
 	$(RM) $(DESTDIR)/usr/bin/time-slider-setup
 	$(RM) $(DESTDIR)/usr/lib/time-sliderd
-	$(RM) $(DESTDIR)/usr/lib/time-slider-notify
 	$(RM) $(DESTDIR)/usr/lib/time-slider-delete
 	$(RM) $(DESTDIR)/usr/lib/time-slider-notify
 	$(RM) $(DESTDIR)/usr/lib/time-slider-snapshot
 	$(RM) $(DESTDIR)/usr/lib/time-slider-version
+	$(RM) $(DESTDIR)/usr/lib/time-slider-zfssend
 	$(RM) $(DESTDIR)/usr/share/icons/hicolor/*/apps/time-slider-setup.png
 	$(RMRF) $(DESTDIR)/usr/share/time-slider
 	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider.xml
+	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider-plugin.xml
 	$(RM) $(DESTDIR)/var/svc/manifest/system/filesystem/auto-snapshot.xml

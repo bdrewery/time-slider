@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/python2.6
 #
 # CDDL HEADER START
 #
@@ -20,10 +20,9 @@
 # CDDL HEADER END
 #
 
-import subprocess
 import threading
 import smfmanager
-
+import util
 
 factoryDefaultSchedules = ("monthly", "weekly", "daily", "hourly", "frequent")
 
@@ -50,39 +49,13 @@ class AutoSnap:
         _scheddetaillock.acquire()
         try:
             cmd = intervalcmd
-            p = subprocess.Popen(cmd,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                    (str(cmd), err, errdata)
-
+            outdata,errdata = util.run_command(intervalcmd)
             interval = outdata.strip()
             cmd = periodcmd
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
-
+            outdata,errdata = util.run_command(periodcmd)
             period = int(outdata.strip())
             cmd = keepcmd
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+            outdata,errdata = util.run_command(keepcmd)
         except OSError, message:
             raise RuntimeError, "%s subprocess error:\n %s" % \
                                 (cmd, str(message))
@@ -110,15 +83,7 @@ def disable_default_schedules():
                "disable",
                instanceName]
         try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+            util.run_command(cmd)
         finally:
             _scheddetaillock.release()
 
@@ -139,21 +104,13 @@ def enable_default_schedules():
                "enable",
                instanceName]
         try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+            util.run_command(cmd)
         finally:
             _scheddetaillock.release()
 
 def get_default_schedules():
     """
-    Finds the default schedules that are enabled (online or degraded)
+    Finds the default schedules that are enabled (online, offline or degraded)
     """
     #This is not the fastest method but it is the safest, we need
     #to ensure that default schedules are processed in the pre-defined
@@ -166,19 +123,15 @@ def get_default_schedules():
         cmd = [smfmanager.SVCSCMD, "-H", "-o", "state", instanceName]
         _scheddetaillock.acquire()
         try:
-            p = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 close_fds=True)
-            outdata,errdata = p.communicate()
-            err = p.wait()
-            if err != 0:
-                raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+            outdata,errdata = util.run_command(cmd)
         finally:
             _scheddetaillock.release()
         result = outdata.rstrip()
-        if result == "online" or result == "degraded":
+        # Note that the schedules, being dependent on the time-slider service
+        # itself will typically be in an offline state when enabled. They will
+        # transition to an "online" state once time-slider itself comes
+        # "online" to satisfy it's dependency
+        if result == "online" or result == "offline" or result == "degraded":
             instance = AutoSnap(s)
             try:
                 _defaultSchedules.append(instance.get_schedule_details())
@@ -198,16 +151,7 @@ def get_custom_schedules():
     cmd = [smfmanager.SVCSCMD, "-H", "-o", "state,FMRI", BASESVC]
     _scheddetaillock.acquire()
     try:
-        p = subprocess.Popen(cmd,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             close_fds=True)
-        outdata,errdata = p.communicate()
-        err = p.wait()
-        if err != 0:
-            _scheddetaillock.release()
-            raise RuntimeError, '%s failed with exit code %d\n%s' % \
-                                (str(cmd), err, errdata)
+        outdata,errdata = util.run_command(cmd)
     finally:
         _scheddetaillock.release()
 
@@ -218,7 +162,11 @@ def get_custom_schedules():
         fmri = fmri.rsplit(":", 1)
         label = fmri[1]
         if label not in factoryDefaultSchedules:
-            if state == "online" or state == "degraded":
+        # Note that the schedules, being dependent on the time-slider service
+        # itself will typically be in an offline state when enabled. They will
+        # transition to an "online" state once time-slider itself comes
+        # "online" to satisfy it's dependency
+            if state == "online" or state == "offline" or state == "degraded":
                 instance = AutoSnap(label)
                 try:
                     _customSchedules.append(instance.get_schedule_details())
@@ -231,6 +179,8 @@ def get_custom_schedules():
 
 
 if __name__ == "__main__":
-  S = SMFAutoSnap()
-  print S
+    defaults = get_default_schedules()
+    for sched in defaults:
+        S = AutoSnap(sched[0])
+        print S.get_schedule_details()
 
