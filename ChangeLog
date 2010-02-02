@@ -1,3 +1,10 @@
+2010-02-02 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/time_slider/plugin.py:
+	  Fix invalid function call "debug()" should be "util.debug()" when
+	  reporting disabled plugin in PluginManager.refresh()
+	  Missing "()" in method call Plugin.is_running() in Plugin.refresh()
+
 2010-01-26 Niall Power - <niall.power@sun.com>
 
 	* VERSION: bump to 0.2.96

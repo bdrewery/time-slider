@@ -80,7 +80,7 @@ class Plugin(Exception):
                 return
 
         # Skip if already running
-        if self.is_running == True:
+        if self.is_running() == True:
             util.debug("Plugin: %s is already running. Skipping execution" \
                        % (self.instance), \
                        self.verbose)
@@ -172,5 +172,5 @@ class PluginManager():
                                      % (label))
                     sys.stderr.write("Reason:\n%s\n" % (message))
             else:
-                debug("Found disabled plugin:\t%s" + label, self.verbose)
+                util.debug("Found disabled plugin:\t%s" + label, self.verbose)
 
