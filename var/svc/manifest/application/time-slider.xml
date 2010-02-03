@@ -117,9 +117,15 @@
 
 	<property_group name='zfs' type='application'>
 		<propval name='custom-selection' type='boolean' value='false'
-		   override='true'/>
+            override='true'/>
         <propval name='keep-empties' type='boolean' value='false'
-		   override='true'/>
+            override='true'/>
+        <!--
+        sep:    Set to '_' by default, this is the character used to
+        separate datestamps used in snapshot names.
+        -->
+        <propval name='sep' type='astring' value='_'
+            override='true'/>
 		<propval name='value_authorization' type='astring'
 			value='solaris.smf.manage.zfs-auto-snapshot' />
 	</property_group>

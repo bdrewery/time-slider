@@ -1,3 +1,17 @@
+2010-02-03 Niall Power - <niall.power@sun.com>
+
+	* var/svc/manifest/application/time-slider.xml:
+	  Define new property "zfs/sep". Taken for zfs-auto-snapshot,
+	  allows custom definition of a separator character for snapshot
+	  datestamps that can work on filesystems that previously choked
+	  on the ":" characted such as CIFS, PCFS.
+	* usr/share/time-slider/lib/time_slider/smfmanager.py: Added new
+	  method to get zfs/sep property.
+	* usr/share/time-slider/lib/time_slider/timesliderd.py: modify
+	  snapshot creation and listing operations to use the new zfs/sep
+	  property, while maintaining compatibility with old snapshot
+	  datestamps that used the ":" character.
+
 2010-02-02 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/plugin.py:

@@ -52,6 +52,9 @@ _HOUR = _MINUTE * 60
 _DAY = _HOUR * 24
 _WEEK = _DAY * 7
 
+# Prepended to snapshots labels created by time-sliderd
+PREFIX = "zfs-auto-snap"
+
 # Status codes for actual zpool capacity levels.
 # These are relative to the SMF property defined
 # levels for: user, warning and emergenecy levels
@@ -251,6 +254,15 @@ class SnapshotManager(threading.Thread):
             sys.stderr.write("Assuming default value: False\n")
             self._keepEmpties = False
 
+        # Previously, snapshot labels used the ":" character was used as a 
+        # separator character for datestamps. Windows filesystems such as
+        # CIFS and FAT choke on this character so now we use a user definable
+        # separator value, with a default value of "_"
+        # We need to check for both the old and new format when looking for
+        # snapshots.
+        self._separator = self._smf.get_separator()
+        self._prefix = "zfs-auto-snap[:%s]" % self._separator 
+
         # Rebuild pool list
         self._zpools = []
         try:
@@ -317,12 +329,13 @@ class SnapshotManager(threading.Thread):
                            self.verbose)
                 continue
 
-            # If we don't have an internal timestamp yet for the given schedule
+            # If we don't have an internal timestamp for the given schedule
             # ask zfs for the last snapshot and get it's creation timestamp.
             if self._last[schedule] == 0:
                 try:
-                    snaps = self._datasets.list_snapshots("zfs-auto-snap:%s" % \
-                                                         (schedule))
+                    snaps = self._datasets.list_snapshots("%s%s" % \
+                                                         (self._prefix,
+                                                          schedule))
                 except RuntimeError,message:
                     self.exitCode = smfmanager.SMF_EXIT_ERR_FATAL
                     sys.stderr.write("Failed to list snapshots during schedule update\n")
@@ -442,9 +455,9 @@ class SnapshotManager(threading.Thread):
         # Set the time before taking snapshot to avoid clock skew due
         # to time taken to complete snapshot.
         tm = long(time.time())
-        label = "zfs-auto-snap:%s-%s" % \
-                (schedule,
-                 datetime.datetime.now().strftime("%Y-%m-%d-%H:%M"))
+        label = "%s%s%s-%s" % \
+                (PREFIX, self._separator, schedule,
+                 datetime.datetime.now().strftime("%Y-%m-%d-%H%M"))
         try:
             self._datasets.create_auto_snapshot_set(label, tag=schedule)
         except RuntimeError, message:
@@ -479,7 +492,7 @@ class SnapshotManager(threading.Thread):
             # the pool doesn't run low on available space before that.
 
         try:
-            snaps = dataset.list_snapshots("zfs-auto-snap:%s" % schedule)
+            snaps = dataset.list_snapshots("%s%s" % (self._prefix,schedule))
             # Clone the list because we want to remove items from it
             # while iterating through it.
             remainingsnaps = snaps[:]
@@ -713,7 +726,8 @@ class SnapshotManager(threading.Thread):
         # cloned, and sort the result in reverse chronological order.
         try:
             snapshots = [s for s,t in \
-                            zpool.list_snapshots("zfs-auto-snap:%s" % schedule) \
+                            zpool.list_snapshots("%s%s" \
+                            % (self._prefix,schedule)) \
                             if not s in clonedsnaps]
             snapshots.reverse()
         except RuntimeError,message:

@@ -78,6 +78,16 @@ class SMFManager(Exception):
         result = outdata.rstrip()
         return result
 
+    def get_separator(self):
+        cmd = [SVCPROPCMD, "-c", "-p", \
+               ZFSPROPGROUP + '/' + "sep",\
+               self.instance_name]
+        outdata,errdata = util.run_command(cmd)
+        result = outdata.rstrip()
+        if len(result) != 1:
+            raise ValueError("zfs/sep must be a single character length")
+        return result
+
     def get_cleanup_level(self, cleanupType):
         if cleanupType not in cleanupTypes:
             raise KeyError("\'%s\' is not a valid cleanup type" % \
