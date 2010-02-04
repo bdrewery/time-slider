@@ -1,5 +1,7 @@
 2010-02-04 Niall Power - <niall.power@sun.com>
 
+	* Makefike: Add lib/svc/method/time-slider-plugin to
+	  install/uninstall rules.
 	* lib/svc/method/time-slider-plugin: Added.
 	  Provides simple, generic plugin start method.
 	* var/svc/manifest/application/time-slider-plugin.xml:

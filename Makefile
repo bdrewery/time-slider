@@ -54,6 +54,7 @@ install:
 	$(INSTALL_DATA) $(DESTDIR)/etc/xdg/autostart etc/xdg/autostart/*.desktop
 	$(mkinstalldirs) $(DESTDIR)/lib/svc/method
 	$(INSTALL_SCRIPT) $(DESTDIR)/lib/svc/method lib/svc/method/time-slider
+	$(INSTALL_SCRIPT) $(DESTDIR)/lib/svc/method lib/svc/method/time-slider-plugin
 	$(mkinstalldirs) $(DESTDIR)/usr/bin
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/bin usr/bin/time-slider-setup
 	$(mkinstalldirs) $(DESTDIR)/usr/lib
@@ -104,6 +105,7 @@ uninstall:
 	$(RM) $(DESTDIR)/etc/dbus-1/system.d/time-slider.conf
 	$(RM) $(DESTDIR)/etc/xdg/autostart/time-slider-notify.desktop
 	$(RM) $(DESTDIR)/lib/svc/method/time-slider
+	$(RM) $(DESTDIR)/lib/svc/method/time-slider-plugin
 	$(RM) $(DESTDIR)/usr/bin/time-slider-setup
 	$(RM) $(DESTDIR)/usr/lib/time-sliderd
 	$(RM) $(DESTDIR)/usr/lib/time-slider-delete
