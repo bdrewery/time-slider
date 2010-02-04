@@ -43,6 +43,11 @@
 		<service_fmri value='svc:/application/time-slider' />
 	</dependency>
 
+	<!--
+	    These are bare bones, basic plugin methods. More
+	    complex plugin instances should define their own
+	    specifically tailored start/stop/refresh methods.
+	-->
 	<exec_method
 		type='method'
 		name='start'
@@ -137,7 +142,6 @@
 	-->
 
 	<instance name='zfs-send' enabled='false' >
-
 	<property_group name='general' type='framework'>
 		<propval name='action_authorization' type='astring'
 		value='solaris.smf.manage.zfs-auto-snapshot' />
