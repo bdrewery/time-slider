@@ -19,7 +19,9 @@
 # CDDL HEADER END
 #
 
+import sys
 from os.path import abspath, dirname, join, pardir
+sys.path.insert(0, join(dirname(__file__), pardir, "plugin"))
 
 # here we define the path constants so that other modules can use it.
 # this allows us to get access to the shared files without having to

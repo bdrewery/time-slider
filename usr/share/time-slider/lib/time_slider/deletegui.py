@@ -64,7 +64,6 @@ gtk.glade.bindtextdomain(GETTEXT_DOMAIN, LOCALE_PATH)
 gtk.glade.textdomain(GETTEXT_DOMAIN)
 
 import zfs
-from smfmanager import SMFManager
 from rbac import RBACprofile
 
 class DeleteSnapManager:

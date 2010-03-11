@@ -26,13 +26,14 @@ import subprocess
 import syslog
 from bisect import insort
 
-import util
-import smfmanager
-import zfs
+import time_slider.util
+import time_slider.smf
+import time_slider.zfs
 
 # Set to True if SMF property value of "plugin/command" is "true"
 verboseprop = "plugin/verbose"
 propbasename = "org.opensolaris:time-slider-plugin"
+print _("Do I work?")
 
 def main(argv):
 
@@ -56,7 +57,7 @@ def main(argv):
         sys.exit(-1)
     syslog.openlog(pluginfmri, 0, syslog.LOG_DAEMON)
 
-    cmd = [smfmanager.SVCPROPCMD, "-p", verboseprop, pluginfmri]
+    cmd = [smf.SVCPROPCMD, "-p", verboseprop, pluginfmri]
     outdata,errdata = util.run_command(cmd)
     if outdata.rstrip() == "true":
         verbose = True
@@ -120,7 +121,7 @@ def main(argv):
         insort(snappeddatasets, datasetname)
 
     # Find out the receive command property value
-    cmd = [smfmanager.SVCPROPCMD, "-c", "-p", "receive/command", pluginfmri]
+    cmd = [smf.SVCPROPCMD, "-c", "-p", "receive/command", pluginfmri]
     outdata,errdata = util.run_command(cmd)
     # Strip out '\' characters inserted by svcprop
     recvcmd = outdata.strip().replace('\\', '').split()
@@ -179,8 +180,8 @@ def main(argv):
         # Invoke the send and receive commands via pfexec(1) since
         # we are not using the role's shell to take care of that
         # for us.
-        sendcmd.insert(0, smfmanager.PFCMD)
-        recvcmd.insert(0, smfmanager.PFCMD)
+        sendcmd.insert(0, smf.PFCMD)
+        recvcmd.insert(0, smf.PFCMD)
 
         try:
             sendP = subprocess.Popen(sendcmd,
@@ -231,7 +232,7 @@ def main(argv):
 def maintenance(svcfmri):
     log_error(syslog.LOG_ERR,
               "Placing plugin into maintenance state")
-    cmd = [smfmanager.SVCADMCMD, "mark", "maintenance", svcfmri]
+    cmd = [smf.SVCADMCMD, "mark", "maintenance", svcfmri]
     subprocess.Popen(cmd, close_fds=True)
 
 def log_error(loglevel, message):

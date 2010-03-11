@@ -1,3 +1,74 @@
+2010-03-11 Niall Power - <niall.power@sun.com>
+
+	Add rsync plugin (WORK IN PROGRESS), restructure SMF related code
+	and restructure file/directory layout to provide seperate 
+	subdirectories for plugins.
+
+	* Makefile: Add/remove files to (un)install rules.
+	* usr/lib/time-sliderd: Fix script invocation to invoke python2.6
+	  explicitly (ie. do not use /usr/bin/env to source it)
+	* usr/share/time-slider/glade/time-slider-setup.glade: Add in UI
+	  features to enable rsync backup configuration
+	* usr/share/time-slider/lib/time_slider/__init__.py: adjust sys.path
+	  to allow importation from the plugin directory
+	* usr/share/time-slider/lib/time_slider/autosnapsmf.py: Refactor to
+	  inehrit from the smf base object class (smf.py)
+	* usr/share/time-slider/lib/time_slider/deletegui.py: Remove import
+	  of smfmanager module.
+	* usr/share/time-slider/lib/time_slider/setupgui.py: Remove import of
+	  smfmanager module. Implement UI logic and view for rsync
+	  configuration (filechooser, list view check buttons etc.)
+	  Tie in with rsync plugin SMF backend. WORK IN  PROGRESS.
+	* usr/share/time-slider/lib/time_slider/timesliderd.py: Drop use of old
+	  smfmanager class and replace with new smf and timeslidersmf  modules
+	* usr/share/time-slider/lib/time_slider/zfs.py: Misc. cleanups. Define
+	  proper Exception classes for ZFS and ZPool errors and raise them when
+	  appropriate. Old style string based exceptions not supported in python
+	  2.6
+	* var/svc/manifest/application/time-slider-plugin.xml: Define rsync
+	  plugin SMF instance and properties.
+	* usr/lib/time-slider-zfssend: Removed. Replaced by:
+	  usr/lib/time-slider/plugins/zfssend/zfssend
+	* usr/share/time-slider/lib/time_slider/plugin.py: Removed. Replaced by:
+	  usr/share/time-slider/lib/plugin/plugin.py
+	* usr/share/time-slider/lib/time_slider/zfssend.py: Removed. Replaced by:
+	  usr/share/time-slider/lib/plugin/zfssend/zfssend.py
+	* lib/svc/method/time-slider-rsync: Added. Starts stops rsync plugin SMF
+	  instance and sets up cron job for rsync-backup script.
+	* usr/lib/time-slider/plugins/rsync/rsync-backup: Added. Performs
+	  asynchronouse rsync backup of zfs snapshots previously tagged for backup.
+	  WORK IN PROGRESS
+	* usr/lib/time-slider/plugins/rsync/rsync-trigger: Provides trigger
+	  mechanisem for time-slider to call when snapshots created. Queues up
+	  zfs snapshots for later backup using rsync-backup script.
+	* usr/lib/time-slider/plugins/zfssend/zfssend: Replacement of
+	  usr/lib/time-slider-zfssend
+	* usr/share/time-slider/lib/plugin/__init__.py: Added. Initialises new
+	  plugin module
+	* usr/share/time-slider/lib/plugin/plugin.py: Replacement of:
+	  usr/share/time-slider/lib/time_slider/plugin.py
+	* usr/share/time-slider/lib/plugin/pluginsmf.py: Added. Defines plugin
+	  SMF class specialised for time-slider plugin SMF instances
+	* usr/share/time-slider/lib/plugin/rsync/__init__.py: Added. Initialises
+	  new rsync plugin module.
+	* usr/share/time-slider/lib/plugin/rsync/backup.py: Added. Main code
+	  block for rsync-backup script.
+	* usr/share/time-slider/lib/plugin/rsync/rsyncsmf.py: Added. Defines
+	  SMF class specialised for rsync plugin SMF instance.
+	* usr/share/time-slider/lib/plugin/rsync/trigger.py: Added. Main code
+	  block for rsync-trigger script.
+	* usr/share/time-slider/lib/plugin/zfssend/__init__.py: Added.
+	  Initialises zfssend plugin module.
+	* usr/share/time-slider/lib/plugin/zfssend/zfssend.py: Replacement for
+	  usr/share/time-slider/lib/time_slider/zfssend.py
+	* usr/share/time-slider/lib/time_slider/smf.py: Added. Provides cleaner
+	  and more structured base class for generic SMF instances and and is
+	  inherited by timeslidersmf, pluginsmf, rsyncsmf derived classes.
+	  Provides common methods to enable/disable and get/set property values
+	  and refresh and query service state.
+	* usr/share/time-slider/lib/time_slider/timeslidersmf.py: Defines
+	  SMF class and methods specific to the time-slider SMF instances.
+
 2010-02-04 Niall Power - <niall.power@sun.com>
 
 	* Makefike: Add lib/svc/method/time-slider-plugin to

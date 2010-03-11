@@ -28,6 +28,9 @@ DISTFILES = Authors \
 
 clean:
 	$(RM) usr/share/time-slider/lib/time_slider/*.pyc
+	$(RM) usr/share/time-slider/lib/plugin/*.pyc
+	$(RM) usr/share/time-slider/lib/plugin/rsync/*.pyc
+	$(RM) usr/share/time-slider/lib/plugin/zfssend/*.pyc
 
 all:
 	for subdir in $(SUBDIRS); do \
@@ -55,15 +58,19 @@ install:
 	$(mkinstalldirs) $(DESTDIR)/lib/svc/method
 	$(INSTALL_SCRIPT) $(DESTDIR)/lib/svc/method lib/svc/method/time-slider
 	$(INSTALL_SCRIPT) $(DESTDIR)/lib/svc/method lib/svc/method/time-slider-plugin
+	$(INSTALL_SCRIPT) $(DESTDIR)/lib/svc/method lib/svc/method/time-slider-rsync
 	$(mkinstalldirs) $(DESTDIR)/usr/bin
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/bin usr/bin/time-slider-setup
-	$(mkinstalldirs) $(DESTDIR)/usr/lib
+	$(mkinstalldirs) $(DESTDIR)/usr/lib/time-slider/plugins/rsync
+	$(mkinstalldirs) $(DESTDIR)/usr/lib/time-slider/plugins/zfssend
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-sliderd
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-delete
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-notify
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-snapshot
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-version
-	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib usr/lib/time-slider-zfssend
+	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib/time-slider/plugins/zfssend usr/lib/time-slider/plugins/zfssend/zfssend
+	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib/time-slider/plugins/rsync usr/lib/time-slider/plugins/rsync/rsync-trigger
+	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib/time-slider/plugins/rsync usr/lib/time-slider/plugins/rsync/rsync-backup
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps usr/share/icons/hicolor/16x16/apps/time-slider-setup.png
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/24x24/apps
@@ -89,6 +96,24 @@ install:
 		  $(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/lib/time_slider $$file; \
 		fi; \
 	done
+	$(mkinstalldirs) $(DESTDIR)/usr/share/time-slider/lib/plugin
+	for file in usr/share/time-slider/lib/plugin/*.py; do \
+		if test -f $$file ; then \
+		  $(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/lib/plugin $$file; \
+		fi; \
+	done
+	$(mkinstalldirs) $(DESTDIR)/usr/share/time-slider/lib/plugin/rsync
+	for file in usr/share/time-slider/lib/plugin/rsync/*.py; do \
+		if test -f $$file ; then \
+		  $(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/lib/plugin/rsync $$file; \
+		fi; \
+	done
+	$(mkinstalldirs) $(DESTDIR)/usr/share/time-slider/lib/plugin/zfssend
+	for file in usr/share/time-slider/lib/plugin/zfssend/*.py; do \
+		if test -f $$file ; then \
+		  $(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/lib/plugin/zfssend $$file; \
+		fi; \
+	done
 	$(mkinstalldirs) $(DESTDIR)/var/svc/manifest/application
 	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider.xml
 	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider-plugin.xml
@@ -106,6 +131,7 @@ uninstall:
 	$(RM) $(DESTDIR)/etc/xdg/autostart/time-slider-notify.desktop
 	$(RM) $(DESTDIR)/lib/svc/method/time-slider
 	$(RM) $(DESTDIR)/lib/svc/method/time-slider-plugin
+	$(RM) $(DESTDIR)/lib/svc/method/time-slider-rsync
 	$(RM) $(DESTDIR)/usr/bin/time-slider-setup
 	$(RM) $(DESTDIR)/usr/lib/time-sliderd
 	$(RM) $(DESTDIR)/usr/lib/time-slider-delete
@@ -113,6 +139,9 @@ uninstall:
 	$(RM) $(DESTDIR)/usr/lib/time-slider-snapshot
 	$(RM) $(DESTDIR)/usr/lib/time-slider-version
 	$(RM) $(DESTDIR)/usr/lib/time-slider-zfssend
+	$(RM) $(DESTDIR)/usr/lib/time-slider-rsync
+	$(RMRF) $(DESTDIR)/usr/lib/time-slider/plugins/rsync
+	$(RMRF) $(DESTDIR)/usr/lib/time-slider/plugins/zfssend
 	$(RM) $(DESTDIR)/usr/share/icons/hicolor/*/apps/time-slider-setup.png
 	$(RMRF) $(DESTDIR)/usr/share/time-slider
 	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider.xml

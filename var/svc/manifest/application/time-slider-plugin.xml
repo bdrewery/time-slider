@@ -62,13 +62,6 @@
 		timeout_seconds='10'>
 	</exec_method>
 
-	<exec_method
-		type='method'
-		name='refresh'
-		exec=':true'
-		timeout_seconds='10'>
-	</exec_method>
-
 	<property_group name='startd' type='framework'>
 		<propval name='duration' type='astring' value='transient' />
 	</property_group>
@@ -83,8 +76,11 @@
 
 	<!-- The properties we expect that any plugin instance will define:
 
-	command: A fully expanded command path plus all required arguments for
-	         invocation of the command.
+	trigger_command: A fully expanded command path plus all required arguments for
+	         invocation of the plugin's trigger command. The purpose of
+	         trigger_command is for notification when time-sliderd has created a
+	         set of scheduled snapshots. The plugin can opt to take action immediately
+	         or defer further actions until some later stage.
 
 	verbose: Send extra, verbose output to standard error and syslog for
              analytical and debugging purposes if set to "true"
@@ -99,12 +95,12 @@
 	 -->
 
 	<property_group name="plugin" type="application">
-		<propval name="command" type="astring"
+		<propval name="trigger_command" type="astring"
 			value="Not Set" override="true"/>
 		<propval name="verbose" type="boolean"
 			value="false" override="true"/>
 		<propval name="trigger_on" type="astring"
-			value="all" override="true"/>
+			value="hourly,daily,weekly,monthly" override="true"/>
 	</property_group>
 
 
@@ -151,7 +147,7 @@
 
 	<property_group name="plugin" type="application">
 		<propval name="command"
-			type="astring" value="/usr/lib/time-slider-zfssend" override="true"/>
+			type="astring" value="/usr/lib/time-slider/plugins/zfssend/zfssend" override="true"/>
 	</property_group>
 
 	<!-- Specify the command used to receive the snapshot stream.
@@ -166,6 +162,41 @@
 	<property_group name="receive" type="application">
 		<propval name="command"
 			type="astring" value="" override="true"/>
+	</property_group>
+	</instance>
+
+
+	<instance name='rsync' enabled='false' >
+
+	<exec_method
+		type='method'
+		name='start'
+		exec='/lib/svc/method/time-slider-rsync start'
+		timeout_seconds='10'>
+    </exec_method>
+
+	<exec_method
+		type='method'
+		name='stop'
+		exec='/lib/svc/method/time-slider-rsync stop'
+		timeout_seconds='10'>
+	</exec_method>
+
+	<property_group name='general' type='framework'>
+		<propval name='action_authorization' type='astring'
+		value='solaris.smf.manage.zfs-auto-snapshot' />
+		<propval name='value_authorization' type='astring'
+		value='solaris.smf.manage.zfs-auto-snapshot' />
+	</property_group>
+
+	<property_group name="plugin" type="application">
+		<propval name="trigger_command"
+			type="astring" value="/usr/lib/time-slider/plugins/rsync/rsync-trigger" override="true"/>
+	</property_group>
+
+	<property_group name="rsync" type="application">
+		<propval name="target_dir"
+			type="astring" value="/rpool/rsyncdir" override="true"/>
 	</property_group>
 	</instance>
 

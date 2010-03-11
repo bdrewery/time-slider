@@ -23,86 +23,75 @@
 import os
 import sys
 import subprocess
+import pluginsmf
 
-import smfmanager
-import autosnapsmf
-import util
+from time_slider import smf, autosnapsmf, util
 
 PLUGINBASEFMRI = "svc:/application/time-slider/plugin"
 
 
 class Plugin(Exception):
 
-    def __init__(self, instance, debug=False):
+    def __init__(self, instanceName, debug=False):
         self.verbose = debug
-        self.instance = instance
-        self.triggers = []
+        util.debug("Instantiating plugin for:\t%s" % (instanceName), self.verbose)
+        self.smfInst = pluginsmf.PluginSMF(instanceName)
         self._proc = None
-        util.debug("Instantiating plugin for:\t%s" % (instance), self.verbose)
 
-        self.fmri = "%s:%s" % (PLUGINBASEFMRI, self.instance)
-        cmd = [smfmanager.SVCPROPCMD, "-c", "-p", "plugin/command", self.fmri]
-        outdata,errdata = util.run_command(cmd)
-        self._command = outdata.strip()
         # Note that the associated plugin service's start method checks
         # that the command is defined and executable. But SMF doesn't 
         # bother to do this for offline services until all dependencies
         # (ie. time-slider) are brought online.
         # So we also check the permissions here.
+        command = self.smfInst.get_trigger_command()
         try:
-            statinfo = os.stat(self._command)
+            statinfo = os.stat(command)
             other_x = (statinfo.st_mode & 01)
             if other_x == 0:
-              raise RuntimeError, 'Plugin: %s:\nConfigured command is not ' \
+              raise RuntimeError, 'Plugin: %s:\nConfigured trigger command is not ' \
                                   'executable:\n%s' \
-                                  % (self.fmri, self._command)  
+                                  % (self.smfInst.instanceName, command)  
         except OSError:
             raise RuntimeError, 'Plugin: %s:\nCan not access the configured ' \
-                                'plugin/command:\n%s' \
-                                % (self.fmri, self._command)      
+                                'plugin/trigger_command:\n%s' \
+                                % (self.smfInst.instanceName, command)      
 
-        cmd = [smfmanager.SVCPROPCMD, "-c", "-p", "plugin/trigger_on", \
-               self.fmri]
-        outdata,errdata = util.run_command(cmd)
-        # Strip out '\' characters inserted by svcprop
-        triggerlist = outdata.strip().replace('\\', '').split(',')
-        for trigger in triggerlist:
-            self.triggers.append(trigger.strip())
 
     def execute(self, schedule, label):
 
+        triggers = self.smfInst.get_trigger_list()
         try:
-            self.triggers.index("all")
+            triggers.index("all")
         except ValueError:
             try:
-                self.triggers.index(schedule)
+                triggers.index(schedule)
             except ValueError:
                 return
 
         # Skip if already running
         if self.is_running() == True:
             util.debug("Plugin: %s is already running. Skipping execution" \
-                       % (self.instance), \
+                       % (self.smfInst.instanceName), \
                        self.verbose)
             return
         # Skip if plugin FMRI has been disabled or placed into maintenance
-        cmd = [smfmanager.SVCSCMD, "-H", "-o", "state", self.fmri]
+        cmd = [smf.SVCSCMD, "-H", "-o", "state", self.smfInst.instanceName]
         outdata,errdata = util.run_command(cmd)
         state = outdata.strip()
         if state == "disabled" or state == "maintenance":
             util.debug("Plugin: %s is in %s state. Skipping execution" \
-                       % (self.instance, state), \
+                       % (self.smfInst.instanceName, state), \
                        self.verbose)
             return
 
-        cmd = self._command
+        cmd = self.smfInst.get_trigger_command()
         util.debug("Executing plugin command: %s" % str(cmd), self.verbose)
         svcFmri = "%s:%s" % (autosnapsmf.BASESVC, schedule)
 
         os.putenv("AUTOSNAP_FMRI", svcFmri)
         os.putenv("AUTOSNAP_LABEL", label)
         try:
-            os.putenv("PLUGIN_FMRI", self.fmri) 
+            os.putenv("PLUGIN_FMRI", self.smfInst.instanceName) 
             self._proc = subprocess.Popen(cmd,
                                           stdout=subprocess.PIPE,
                                           stderr=subprocess.PIPE,
@@ -114,12 +103,15 @@ class Plugin(Exception):
 
     def is_running(self):
         if self._proc == None:
+            util.debug("Plugin child process is not started")
             return False
         else:
             self._proc.poll()
             if self._proc.returncode == None:
+                util.debug("Plugin child process is still running")
                 return True
             else:
+                util.debug("Plugin child process has ended")
                 return False
 
 
@@ -139,7 +131,7 @@ class PluginManager():
 
     def refresh(self):
         self.plugins = []
-        cmd = [smfmanager.SVCSCMD, "-H", "-o", "state,FMRI", PLUGINBASEFMRI]
+        cmd = [smf.SVCSCMD, "-H", "-o", "state,FMRI", PLUGINBASEFMRI]
 
         p = subprocess.Popen(cmd,
                              stdout=subprocess.PIPE,
@@ -155,22 +147,20 @@ class PluginManager():
             line = line.rstrip().split()
             state = line[0]
             fmri = line[1]
-            fmri = fmri.rsplit(":", 1)
-            label = fmri[1]
 
             # Note that the plugins, being dependent on the time-slider service
             # themselves will typically be in an offline state when enabled. They will
             # transition to an "online" state once time-slider itself comes
             # "online" to satisfy it's dependency
             if state == "online" or state == "offline" or state == "degraded":
-                util.debug("Found enabled plugin:\t%s" % (label), self.verbose)
+                util.debug("Found enabled plugin:\t%s" % (fmri), self.verbose)
                 try:
-                    plugin = Plugin(label, self.verbose)
+                    plugin = Plugin(fmri, self.verbose)
                     self.plugins.append(plugin)
                 except RuntimeError, message:
                     sys.stderr.write("Ignoring misconfigured plugin: %s\n" \
-                                     % (label))
+                                     % (fmri))
                     sys.stderr.write("Reason:\n%s\n" % (message))
             else:
-                util.debug("Found disabled plugin:\t%s" + label, self.verbose)
+                util.debug("Found disabled plugin:\t%s" + fmri, self.verbose)
 

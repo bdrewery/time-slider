@@ -21,7 +21,7 @@
 #
 
 import threading
-import smfmanager
+import smf
 import util
 
 factoryDefaultSchedules = ("monthly", "weekly", "daily", "hourly", "frequent")
@@ -35,33 +35,26 @@ ZFSPROPGROUP = "zfs"
 # Serialising them helps prevent this unlikely event from occuring.
 _scheddetaillock = threading.RLock()
 
-class AutoSnap:
-
+class AutoSnap(smf.SMFInstance):
 
     def __init__(self, schedule):
+        smf.SMFInstance.__init__(self, "%s:%s" % (BASESVC, schedule))
         self.schedule = schedule
 
     def get_schedule_details(self):
         svc= "%s:%s" % (BASESVC, self.schedule)
-        intervalcmd = [smfmanager.SVCPROPCMD, "-c", "-p", "zfs/interval", svc]
-        periodcmd = [smfmanager.SVCPROPCMD, "-c", "-p", "zfs/period", svc]
-        keepcmd = [smfmanager.SVCPROPCMD, "-c", "-p", "zfs/keep", svc]
         _scheddetaillock.acquire()
         try:
-            cmd = intervalcmd
-            outdata,errdata = util.run_command(intervalcmd)
-            interval = outdata.strip()
-            cmd = periodcmd
-            outdata,errdata = util.run_command(periodcmd)
-            period = int(outdata.strip())
-            cmd = keepcmd
-            outdata,errdata = util.run_command(keepcmd)
+            interval = self.get_prop(ZFSPROPGROUP, "interval")
+            period = int(self.get_prop(ZFSPROPGROUP, "period"))
+            keep =  int(self.get_prop(ZFSPROPGROUP, "keep"))
+
         except OSError, message:
             raise RuntimeError, "%s subprocess error:\n %s" % \
                                 (cmd, str(message))
         finally:
             _scheddetaillock.release()
-        keep = int(outdata)        
+      
         return [self.schedule, interval, period, keep]
 
 # FIXME - merge with enable_default_schedules()
@@ -78,14 +71,9 @@ def disable_default_schedules():
         # likely be changed as a result of enabling the instances.
         _scheddetaillock.acquire()
         instanceName = "%s:%s" % (BASESVC,s)
-        cmd = [smfmanager.PFCMD,
-               smfmanager.SVCADMCMD,
-               "disable",
-               instanceName]
-        try:
-            util.run_command(cmd)
-        finally:
-            _scheddetaillock.release()
+        svc = smf.SMFInstance(instanceName)
+        svc.disable_service()
+        _scheddetaillock.release()
 
 def enable_default_schedules():
     """
@@ -99,14 +87,9 @@ def enable_default_schedules():
         # likely be changed as a result of enabling the instances.
         _scheddetaillock.acquire()
         instanceName = "%s:%s" % (BASESVC,s)
-        cmd = [smfmanager.PFCMD,
-               smfmanager.SVCADMCMD,
-               "enable",
-               instanceName]
-        try:
-            util.run_command(cmd)
-        finally:
-            _scheddetaillock.release()
+        svc = smf.SMFInstance(instanceName)
+        svc.enable_service()
+        _scheddetaillock.release()
 
 def get_default_schedules():
     """
@@ -120,7 +103,7 @@ def get_default_schedules():
     _defaultSchedules = []
     for s in factoryDefaultSchedules:
         instanceName = "%s:%s" % (BASESVC,s)
-        cmd = [smfmanager.SVCSCMD, "-H", "-o", "state", instanceName]
+        cmd = [smf.SVCSCMD, "-H", "-o", "state", instanceName]
         _scheddetaillock.acquire()
         try:
             outdata,errdata = util.run_command(cmd)
@@ -148,7 +131,7 @@ def get_custom_schedules():
     'monthly', 'weekly', 'hourly', 'daily' and 'frequent' schedules
     """
     _customSchedules = []
-    cmd = [smfmanager.SVCSCMD, "-H", "-o", "state,FMRI", BASESVC]
+    cmd = [smf.SVCSCMD, "-H", "-o", "state,FMRI", BASESVC]
     _scheddetaillock.acquire()
     try:
         outdata,errdata = util.run_command(cmd)

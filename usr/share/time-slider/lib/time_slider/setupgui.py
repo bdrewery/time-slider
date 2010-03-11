@@ -24,7 +24,12 @@ import sys
 import os
 import subprocess
 import threading
+import smf
 from autosnapsmf import enable_default_schedules, disable_default_schedules
+
+from os.path import abspath, dirname, join, pardir
+sys.path.insert(0, join(dirname(__file__), pardir, "plugin", "rsync"))
+from rsyncsmf import RsyncSMF
 
 try:
     import pygtk
@@ -63,7 +68,7 @@ gtk.glade.bindtextdomain(GETTEXT_DOMAIN, LOCALE_PATH)
 gtk.glade.textdomain(GETTEXT_DOMAIN)
 
 import zfs
-from smfmanager import SMFManager
+from timeslidersmf import TimeSliderSMF
 from rbac import RBACprofile
 
 class FilesystemIntention:
@@ -85,6 +90,7 @@ class SetupManager:
                "on_cancel_clicked" : gtk.main_quit,
                "on_snapshotmanager_delete_event" : gtk.main_quit,
                "on_enablebutton_toggled" : self.__on_enablebutton_toggled,
+               "on_rsyncbutton_toggled" : self.__on_rsyncbutton_toggled,
                "on_defaultfsradio_toggled" : self.__on_defaultfsradio_toggled,
                "on_selectfsradio_toggled" : self.__on_selectfsradio_toggled,
                "on_capspinbutton_value_changed" : self.__on_capspinbutton_value_changed,
@@ -96,10 +102,15 @@ class SetupManager:
 
         # Used to store GUI filesystem selection state and the
         # set of intended properties to apply to zfs filesystems.
-        self.uistatedic = {}
+        self.snapstatedic = {}
         self.fsintentdic = {}
+        self.rsyncintentdic = {}
 
-        self.liststorefs = gtk.ListStore(bool, str, str, gobject.TYPE_PYOBJECT)
+        self.liststorefs = gtk.ListStore(bool,
+                                         bool,
+                                         str,
+                                         str,
+                                         gobject.TYPE_PYOBJECT)
         filesystems = self.__datasets.list_filesystems()
         for fsname,fsmountpoint in filesystems:
             if (fsmountpoint == "legacy"):
@@ -107,11 +118,17 @@ class SetupManager:
             else:
                 mountpoint = fsmountpoint
             fs = zfs.Filesystem(fsname, fsmountpoint)
-            if fs.get_auto_snap() == True:
-                self.liststorefs.append([True, mountpoint, fs.name, fs])
+            snap = fs.get_auto_snap()
+            rsyncstr = fs.get_user_property("org.opensolaris:time-slider-rsync")
+            if rsyncstr == "true":
+                rsync = True
             else:
-                self.liststorefs.append([False, mountpoint, fs.name, fs])
-
+                rsync = False
+            # Rsync is only performed on snapshotted filesystems.
+            # So treat as False if rsync is set to true independently
+            self.liststorefs.append([snap, snap & rsync,
+                                     mountpoint, fs.name, fs])
+                
         self.fstv = self.xml.get_widget("fstreeview")
         self.fstv.set_sensitive(False)
         # FIXME: A bit hacky but it seems to work nicely
@@ -122,25 +139,46 @@ class SetupManager:
         self.fstv.set_model(self.liststorefs)
 
         self.cell0 = gtk.CellRendererToggle()
-        self.cell1 = gtk.CellRendererText()
+        self.cell1 = gtk.CellRendererToggle()
         self.cell2 = gtk.CellRendererText()
+        self.cell3 = gtk.CellRendererText()
  
         self.tvradiocol = gtk.TreeViewColumn(_("Select"),
                                              self.cell0, active=0)
-        self.fstv.append_column(self.tvradiocol)
+        self.fstv.insert_column(self.tvradiocol, 0)
+
+        self.rsyncradiocol = gtk.TreeViewColumn(_("Replicate"),
+                                             self.cell1, active=1)
+
         self.TvNameCol = gtk.TreeViewColumn(_("Mount Point"),
-                                            self.cell1, text=1)
-        self.fstv.append_column(self.TvNameCol)
+                                            self.cell2, text=2)
+        self.fstv.insert_column(self.TvNameCol, 2)
         self.TvMountpointCol = gtk.TreeViewColumn(_("File System Name"),
-                                                  self.cell2, text=2)
-        self.fstv.append_column(self.TvMountpointCol)
+                                                  self.cell3, text=3)
+        self.fstv.insert_column(self.TvMountpointCol, 3)
         self.cell0.connect('toggled', self.__row_toggled)
-        self.fsframe = self.xml.get_widget("filesysframe")
-        self.fsframe.connect('unmap', self.__fsframe_unmap)
+        self.cell1.connect('toggled', self.__rsync_cell_toggled)
+        advancedbox = self.xml.get_widget("advancedbox")
+        advancedbox.connect('unmap', self.__advancedbox_unmap)  
+
+        # Rsync plugin state initialisation FIXME
+        self.rsyncSMF = RsyncSMF("svc:/application/time-slider/plugin:rsync")
+        state = self.rsyncSMF.get_service_state()
+        # FIXME - check if this should be converted to UTF-8
+        self.rsyncTargetDir = self.rsyncSMF.get_target_dir()
+
+        rsyncChooser = self.xml.get_widget("rsyncchooser")
+        rsyncChooser.set_current_folder(self.rsyncTargetDir)
+        if state != "disabled":
+            self.rsyncEnabled = True
+            self.xml.get_widget("rsyncbutton").set_active(True)
+        else:
+            self.rsyncEnabled = False
+            rsyncChooser.set_sensitive(False)
 
         # Initialise SMF service instance state.
         try:
-            self.smfmanager = SMFManager()
+            self.sliderSMF = TimeSliderSMF()
         except RuntimeError,message:
             self.xml.get_widget("toplevel").set_sensitive(False)
             dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
@@ -157,12 +195,12 @@ class SetupManager:
             dialog.run()
             sys.exit(1)
 
-        if self.smfmanager.svcstate == "disabled":
+        if self.sliderSMF.svcstate == "disabled":
             self.xml.get_widget("enablebutton").set_active(False)
-        elif self.smfmanager.svcstate == "offline":
+        elif self.sliderSMF.svcstate == "offline":
             self.xml.get_widget("toplevel").set_sensitive(False)
             errors = ''.join("%s\n" % (error) for error in \
-                self.smfmanager.find_dependency_errors())
+                self.sliderSMF.find_dependency_errors())
             dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
                                         0,
                                         gtk.MESSAGE_ERROR,
@@ -176,7 +214,7 @@ class SetupManager:
                                             "these dependency problems.") % errors)
             dialog.run()
             sys.exit(1)
-        elif self.smfmanager.svcstate == "maintenance":
+        elif self.sliderSMF.svcstate == "maintenance":
             self.xml.get_widget("toplevel").set_sensitive(False)
             dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
                                         0,
@@ -198,19 +236,19 @@ class SetupManager:
         # Emit a toggled signal so that the initial GUI state is consistent
         self.xml.get_widget("enablebutton").emit("toggled")
         # Check the snapshotting policy (UserData (default), or Custom)
-        if self.smfmanager.customselection == "true":
+        if self.sliderSMF.is_custom_selection() == True:
             self.xml.get_widget("selectfsradio").set_active(True)
             # Show the advanced controls so the user can see the
             # customised configuration.
-            if self.smfmanager.svcstate != "disabled":
+            if self.sliderSMF.svcstate != "disabled":
                 self.xml.get_widget("expander").set_expanded(True)
         else: # "false" or any other non "true" value
             self.xml.get_widget("defaultfsradio").set_active(True)
 
         # Set the cleanup threshhold value
         spinButton = self.xml.get_widget("capspinbutton")
-        critLevel = self.smfmanager.get_cleanup_level("critical")
-        warnLevel = self.smfmanager.get_cleanup_level("warning")
+        critLevel = self.sliderSMF.get_cleanup_level("critical")
+        warnLevel = self.sliderSMF.get_cleanup_level("warning")
 
         # Force the warning level to something practical
         # on the lower end, and make it no greater than the
@@ -236,14 +274,29 @@ class SetupManager:
             self.liststorefs.set_value(iter, 0, True)
         else:
             self.liststorefs.set_value(iter, 0, False)
+            self.liststorefs.set_value(iter, 1, False)
+
+    def __rsync_cell_toggled(self, renderer, path):
+        model = self.fstv.get_model()
+        iter = model.get_iter(path)
+        state = renderer.get_active()
+        rowstate = self.liststorefs.get_value(iter, 0)
+        if rowstate == True:
+            if state == False:
+                self.liststorefs.set_value(iter, 1, True)
+            else:
+                self.liststorefs.set_value(iter, 1, False)
 
     def __on_ok_clicked(self, widget):
         # Make sure the dictionaries are empty.
         self.fsintentdic = {}
-        self.uistatedic = {}
+        self.snapstatedic = {}
+        self.rsyncstatedic = {}
         enabled = self.xml.get_widget("enablebutton").get_active()
+        self.rsyncEnabled = self.xml.get_widget("rsyncbutton").get_active()
         if enabled == False:
-            self.smfmanager.disable_service()
+            self.sliderSMF.disable_service()
+            self.rsyncSMF.disable_service()
             disable_default_schedules() # auto-snapshot schedule instances
             # Ignore any possible changes to the snapshot configuration
             # of filesystems if the service is disabled.
@@ -253,14 +306,36 @@ class SetupManager:
             self._pulseDialog.show()
             model = self.fstv.get_model()
             snapalldata = self.xml.get_widget("defaultfsradio").get_active()
+                
             if snapalldata == True:
-                self.smfmanager.set_selection_propval("false")
-                model.foreach(self.__set_default_state)
+                self.sliderSMF.set_custom_selection(False)
+                model.foreach(self.__set_fs_selection_state, True)
+                if self.rsyncEnabled == True:
+                    model.foreach(self.__set_rsync_selection_state, True)
             else:
-                self.smfmanager.set_selection_propval("true")
-                model.foreach(self.__get_ui_state)
-            for fsname in self.uistatedic:
-                self.__update_fs_state(fsname)
+                self.sliderSMF.set_custom_selection(True)
+                model.foreach(self.__get_fs_selection_state)
+                model.foreach(self.__get_rsync_selection_state)
+            for fsname in self.snapstatedic:
+                self.__refine_filesys_actions(fsname,
+                                              self.snapstatedic,
+                                              self.fsintentdic)
+                if self.rsyncEnabled == True:
+                    self.__refine_filesys_actions(fsname,
+                                                  self.rsyncstatedic,
+                                                  self.rsyncintentdic)
+            if self.rsyncEnabled == True:
+                # FIXME - perform the swathe of validation checks on the
+                # target directory for rsync here
+                rsyncChooser = self.xml.get_widget("rsyncchooser")
+                newTargetDir = rsyncChooser.get_filename()
+
+                # Avoid backing up to root pool (usually rpool).
+
+                if newTargetDir != self.rsyncTargetDir:
+                    self.rsyncSMF.set_target_dir(newTargetDir)
+
+
             self._enabler = EnableService(self)
             self._enabler.start()
             glib.timeout_add(100,
@@ -272,8 +347,18 @@ class SetupManager:
         enabled = widget.get_active()
         self.xml.get_widget("filesysframe").set_sensitive(enabled)
         expander.set_sensitive(enabled)
+        self.enabled = enabled
         if (enabled == False):
             expander.set_expanded(False)
+
+    def __on_rsyncbutton_toggled(self, widget):
+        self.rsyncEnabled = widget.get_active()
+        if self.rsyncEnabled == True:
+            self.fstv.insert_column(self.rsyncradiocol, 1)
+            self.xml.get_widget("rsyncchooser").set_sensitive(True)
+        else:
+            self.fstv.remove_column(self.rsyncradiocol)
+            self.xml.get_widget("rsyncchooser").set_sensitive(False)
 
     def __on_defaultfsradio_toggled(self, widget):
         if widget.get_active() == True:
@@ -286,27 +371,36 @@ class SetupManager:
     def __on_capspinbutton_value_changed(self, widget):
         value = widget.get_value_as_int()
 
-    def __fsframe_unmap(self, widget):
-        """Auto shrink the window by subtracting the frame's height
-           requistion from the window's height requisition"""
+    def __advancedbox_unmap(self, widget):
+        # Auto shrink the window by subtracting the frame's height
+        # requistion from the window's height requisition
         myrequest = widget.size_request()
         toplevel = self.xml.get_widget("toplevel")
         toprequest = toplevel.size_request()
         toplevel.resize(toprequest[0], toprequest[1] - myrequest[1])
 
-    def __get_ui_state(self, model, path, iter):
-        fsname = self.liststorefs.get_value(iter, 2)    
+    def __get_fs_selection_state(self, model, path, iter):
+        fsname = self.liststorefs.get_value(iter, 3)    
         enabled = self.liststorefs.get_value(iter, 0)
-        self.uistatedic[fsname] = enabled
+        self.snapstatedic[fsname] = enabled
 
-    def __set_default_state(self, model, path, iter):
-        fsname = self.liststorefs.get_value(iter, 2)
-        self.uistatedic[fsname] = True
+    def __get_rsync_selection_state(self, model, path, iter):
+        fsname = self.liststorefs.get_value(iter, 3)
+        enabled = self.liststorefs.get_value(iter, 1)
+        self.rsyncstatedic[fsname] = enabled
 
-    def __update_fs_state(self, fsname):
-        selected = self.uistatedic[fsname]
+    def __set_fs_selection_state(self, model, path, iter, selected):
+        fsname = self.liststorefs.get_value(iter, 3)
+        self.snapstatedic[fsname] = selected
+
+    def __set_rsync_selection_state(self, model, path, iter, selected):
+        fsname = self.liststorefs.get_value(iter, 3)
+        self.rsyncstatedic[fsname] = selected
+
+    def __refine_filesys_actions(self, fsname, inputdic, actions):
+        selected = inputdic[fsname]
         try:
-            fstag = self.fsintentdic[fsname]
+            fstag = actions[fsname]
             # Found so we can skip over.
         except KeyError:
             # Need to check parent value to see if
@@ -316,7 +410,7 @@ class SetupManager:
             if parentname == fsname:
                 # Means this filesystem is the root of the pool
                 # so we need to set it explicitly.
-                self.fsintentdic[fsname] = \
+                actions[fsname] = \
                     FilesystemIntention(fsname, selected, False)
             else:
                 parentintent = None
@@ -325,17 +419,20 @@ class SetupManager:
                 # inherit or override with a locally set property value.
                 try:
                     # Parent has already been registered
-                    parentintent = self.fsintentdic[parentname]
+                    parentintent = actions[parentname]
                 except:
                     # Parent not yet set, so do that recursively to figure
                     # out if we need to inherit or set a local property on
                     # this child filesystem.
-                    self.__update_fs_state(parentname)
-                    parentintent = self.fsintentdic[parentname]
+                    self.__refine_filesys_actions(parentname,
+                                                  inputdic,
+                                                  actions)
+                    parentintent = actions[parentname]
                 if parentintent.selected == selected:
                     inherit = True
-                self.fsintentdic[fsname] = \
+                actions[fsname] = \
                     FilesystemIntention(fsname, selected, inherit)
+
 
     def commit_filesystem_selection(self):
         """
@@ -350,8 +447,34 @@ class SetupManager:
             except KeyError:
                 pass
 
+    def commit_rsync_selection(self):
+        """
+        Commits the intended filesystem selection actions based on the
+        user's UI configuration to disk
+        """
+        for fsname,fsmountpoint in self.__datasets.list_filesystems():
+            fs = zfs.Filesystem(fsname, fsmountpoint)
+            try:
+                intent = self.rsyncintentdic[fsname]
+                if intent.inherited == True:
+                    fs.unset_user_property("org.opensolaris:time-slider-rsync")
+                else:
+                    if intent.selected == True:
+                        value = "true"
+                    else:
+                        value = "false"
+                    fs.set_user_property("org.opensolaris:time-slider-rsync",
+                                         value)
+            except KeyError:
+                pass
+
     def enable_service(self):
-        self.smfmanager.enable_service()
+        if self.rsyncEnabled == True:
+            self.rsyncSMF.enable_service()
+        else:
+            self.rsyncSMF.disable_service()
+        self.sliderSMF.enable_service()
+
 
     def set_cleanup_level(self):
         """
@@ -359,7 +482,7 @@ class SetupManager:
         value as a percentage of pool capacity.
         """
         level = self.xml.get_widget("capspinbutton").get_value_as_int()
-        self.smfmanager.set_cleanup_level("warning", level)
+        self.sliderSMF.set_cleanup_level("warning", level)
 
     def __on_deletesnapshots_clicked(self, widget):
         cmdpath = os.path.join(os.path.dirname(self.execpath), \
@@ -378,6 +501,7 @@ class EnableService(threading.Thread):
             # Set the service state last so that the ZFS filesystems
             # are correctly tagged before the snapshot scripts check them
             self._setupManager.commit_filesystem_selection()
+            self._setupManager.commit_rsync_selection()
             self._setupManager.set_cleanup_level()
             # First enable the auto-snapshot schedule instances
             # These are just transient SMF configuration so

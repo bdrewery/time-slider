@@ -359,6 +359,24 @@ class Datasets(Exception):
                     result.append(details)
         return result
 
+    def list_held_snapshots(self):
+        """
+        Returns a list of snapshots that have a "userrefs"
+        property value of greater than 0. Resul list is
+        sorted in order of creation time. Oldest listed first.
+        """
+        cmd = [ZFSCMD, "list", "-H",
+               "-t", "snapshot",
+               "-s", "creation",
+               "-o", "userrefs,name"]
+        outdata,errdata = util.run_command(cmd)
+        result = []
+        for line in outdata.rstrip().split('\n'):
+            details = line.split()
+            if details[0] != "0":
+                result.append(details[1])
+        return result
+
     def refresh_snapshots(self):
         """
         Should be called when snapshots have been created or deleted
@@ -376,7 +394,7 @@ class Datasets(Exception):
         Datasets.snapshotslock.release()
 
 
-class ZPool(Exception):
+class ZPool:
     """
     Base class for ZFS storage pool objects
     """
@@ -407,7 +425,9 @@ class ZPool(Exception):
         up on the pool.
         """
         if self.health == "FAULTED":
-            raise "PoolFaulted"
+            raise ZPoolFaultedError("Can not determine capacity of zpool: %s" \
+                                    "because it is in a FAULTED state" \
+                                    % (self.name))
 
         cmd = [ZFSCMD, "get", "-H", "-p", "-o", "value", \
                "used,available", self.name]
@@ -441,7 +461,9 @@ class ZPool(Exception):
         # doesn't generate suitable out put so use
         # zfs(1) on the toplevel filesystem
         if self.health == "FAULTED":
-            raise "PoolFaulted"
+            raise ZPoolFaultedError("Can not determine used size of zpool: %s" \
+                                    "because it is in a FAULTED state" \
+                                    % (self.name))
         poolfs = Filesystem(self.name)
         used = poolfs.get_used_size()
         return used
@@ -477,7 +499,7 @@ class ZPool(Exception):
             self.__volumes = result
         return self.__volumes
 
-    def list_auto_snapshot_sets(self, tag=None):
+    def list_auto_snapshot_sets(self, tag = None):
         """
         Returns a list of zfs filesystems and volumes tagged with
         the "com.sun:auto-snapshot" property set to "true", either
@@ -556,7 +578,7 @@ class ZPool(Exception):
             return_string = return_string + \
                             "\n\tCapacity: " + \
                             str(self.get_capacity()) + "%"
-        except "PoolFaulted":
+        except ZPoolFaultedError:
             pass
         return return_string
 
@@ -616,8 +638,11 @@ class ReadableDataset:
         outdata,errdata = util.run_command(cmd)
         return long(outdata.rstrip())
 
-    def get_user_property(self, prop):
-        cmd = [ZFSCMD, "get", "-s", "local", "-H", "-o", "value", prop, self.name]
+    def get_user_property(self, prop, local=False):
+        if local == True:
+            cmd = [ZFSCMD, "get", "-s", "local", "-H", "-o", "value", prop, self.name]
+        else:
+            cmd = [ZFSCMD, "get", "-H", "-o", "value", prop, self.name]
         outdata,errdata = util.run_command(cmd)
         return outdata.rstrip()
 
@@ -629,7 +654,7 @@ class ReadableDataset:
         cmd = [PFCMD, ZFSCMD, "inherit", prop, self.name]
         outdata,errdata = util.run_command(cmd)
 
-class Snapshot(ReadableDataset, Exception):
+class Snapshot(ReadableDataset):
     """
     ZFS Snapshot object class.
     Provides information and operations specfic to ZFS snapshots
@@ -655,7 +680,8 @@ class Snapshot(ReadableDataset, Exception):
         # destroyed instead of a snapshot. That would be
         # really really bad.
         if name[0] == self.name:
-            raise 'SnapshotError', "%s is not a valid snapshot name\n" % (name)
+            raise SnapshotError("\'%s\' is not a valid snapshot name" \
+                                % (self.name))
         return name[0],name[1]
 
     def get_referenced_size(self):
@@ -716,7 +742,7 @@ class Snapshot(ReadableDataset, Exception):
         Place a hold on the snapshot with the specified "tag" string.
         """
         # FIXME - fails if hold is already held
-        # Be sure it genuninely exists before trying to destroy it
+        # Be sure it genuninely exists before trying to place a hold
         if self.exists() == False:
             return
 
@@ -745,7 +771,7 @@ class Snapshot(ReadableDataset, Exception):
         """
         Release the hold on the snapshot with the specified "tag" string.
         """
-        #FIXME raises exception if no hold exists.
+        # FIXME raises exception if no hold exists.
         # Be sure it genuninely exists before trying to destroy it
         if self.exists() == False:
             return
@@ -878,15 +904,14 @@ class ReadWritableDataset(ReadableDataset):
 
     def set_auto_snap(self, include, inherit = False):
         if inherit == True:
-            cmd = [PFCMD, ZFSCMD, "inherit", "com.sun:auto-snapshot", \
-                   self.name]
-        elif include == True:
-            cmd = [PFCMD, ZFSCMD, "set", "com.sun:auto-snapshot=true", \
-                   self.name]
+            self.unset_user_property("com.sun:auto-snapshot")
         else:
-            cmd = [PFCMD, ZFSCMD, "set", "com.sun:auto-snapshot=false", \
-                   self.name]
-        outdata,errdata = util.run_command(cmd)
+            if include == True:
+                value = "true"
+            else:
+                value = "false"
+            self.set_user_property("com.sun:auto-snapshot", value)
+
         return
 
 
@@ -899,12 +924,8 @@ class Filesystem(ReadWritableDataset):
     def __str__(self):
         return_string = "Filesystem name: " + self.name + \
                         "\n\tMountpoint: " + self.get_mountpoint() + \
-                        "\n\tAuto snap: "
-        if self.get_auto_snap():
-            return_string = return_string + "TRUE"
-        else:
-            return_string = return_string + "FALSE"
-        return_string = return_string + "\n"
+                        "\n\tMounted: " + str(self.is_mounted()) + \
+                        "\n\tAuto snap: " + str(self.get_auto_snap())
         return return_string
 
     def get_mountpoint(self):
@@ -915,6 +936,16 @@ class Filesystem(ReadWritableDataset):
             result = outdata.rstrip()
             self.__mountpoint = result
         return self.__mountpoint
+
+    def is_mounted(self):
+        cmd = [ZFSCMD, "get", "-H", "-o", "value", "mounted", \
+               self.name]
+        outdata,errdata = util.run_command(cmd)
+        result = outdata.rstrip()
+        if result == "yes":
+            return True
+        else:
+            return False
 
     def list_children(self):
         cmd = [ZFSCMD, "list", "-H", "-r", "-t", "filesystem", "-o", "name",
@@ -941,6 +972,40 @@ class Volume(ReadWritableDataset):
         return return_string
 
 
+class ZFSError(Exception):
+    """Generic base class for ZPoolFaultedError and SnapshotError
+
+    Attributes:
+        msg -- explanation of the error
+    """
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self):
+        return repr(self.msg)
+
+
+class ZPoolFaultedError(ZFSError):
+    """Exception raised for queries made against ZPools that
+       are in a FAULTED state
+
+    Attributes:
+        msg -- explanation of the error
+    """
+    def __init__(self, msg):
+        ZFSError.__init__(self, msg)
+
+
+class SnapshotError(ZFSError):
+    """Exception raised for invalid snapshot names provided to
+       Snapshot() constructor.
+
+    Attributes:
+        msg -- explanation of the error
+    """
+    def __init__(self, msg):
+        ZFSError.__init__(self, msg)
+
+
 def list_zpools():
     """Returns a list of all zpools on the system"""
     result = []
@@ -954,20 +1019,21 @@ def list_zpools():
 if __name__ == "__main__":
     for zpool in list_zpools():
         pool = ZPool(zpool)
+        print pool
         for filesys,mountpoint in pool.list_filesystems():
             fs = Filesystem(filesys, mountpoint)
             print fs
             print "\tSnapshots:"
             for snapshot, snaptime in fs.list_snapshots():
                 snap = Snapshot(snapshot, snaptime)
-                print "\t" + snap.name
-            print "\n"
+                print "\t\t" + snap.name
+
         for volname in pool.list_volumes():
             vol = Volume(volname)
             print vol
             print "\tSnapshots:"
             for snapshot, snaptime in vol.list_snapshots():
                 snap = Snapshot(snapshot, snaptime)
-                print "\t" + snap.name
-            print "\n"
+                print "\t\t" + snap.name
+
 
