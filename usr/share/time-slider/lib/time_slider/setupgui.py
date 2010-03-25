@@ -24,12 +24,16 @@ import sys
 import os
 import subprocess
 import threading
+import util
 import smf
 from autosnapsmf import enable_default_schedules, disable_default_schedules
 
 from os.path import abspath, dirname, join, pardir
+sys.path.insert(0, join(dirname(__file__), pardir, "plugin"))
+import plugin
+from os.path import abspath, dirname, join, pardir
 sys.path.insert(0, join(dirname(__file__), pardir, "plugin", "rsync"))
-from rsyncsmf import RsyncSMF
+import rsyncsmf
 
 try:
     import pygtk
@@ -105,6 +109,8 @@ class SetupManager:
         self.snapstatedic = {}
         self.fsintentdic = {}
         self.rsyncintentdic = {}
+        # Dictionary that maps device ID numbers to zfs filesystem objects
+        self.fsDevices = {}
 
         self.liststorefs = gtk.ListStore(bool,
                                          bool,
@@ -118,8 +124,11 @@ class SetupManager:
             else:
                 mountpoint = fsmountpoint
             fs = zfs.Filesystem(fsname, fsmountpoint)
+            # Note that we don't deal support legacy mountpoints.
+            if fsmountpoint != "legacy" and fs.is_mounted():
+                self.fsDevices[os.stat(fsmountpoint).st_dev] = fs
             snap = fs.get_auto_snap()
-            rsyncstr = fs.get_user_property("org.opensolaris:time-slider-rsync")
+            rsyncstr = fs.get_user_property(rsyncsmf.RSYNCFSTAG)
             if rsyncstr == "true":
                 rsync = True
             else:
@@ -161,10 +170,9 @@ class SetupManager:
         advancedbox = self.xml.get_widget("advancedbox")
         advancedbox.connect('unmap', self.__advancedbox_unmap)  
 
-        # Rsync plugin state initialisation FIXME
-        self.rsyncSMF = RsyncSMF("svc:/application/time-slider/plugin:rsync")
+        self.rsyncSMF = rsyncsmf.RsyncSMF("%s:rsync" \
+                                          %(plugin.PLUGINBASEFMRI))
         state = self.rsyncSMF.get_service_state()
-        # FIXME - check if this should be converted to UTF-8
         self.rsyncTargetDir = self.rsyncSMF.get_target_dir()
 
         rsyncChooser = self.xml.get_widget("rsyncchooser")
@@ -303,7 +311,6 @@ class SetupManager:
             # So nothing else to do here.
             gtk.main_quit()
         else:
-            self._pulseDialog.show()
             model = self.fstv.get_model()
             snapalldata = self.xml.get_widget("defaultfsradio").get_active()
                 
@@ -329,13 +336,121 @@ class SetupManager:
                 # target directory for rsync here
                 rsyncChooser = self.xml.get_widget("rsyncchooser")
                 newTargetDir = rsyncChooser.get_filename()
+                self.rsyncTargetDir = newTargetDir
 
-                # Avoid backing up to root pool (usually rpool).
+                # Get device ID of rsync target dir.
+                targetDev = os.stat(newTargetDir).st_dev
+                try:
+                    fs = self.fsDevices[targetDev]
+                    
+                    # See if the filesystem itself is selected
+                    # and/or any other fileystem on the pool is 
+                    # selected.
+                    fsEnabled = self.snapstatedic[fs.name]
+                    if fsEnabled == True:
+                        # Definitely can't use this since it's a
+                        # snapshotted filesystem.
+                        print "Can't use snapshotted filesystem: " + fs.name
+                        msg = _("\'%s\'\n"
+                              "belongs to the ZFS filesystem \'%s\' "
+                              "which is already selected for "
+                              "regular ZFS snaphots." 
+                              "\n\nPlease select a drive "
+                              "not already in use by "
+                              "Time Slider") \
+                              % (newTargetDir, fs.name)
+                        topLevel = self.xml.get_widget("toplevel")
+                        dialog = gtk.MessageDialog(topLevel,
+                                                   0,
+                                                   gtk.MESSAGE_ERROR,
+                                                   gtk.BUTTONS_CLOSE,
+                                                   _("Unsuitable Backup Location"))
+                        dialog.format_secondary_text(msg)
+                        dialog.run()
+                        dialog.hide()
+                        return
+                    else:
+                        # See if there is anything else on the pool being
+                        # snapshotted
+                        poolName = fs.name.split("/", 1)[0]
+                        for name,mount in self.__datasets.list_filesystems():
+                            if name.find(poolName) == 0:
+                                try:
+                                    otherEnabled = self.snapstatedic[name]
+                                    if snapalldata or otherEnabled:
+                                        msg = _("\'%s\'\n"
+                                              "belongs to the ZFS pool \'%s\' "
+                                              "which is already being used "
+                                              "to store ZFS snaphots." 
+                                              "\n\nPlease select a drive "
+                                              "not already in use by "
+                                              "Time Slider") \
+                                              % (newTargetDir, poolName)
+                                        topLevel = self.xml.get_widget("toplevel")
+                                        dialog = gtk.MessageDialog(topLevel,
+                                                    0,
+                                                    gtk.MESSAGE_ERROR,
+                                                    gtk.BUTTONS_CLOSE,
+                                                    _("Unsuitable Backup Location"))
+                                        dialog.format_secondary_text(msg)
+                                        dialog.run()
+                                        dialog.hide()
+                                        return
+                                except KeyError:
+                                    pass               
+                except KeyError:
+                    # No match found - good.
+                    pass
 
-                if newTargetDir != self.rsyncTargetDir:
-                    self.rsyncSMF.set_target_dir(newTargetDir)
+                # Next figure out if there's a reasonable amount of free space
+                # to store backups. We need to figure out an absolute minimum
+                # requirement as well as a recommended minimum.
+                
+                allPools = zfs.list_zpools()
+                snapPools = []
+                # FIXME -  this is for custom selection. There is a short
+                # circuit case for default (All) configuration. Don't forget
+                # to implement this short circuit.
+                for poolName in allPools:
+                    try:
+                        snapPools.index(poolName)
+                    except ValueError:
+                        pool = zfs.ZPool(poolName)
+                        # FIXME - we should include volumes here but they
+                        # can only be set from the command line, not via
+                        # the GUI, so not crucial.
+                        for fsName,mount in pool.list_filesystems():
+                            # Don't try to catch exception. The filesystems
+                            # are already populated in self.snapstatedic
+                            enabled = self.snapstatedic[fsName]
+                            if enabled == True:
+                                snapPools.append(poolName)
+                                break
 
+                sumPoolSize = 0
+                for poolName in snapPools:
+                    pool = zfs.ZPool(poolName)
+                    # Rough calcualation, but precise enough for
+                    # estimation purposes
+                    sumPoolSize += pool.get_used_size()
+                    sumPoolSize += pool.get_available_size()
 
+                # Compare with available space on rsync target dir
+                targetDirAvail = util.get_available_size(newTargetDir)
+                
+                # FIXME - need to figure out a way to not complain when 
+                # user is re-enabling the rsync plugin and reusing a 
+                # previously preconfigured backup directory. Perhaps
+                # leave a hostid stamp in the target directory.
+                ratio = targetDirAvail/float(sumPoolSize)
+
+                # Create the subdirectory underneath the target directory
+                # selected by the user if necessary ".time-slider/rsync"
+                fullPath = os.path.join(newTargetDir, rsyncsmf.RSYNCDIRSUFFIX)
+                if not os.path.exists(fullPath):
+                    os.makedirs(fullPath, 0755)
+
+            self._pulseDialog.show()
             self._enabler = EnableService(self)
             self._enabler.start()
             glib.timeout_add(100,
@@ -343,7 +458,7 @@ class SetupManager:
                              self.xml.get_widget("pulsebar"))
 
     def __on_enablebutton_toggled(self, widget):
-        expander = self.xml.get_widget("expander")    
+        expander = self.xml.get_widget("expander")
         enabled = widget.get_active()
         self.xml.get_widget("filesysframe").set_sensitive(enabled)
         expander.set_sensitive(enabled)
@@ -541,7 +656,6 @@ def main(argv):
         # Shouldn't reach this point
         sys.exit(1)
     else:
-        # FIXME: Pop up an error dialog and exit.
         dialog = gtk.MessageDialog(None,
                                    0,
                                    gtk.MESSAGE_ERROR,

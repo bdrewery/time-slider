@@ -25,6 +25,8 @@ import threading
 from plugin import pluginsmf
 
 RSYNCPROPGROUP = "rsync"
+RSYNCDIRSUFFIX = ".time-slider/rsync"
+RSYNCFSTAG = "org.opensolaris:time-slider-rsync"
 
 class RsyncSMF(pluginsmf.PluginSMF):
 

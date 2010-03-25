@@ -25,17 +25,15 @@ import sys
 import subprocess
 import syslog
 
+import rsyncsmf
 from time_slider import util, smf, zfs
 
 # Set to True if SMF property value of "plugin/command" is "true"
 verboseprop = "plugin/verbose"
 propbasename = "org.opensolaris:time-slider-plugin"
 
-# FIXME - define globally somewher
-rsyncfstag = "org.opensolaris:time-slider-rsync"
 
 def main(argv):
-
     # Check that appropriate environment variables have been
     # provided by time-sliderd
     #
@@ -120,7 +118,7 @@ def main(argv):
     for snap in snapnames:
         snapshot = zfs.Snapshot(snap)
         fs = zfs.Filesystem(snapshot.fsname)
-        if fs.get_user_property(rsyncfstag) == "true":
+        if fs.get_user_property(rsyncsmf.RSYNCFSTAG) == "true":
             snapshot.set_user_property(propname, "pending")
             util.debug("Marking %s as pending rsync" % (snap), verbose)
 

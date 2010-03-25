@@ -20,9 +20,12 @@
 # CDDL HEADER END
 #
 
+import os
 import subprocess
 import sys
 import syslog
+import statvfs
+import math
 
 def run_command(command):
     """
@@ -56,3 +59,46 @@ def debug(message, verbose=False):
     if verbose:
         syslog.syslog(syslog.LOG_NOTICE, message + '\n')
         sys.stderr.write(message + '\n')
+
+def get_filesystem_capacity(path):
+    """Returns filesystem space usage of path as an integer percentage of
+       the entire capacity of path.
+    """
+    if not os.path.exists(path):
+        raise ValueError("%s is a non-existent path" % path)
+    f = os.statvfs(path)
+
+    unavailBlocks = f[statvfs.F_BLOCKS] - f[statvfs.F_BAVAIL]
+    capacity = int(math.ceil(100 * (unavailBlocks / float(f[statvfs.F_BLOCKS]))))
+
+    return capacity
+
+def get_available_size(path):
+    """Returns the available space in bytes of path"""
+    if not os.path.exists(path):
+        raise ValueError("%s is a non-existent path" % path)
+    f = os.statvfs(path)
+    free = long(f[statvfs.F_BAVAIL] * f[statvfs.F_FRSIZE])
+    
+    return free
+
+
+def get_used_size(path):
+    """Returns the used space in bytes of path"""
+    if not os.path.exists(path):
+        raise ValueError("%s is a non-existent path" % path)
+    f = os.statvfs(path)
+
+    unavailBlocks = f[statvfs.F_BLOCKS] - f[statvfs.F_BAVAIL]
+    used = long(unavailBlocks * f[statvfs.F_FRSIZE])
+
+    return used
+
+def get_total_size(path):
+    """Returns the total storage space in bytes of path"""
+    if not os.path.exists(path):
+        raise ValueError("%s is a non-existent path" % path)
+    f = os.statvfs(path)
+    total = long(f[statvfs.F_BLOCKS] * f[statvfs.F_FRSIZE])
+
+    return total

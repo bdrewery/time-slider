@@ -21,7 +21,7 @@
 #
 
 import sys
-
+import subprocess
 import gobject
 import dbus
 import dbus.decorators
@@ -32,22 +32,180 @@ import gtk
 import pygtk
 import pynotify
 
-class CleanupNote:
+from time_slider import util
 
-    def __init__(self):
+from os.path import abspath, dirname, join, pardir
+sys.path.insert(0, join(dirname(__file__), pardir, "plugin"))
+import plugin
+sys.path.insert(0, join(dirname(__file__), pardir, "plugin", "rsync"))
+import backup
+
+class Note:
+
+    def __init__(self, icon, menu):
         self._note = None
         self._msgDialog = None
         self._cleanup_head = None
         self._cleanup_body = None
-        self._icon = gtk.StatusIcon()
-        self._icon.set_visible(False)
-        self._icon.set_from_icon_name("time-slider-setup")
-        dbus.bus.NameOwnerWatch(bus,
-                                "org.opensolaris.TimeSlider",
-                                self._watch_handler)
+        self._menu = menu
+        self._icon = icon
+        self._icon.connect("popup-menu", self._activate_menu)
+        self._icon.set_visible(True)
+
+    def _activate_menu(self, icon, button, time):
+        if button == 3:
+            self._menu.popup(None, None,
+                             gtk.status_icon_position_menu,
+                             button, time, icon)
 
     def _dialog_response(self, dialog, response):
         dialog.destroy()
+
+    def _notification_closed(self, notifcation):
+        self._note = None
+
+    def _show_notification(self):
+        if self._icon.is_embedded() == True:
+            self._note.attach_to_status_icon(self._icon)
+        self._note.show()
+        return False
+
+    def _connect_to_object(self):
+        pass
+
+    def _watch_handler(self, new_owner = None):
+        if new_owner == None or len(new_owner) == 0:
+            pass
+        else:
+            self._connect_to_object()
+
+    def _setup_icon_for_note(self): 
+        iconTheme = gtk.icon_theme_get_default()
+        pixbuf = iconTheme.load_icon("gnome-dev-harddisk", 48, 0)
+        self._note.set_category("device")
+        self._note.set_icon_from_pixbuf(pixbuf)
+
+
+class RsyncNote(Note):
+
+    def __init__(self, icon, menu):
+        Note.__init__(self, icon, menu)
+        dbus.bus.NameOwnerWatch(bus,
+                                "org.opensolaris.TimeSlider.plugin.rsync",
+                                self._watch_handler)
+        # Every time the rsync backup script runs it will
+        # register with d-bus and trigger self._watch_handler().
+        # Use this variable to keep track of it's running status.
+        self._scriptRunning = False
+        self._syncNowItem = gtk.MenuItem(_("Synchronise Now"))
+        self._syncNowItem.set_sensitive(False)
+        self._syncNowItem.connect("activate",
+                                  self._sync_now)
+        self._syncNowItem.show()
+        self._menu.append(self._syncNowItem)
+        # Kick start things by initially obtaining the
+        # backlog size and triggering a callback.
+        # Signal handlers will keep tooltip status up
+        # to date afterwards when the backup cron job
+        # executes.
+        propName = "%s:rsync" % (backup.propbasename)
+        queue = backup.list_pending_snapshots(propName)
+        self.queueSize = len(queue)
+        if self.queueSize == 0:
+            self._rsync_synced_handler()
+        else:
+            self._rsync_unsynced_handler(self.queueSize)            
+
+    def _watch_handler(self, new_owner = None):
+        if new_owner == None or len(new_owner) == 0:
+            # Script not running or exited
+            self._scriptRunning = False
+            self._syncNowItem.set_sensitive(True)
+        else:
+            self._scriptRunning = True
+            self._syncNowItem.set_sensitive(False)
+            self._connect_to_object()
+
+    def _rsync_started_handler(self, target, sender=None, interface=None, path=None):
+        urgency = pynotify.URGENCY_NORMAL
+        if (self._note != None):
+            self._note.close()
+        self._note = pynotify.Notification(_("Backup Started"),
+                                           _("Backing up snapshots to: \'%s\'\n" \
+                                           "Please do not disconnect the backup device") \
+                                            % (target))
+        self._note.connect("closed", \
+                           self._notification_closed)
+        self._note.set_urgency(urgency)
+        self._setup_icon_for_note()
+        gobject.idle_add(self._show_notification)
+
+    def _rsync_current_handler(self, snapshot, remaining, sender=None, interface=None, path=None):
+        self._icon.set_tooltip_markup(_("Backing up: <b>\'%s\'\n%d</b> snapshots remaining.") \
+                                      % (snapshot, remaining))
+
+    def _rsync_complete_handler(self, target, sender=None, interface=None, path=None):
+        urgency = pynotify.URGENCY_NORMAL
+        if (self._note != None):
+            self._note.close()
+        self._note = pynotify.Notification(_("Backup Complete"),
+                                           _("Your snapshots have been backed up to: \'%s\'") \
+                                           % (target))
+        self._note.connect("closed", \
+                           self._notification_closed)
+        self._note.set_urgency(urgency)
+        self._setup_icon_for_note()
+        self._icon.set_has_tooltip(False)
+        self.queueSize = 0
+        gobject.idle_add(self._show_notification)
+
+    def _rsync_synced_handler(self, sender=None, interface=None, path=None):
+        self._icon.set_tooltip_markup(_("Your backups are up to date."))
+        self.queueSize = 0
+
+    def _rsync_unsynced_handler(self, queueSize, sender=None, interface=None, path=None):
+        self._icon.set_tooltip_markup(_("%d snapshots are queued for backup.") \
+                                      % (queueSize))
+        self.queueSize = queueSize
+
+    def _connect_to_object(self):
+        try:
+            remote_object = bus.get_object("org.opensolaris.TimeSlider.plugin.rsync",
+                                           "/org/opensolaris/TimeSlider/plugin/rsync")
+        except dbus.DBusException:
+            print "Failed to connect to remote D-Bus object: %s" % \
+                    ("/org/opensolaris/TimeSlider/plugin/rsync")
+            return
+
+        #Create an Interface wrapper for the remote object
+        iface = dbus.Interface(remote_object, "org.opensolaris.TimeSlider.plugin.rsync")
+
+        iface.connect_to_signal("rsync_started", self._rsync_started_handler, sender_keyword='sender',
+                                interface_keyword='interface', path_keyword='path')
+        iface.connect_to_signal("rsync_current", self._rsync_current_handler, sender_keyword='sender',
+                                interface_keyword='interface', path_keyword='path')
+        iface.connect_to_signal("rsync_complete", self._rsync_complete_handler, sender_keyword='sender',
+                                interface_keyword='interface', path_keyword='path')
+        iface.connect_to_signal("rsync_synced", self._rsync_synced_handler, sender_keyword='sender',
+                                interface_keyword='interface', path_keyword='path')
+        iface.connect_to_signal("rsync_unsynced", self._rsync_unsynced_handler, sender_keyword='sender',
+                                interface_keyword='interface', path_keyword='path')
+
+    def _sync_now(self, menuItem):
+        # FIXME This is a placeholder. The actual proper implementation will need to
+        # do some privilige checking and should ideally check if the backup target
+        # is accessible before proceeding
+        cmd = ["/usr/bin/pfexec", "/usr/lib/time-slider/plugins/rsync/rsync-backup", \
+               "%s:rsync" % (plugin.PLUGINBASEFMRI)]
+        subprocess.Popen(cmd, close_fds=True, cwd="/")
+
+class CleanupNote(Note):
+
+    def __init__(self, icon, menu):
+        Note.__init__(self, icon, menu)
+        dbus.bus.NameOwnerWatch(bus,
+                                "org.opensolaris.TimeSlider",
+                                self._watch_handler)
 
     def _show_cleanup_details(self, *args):
         # We could keep a dialog around but this a rare
@@ -61,14 +219,7 @@ class CleanupNote:
         dialog.present()
         dialog.connect("response", self._dialog_response)
 
-    def _notification_closed(self, notifcation):
-        self._note = None
-        self._icon.set_visible(False)
-
     def _cleanup_handler(self, pool, severity, threshhold, sender=None, interface=None, path=None):
-        iconTheme = gtk.icon_theme_get_default()
-        pixbuf = iconTheme.load_icon("gnome-dev-harddisk", 48, 0)
-
         if severity == 4:
             expiry = pynotify.EXPIRES_NEVER
             urgency = pynotify.URGENCY_CRITICAL
@@ -140,25 +291,9 @@ class CleanupNote:
                            self._notification_closed)
         self._note.set_urgency(urgency)
         self._note.set_timeout(expiry)
-        self._note.set_category("device")
-        self._note.set_icon_from_pixbuf(pixbuf)
-
+        self._setup_icon_for_note()
         self._icon.set_blinking(True)
-        self._icon.set_visible(True)
-        gtk.gdk.flush()
         gobject.idle_add(self._show_notification)
-
-    def _show_notification(self):
-        if self._icon.is_embedded() == True:
-            self._note.attach_to_status_icon(self._icon)
-        self._note.show()
-        return False
-
-    def _watch_handler(self, new_owner = None):
-        if new_owner == None or len(new_owner) == 0:
-            iface = None
-        else:
-            self._connect_to_object()
 
     def _connect_to_object(self):
         try:
@@ -175,7 +310,6 @@ class CleanupNote:
                                 interface_keyword='interface', path_keyword='path')
 
 
-
 bus = dbus.SystemBus()
 
 def main(argv):
@@ -183,7 +317,15 @@ def main(argv):
     dbus.mainloop.glib.DBusGMainLoop(set_as_default = True)
     gobject.threads_init()
     pynotify.init(_("Time Slider"))
-    cleanupNote = CleanupNote()
+
+    # Notification objects need to share common
+    # status icon and popup menu so these are created
+    # outside the object and passed to the constructor
+    menu = gtk.Menu()
+    icon = gtk.StatusIcon()
+    icon.set_from_icon_name("time-slider-setup")
+    cleanupNote = CleanupNote(icon, menu)
+    rsyncNote = RsyncNote(icon, menu)
 
     try:
         mainloop.run()

@@ -43,3 +43,44 @@ class AutoSnap(dbus.service.Object):
                          signature='suu')
     def capacity_exceeded(self, pool, severity, threshhold):
         pass
+
+class RsyncBackup(dbus.service.Object):
+    """
+    D-Bus object for Time Slider's rsync backup feature.
+    """
+    def __init__(self, bus, path):
+        self._bus = bus
+        dbus.service.Object.__init__(self, 
+                                     bus,  
+                                     path)
+
+    # Rsync operation rsync_started signal
+    @dbus.service.signal(dbus_interface="org.opensolaris.TimeSlider.plugin.rsync",
+                         signature='s')
+    def rsync_started(self, target):
+        pass
+
+    # Rsync operation rsync_current signal
+    @dbus.service.signal(dbus_interface="org.opensolaris.TimeSlider.plugin.rsync",
+                         signature='su')
+    def rsync_current(self, snapshot, remaining):
+        pass
+
+    # Rsync operation rsync_complete signal
+    @dbus.service.signal(dbus_interface="org.opensolaris.TimeSlider.plugin.rsync",
+                         signature='s')
+    def rsync_complete(self, target):
+        pass
+
+    # Rsync operation rsync_synced signal
+    @dbus.service.signal(dbus_interface="org.opensolaris.TimeSlider.plugin.rsync",
+                         signature='')
+    def rsync_synced(self):
+        pass
+
+    # Rsync operation rsync_unsynced signal
+    @dbus.service.signal(dbus_interface="org.opensolaris.TimeSlider.plugin.rsync",
+                         signature='u')
+    def rsync_unsynced(self, queueSize):
+        pass
+

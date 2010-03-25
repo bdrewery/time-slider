@@ -1,3 +1,31 @@
+2010-03-25 Niall Power - <niall.power@sun.com>
+
+	* etc/dbus-1/system.d/time-slider.conf: add policies for
+	  rsync plugin's dbus service and methods.
+	* usr/share/time-slider/lib/plugin/rsync/backup.py: restructure script
+	  to perform backups via a Gobject mainloop which is necessary to allow
+	  it to send dbus notifications correctly. Adjust backup target dir
+	  to use a rsync plugin specific subdirectory on the target dir
+	  (.time-slider/rsync) - prevents borkage of mount points with 
+	  unmounted filesystems. Use "-a" option with rsync command which 
+	  covers all the desired arguments fo our rsync usage case (archival)
+	  Add dbus method invocations. General cleanup and removal of commented
+	  out code. Use lockfile to prevent multiple instances running at once.
+	* usr/share/time-slider/lib/plugin/rsync/rsyncsmf.py: Add definitions
+	  for backup subdirectory and filesystem property tag constants.
+	* usr/share/time-slider/lib/plugin/rsync/trigger.py: Use constants as
+	  defined in rsyncsmf.py
+	* usr/share/time-slider/lib/time_slider/applet.py: Incorporate new 
+	  RsyncNote class and other pieces from Krishnan Parthasarathi. Thanks
+	  Krishan. Added signal handlers and tooltips/popups for dbus events 
+	  sent from rsync plugin.
+	* usr/share/time-slider/lib/time_slider/dbussvc.py: New dbus signal
+	  definitions added, including a few from Krishnan.
+	* usr/share/time-slider/lib/time_slider/setupgui.py: Perform validation
+	  on target directory for rsync. Not exhaustive yet. Checks that target
+	  directory isn't on a file system or pool that's been selected for
+	  automatic snapshots.
+
 2010-03-11 Niall Power - <niall.power@sun.com>
 
 	Add rsync plugin (WORK IN PROGRESS), restructure SMF related code

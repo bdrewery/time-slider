@@ -21,130 +21,96 @@
 #
 
 import os
+import os.path
+import fcntl
+import tempfile
 import sys
 import subprocess
 import statvfs
 import math
 import syslog
-
-import rsyncsmf
-
+import gobject
+import dbus
 from bisect import insort
 
-from time_slider import util, zfs
+from time_slider import util, zfs, dbussvc
+import rsyncsmf
+
 
 # Set to True if SMF property value of "plugin/command" is "true"
 verboseprop = "plugin/verbose"
-
 propbasename = "org.opensolaris:time-slider-plugin"
 
-def main(argv):
+class BackupQueue():
 
-    # The SMF fmri of the time-slider plugin instance associated with
-    # this command needs to be supplied as the argument immeditately
-    # proceeding the command. ie. argv[1]
-    try:
-        pluginFMRI = sys.argv[1]
-    except IndexError:
-        # No FMRI provided. Probably a user trying to invoke the command
-        # from the command line.
-        sys.stderr.write("No time-slider plugin SMF instance FMRI defined. " \
-                         "This plugin does not support command line "
-                         "execution. Exiting\n")
-        sys.exit(-1)
+    def __init__(self, fmri, dbus, mainLoop=None):
+        self.started = False
+        self.pluginFMRI = fmri
+        self.propName = "%s:%s" % (propbasename, fmri.rsplit(':', 1)[1])
+        self._bus = dbus
+        self.smfInst = rsyncsmf.RsyncSMF(self.pluginFMRI)
+        self.verbose = self.smfInst.get_verbose()
+        self.pendingList = list_pending_snapshots(self.propName)
+        self.mainLoop = mainLoop
 
-    # FIXME - better to log as command than FMRI?
-    syslog.openlog(pluginFMRI, 0, syslog.LOG_DAEMON)
+        # Determine the rsync backup dir. This is the target dir
+        # defined by the SMF instance plus the .time-slider/rsync
+        # suffiz
+        baseDir = self.smfInst.get_target_dir()
+        self.rsyncDir = os.path.join(baseDir, rsyncsmf.RSYNCDIRSUFFIX)
 
-    smfInst = rsyncsmf.RsyncSMF(pluginFMRI)
-    verbose = smfInst.get_verbose()
+    def backup_snapshot(self):
+        if len(self.pendingList) == 0:
+            self._bus.rsync_synced()
+            # Nothing to do exit
+            if self.mainLoop:
+                self.mainLoop.quit()
+            sys.exit(0)
 
-    # Determine the rsync backup dir.
-    rsyncDir = smfInst.get_target_dir()
+        # Check to see if the rsync destination directory is accessible.
+        try:
+            statinfo = os.stat(self.rsyncDir)
+        except OSError:
+            util.debug("Plugin %s: Backup target directory is not " \
+                       "accessible right now: %s" \
+                       % (self.pluginFMRI, self.rsyncDir))
+            self._bus.rsync_unsynced(len(self.pendingList))
+            if self.mainLoop:
+                self.mainLoop.quit()
+            sys.exit(0)
 
-    # FIXME - delete this check block
-    # Check to see if the rsync destination directory is accessible.
-    #testdir = "/media/External"
-    #try:
-    #    statinfo = os.stat(testdir)
-    #except OSError:
-    #    log_error(syslog.LOG_ERR,
-    #              "Plugin: %s: Can not access the configured " \
-    #              "rsync backup destination directory: %s" \
-    #              % (pluginFMRI, testdir))    
-    #    sys.exit(0)
+        # Check how much capacity is in use on the destination directory
+        # FIXME - then do something useful with this data later
+        capacity = util.get_filesystem_capacity(self.rsyncDir)
+        used = util.get_used_size(self.rsyncDir)
+        avail = util.get_available_size(self.rsyncDir)
+        total = util.get_total_size(self.rsyncDir)
 
-    # FIXME - delete this check block
-    # Check to see if the rsync destination directory is writable.
-    #testfile = "/export/home/niall/tmp/rsync-test-file"
-    #testf = open(testfile, "w")
-    #testf.close()
-    #os.link(testfile, "/export/home/niall/tmp/testfilelink")
-    #os.remove(testfile)
-    #os.remove("/export/home/niall/tmp/testfilelink")
-    #sys.exit(0)
+        if self.started == False:
+            self.started = True
+            self._bus.rsync_started(self.rsyncDir)
 
-    # Check to see if the rsync destination directory is accessible.
-    try:
-        statinfo = os.stat(rsyncDir)
-    except OSError:
-        util.debug("Plugin %s: Backup target directory is not " \
-                   "accessible right now: %s" \
-                   % (pluginFMRI, rsyncDir))  
-        sys.exit(0)
-
-    # Check how much capacity is in use on the destination directory
-    capacity = get_filesystem_capacity(rsyncDir)
-    used = get_used_size(rsyncDir)
-    avail = get_available_size(rsyncDir)
-    total = get_total_size(rsyncDir)
-
-    print "Capacity: " + str(capacity) + '%'
-    print "Used: " + str(used)
-    print "Available: " + str(avail)
-    print "Total: " + str(total)
-
-    # The user property used by this plugin's trigger script
-    # to tag zfs filesystem snapshots
-    propname = "%s:%s" % (propbasename, pluginFMRI.rsplit(':', 1)[1])
-
-    # The process for backing up snapshots is:
-    # Identify all filesystem snapshots that have the (propname)
-    # property set to "pending" on them. Back them up starting
-    # with the oldest first.
-
-    pendinglist = list_pending_snapshots(propname)
-    for ctime,snapname in pendinglist:
+        ctime,snapname = self.pendingList[0]
         snapshot = zfs.Snapshot(snapname, long(ctime))
         # Make sure the snapshot didn't get destroyed since we last
         # checked it.
+        remainingList = self.pendingList[1:]
         if snapshot.exists() == False:
             util.debug("Snapshot: %s no longer exists. Skipping" \
-                       % (snapname), verbose)
-            continue
+                        % (snapname), self.verbose)
+            self.pendingList = remainingList
+            return True
 
         # Place a hold on the snapshot so it doesn't go anywhere
         # while rsync is trying to back it up.
         # If a hold already exists, it's probably from a 
         # botched previous attempt to rsync
         try:
-            snapshot.holds().index(propname)
+            snapshot.holds().index(self.propName)
         except ValueError:
-            snapshot.hold(propname)
+            snapshot.hold(self.propName)
 
         fs = zfs.Filesystem(snapshot.fsname)
-
-        # Optimisation: FIXME - Experimental
-        # Similar to time-sliderd deleting 0 (used) sized snaphots,
-        # we can avoid rsyncing zero sized snapshots. Snapshots that
-        # are not the most recent for their filesystem/volume and have
-        # a used size of zero will not provide any unique restore points.
-        #fssnaps = fs.list_snapshots()
-        #newest,ctime = fssnaps[-1]
-        #if snapshot.name != newest and snapshot.get_used_size() == 0:
-        #    print snapshot.name + " is zero sized. Skipping"
-        #    snapshot.release(propname)
-        #    continue
 
         if fs.is_mounted() == True:
             # Get the mountpoint
@@ -157,26 +123,23 @@ def main(argv):
             # we can just catch up with it again later if it doesn't
             # get expired by time-sliderd
             util.debug("%s is not mounted. Skipping." \
-                       % (snapshot.fsname), verbose)
-            snapshot.release(propname)
-            continue
+                        % (snapshot.fsname), self.verbose)
+            snapshot.release(self.propName)
+            self.pendingList = remainingList
+            return True
 
-        rootDir = "%s/%s" % (rsyncDir, snapshot.fsname)
+        rootDir = "%s/%s" % (self.rsyncDir, snapshot.fsname)
         dirlist = []
         if not os.path.exists(rootDir):
             os.makedirs(rootDir, 0755)
             os.chdir(rootDir)
         else:
-            # FIXME - List the directory contents of rootDir
+            # List the directory contents of rootDir
+            # FIXME The list will be inspected later
             os.chdir(rootDir)
             dirlist = [d for d in os.listdir(rootDir) \
-                       if os.path.isdir(d) and
-                       not os.path.islink(d)]
-            print dirlist
-
-        for d in dirlist:
-            print os.path.getmtime(d)
-
+                        if os.path.isdir(d) and
+                        not os.path.islink(d)]
 
         # FIXME - check free space on rootDir
 
@@ -189,18 +152,27 @@ def main(argv):
             # but we need to check if it's dangling.
             if os.path.exists(linkFile):
                 latest = os.path.realpath(linkFile)
+            else:
+                # FIXME - create a link to the latest dir
+                # so we can avoid doing a full backup.
+                # Remove the dangling link
+                os.unlink(linkFile)
 
         destdir = "%s/%s" % (rootDir, snapshot.snaplabel)
 
         if latest:
-            cmd = ["/usr/bin/rsync", "-rlpogtD", "%s/." % (sourcedir), \
-                   "--link-dest=%s" % (latest), destdir]
+            cmd = ["/usr/bin/rsync", "-a", "%s/." % (sourcedir), \
+                    "--link-dest=%s" % (latest), destdir]
         else:
-            cmd = ["/usr/bin/rsync", "-rlpogtD", "%s/." % (sourcedir), \
-                   destdir]
-        
+            cmd = ["/usr/bin/rsync", "-a", "%s/." % (sourcedir), \
+                    destdir]
+
+        # Notify the applet of current status via dbus
+        self._bus.rsync_current(snapshot.name, len(remainingList))
+
         # Set umask temporarily so that rsync backups are read-only to
-        # the owner  - FIXME not working
+        # the owner by default. Rync will override this to match the
+        # permissions of each snapshot as appropriate.
         origmask = os.umask(0222)
         util.run_command(cmd)
         os.umask(origmask)
@@ -214,10 +186,21 @@ def main(argv):
         # Reset the mtime and atime properties of the backup directory so that
         # they match the snapshot creation time.
         os.utime(destdir, (long(ctime), long(ctime)))
-        snapshot.set_user_property(propname, "completed")
-        snapshot.release(propname)
+        snapshot.set_user_property(self.propName, "completed")
 
-def list_pending_snapshots(prop):
+        self.pendingList = remainingList
+        snapshot.release(self.propName)
+        if len(remainingList) >= 1:
+            return True
+        else:
+            self._bus.rsync_complete(self.rsyncDir)
+            self._bus.rsync_synced()
+            if self.mainLoop:
+                self.mainLoop.quit()
+            sys.exit(0)
+            return False
+
+def list_pending_snapshots(propName):
     """
     Lists all snaphots which have 'prop" set locally.
     Resulting list is returned in ascending sorted order
@@ -227,7 +210,11 @@ def list_pending_snapshots(prop):
     results = []
     snaplist = []
     sortsnaplist = []
-
+    # The process for backing up snapshots is:
+    # Identify all filesystem snapshots that have the (propName)
+    # property set to "pending" on them. Back them up starting
+    # with the oldest first.
+    #
     # Unfortunately, there's no single zfs command that can
     # output a locally set user property and a creation timestamp
     # in one go. So this is done in two passes. The first pass
@@ -235,9 +222,9 @@ def list_pending_snapshots(prop):
     # second pass uses the filtered results from the first pass
     # as arguments to zfs(1) to get creation times.
     cmd = [zfs.ZFSCMD, "get", "-H",
-           "-s", "local",
-           "-o", "name,value",
-           prop]
+            "-s", "local",
+            "-o", "name,value",
+            propName]
     outdata,errdata = util.run_command(cmd)
     for line in outdata.rstrip().split('\n'):
         line = line.split()
@@ -251,7 +238,7 @@ def list_pending_snapshots(prop):
             # Not a snapshot, and should not be set on a filesystem/volume
             # Ignore it.
             util.debug("Dataset: %s shouldn't have local property: %s" \
-                       % (name, propname), verbose)
+                        % (name, propName), verbose)
             continue
         snaplist.append(name)
 
@@ -260,8 +247,8 @@ def list_pending_snapshots(prop):
         return snaplist
 
     cmd = [zfs.ZFSCMD, "get", "-p", "-H",
-           "-o", "value,name",
-           "creation"]
+            "-o", "value,name",
+            "creation"]
     cmd.extend(snaplist)
 
     outdata,errdata = util.run_command(cmd)
@@ -269,48 +256,53 @@ def list_pending_snapshots(prop):
         insort(sortsnaplist, tuple(line.split()))
     return sortsnaplist
 
-def get_filesystem_capacity(path):
-    """Returns filesystem space usage of path as an integer percentage of
-       the entire capacity of path.
-    """
-    if not os.path.exists(path):
-        raise ValueError("%s is a non-existent path" % path)
-    f = os.statvfs(path)
 
-    unavailBlocks = f[statvfs.F_BLOCKS] - f[statvfs.F_BAVAIL]
-    capacity = int(math.ceil(100 * (unavailBlocks / float(f[statvfs.F_BLOCKS]))))
+def main(argv):
 
-    return capacity
+    # This process needs to be run as a system wide single instance
+    # only at any given time. So create a lockfile in /tmp and try
+    # to obtain an exclusive lock on it. If we can't then another 
+    # instance is running and already has a lock on it so just exit.
+    lockFile = os.path.normpath(tempfile.gettempdir() + '/' + \
+                                os.path.basename(sys.argv[0]) + '.lock')
+    lockFp = open(lockFile, 'w')
+    try:
+        fcntl.flock(lockFp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        print "Another instance is running"
+        sys.exit(0)
 
-def get_available_size(path):
-    """Returns the available space in bytes of path"""
-    if not os.path.exists(path):
-        raise ValueError("%s is a non-existent path" % path)
-    f = os.statvfs(path)
-    free = long(f[statvfs.F_BAVAIL] * f[statvfs.F_FRSIZE])
-    
-    return free
+    # The SMF fmri of the time-slider plugin instance associated with
+    # this command needs to be supplied as the argument immeditately
+    # proceeding the command. ie. argv[1]
+    try:
+        pluginFMRI = sys.argv[1]
+    except IndexError:
+        # No FMRI provided. Probably a user trying to invoke the command
+        # from the command line.
+        sys.stderr.write("No time-slider plugin SMF instance FMRI defined. " \
+                            "This plugin does not support command line "
+                            "execution. Exiting\n")
+        sys.exit(-1)
 
+    # FIXME - better to log using command name or the SMF FMRI?
+    syslog.openlog(pluginFMRI, 0, syslog.LOG_DAEMON)
 
-def get_used_size(path):
-    """Returns the used space in bytes of path"""
-    if not os.path.exists(path):
-        raise ValueError("%s is a non-existent path" % path)
-    f = os.statvfs(path)
+    gobject.threads_init()
+    # Tell dbus to use the gobject mainloop for async ops
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    dbus.mainloop.glib.threads_init()
+    # Register a bus name with the system dbus daemon
+    sysbus = dbus.SystemBus()
+    busName = dbus.service.BusName("org.opensolaris.TimeSlider.plugin.rsync", sysbus)
+    dbusObj = dbussvc.RsyncBackup(sysbus, \
+        "/org/opensolaris/TimeSlider/plugin/rsync")
 
-    unavailBlocks = f[statvfs.F_BLOCKS] - f[statvfs.F_BAVAIL]
-    used = long(unavailBlocks * f[statvfs.F_FRSIZE])
-
-    return used
-
-def get_total_size(path):
-    """Returns the total storage space in bytes of path"""
-    if not os.path.exists(path):
-        raise ValueError("%s is a non-existent path" % path)
-    f = os.statvfs(path)
-    total = long(f[statvfs.F_BLOCKS] * f[statvfs.F_FRSIZE])
-
-    return total
+    mainLoop = gobject.MainLoop()
+    backupQueue = BackupQueue(pluginFMRI, dbusObj, mainLoop)
+    gobject.idle_add(backupQueue.backup_snapshot)
+    mainLoop.run()
+    sys.exit(0)
 
 def log_error(loglevel, message):
     syslog.syslog(loglevel, message + '\n')
