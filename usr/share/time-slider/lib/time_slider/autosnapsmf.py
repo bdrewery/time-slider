@@ -27,6 +27,7 @@ import util
 factoryDefaultSchedules = ("monthly", "weekly", "daily", "hourly", "frequent")
 
 BASESVC= "svc:/system/filesystem/zfs/auto-snapshot"
+SNAPLABELPREFIX = "zfs-auto-snap"
 ZFSPROPGROUP = "zfs"
 
 

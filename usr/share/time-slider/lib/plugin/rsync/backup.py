@@ -31,9 +31,10 @@ import math
 import syslog
 import gobject
 import dbus
+import shutil
 from bisect import insort
 
-from time_slider import util, zfs, dbussvc
+from time_slider import util, zfs, dbussvc, autosnapsmf, timeslidersmf
 import rsyncsmf
 
 
@@ -56,18 +57,91 @@ class BackupQueue():
         # Determine the rsync backup dir. This is the target dir
         # defined by the SMF instance plus the .time-slider/rsync
         # suffiz
-        baseDir = self.smfInst.get_target_dir()
-        self.rsyncDir = os.path.join(baseDir, rsyncsmf.RSYNCDIRSUFFIX)
+        self.rsyncBaseDir = self.smfInst.get_target_dir()
+        self.rsyncDir = os.path.join(self.rsyncBaseDir,
+                                     rsyncsmf.RSYNCDIRSUFFIX)
+        tsSMF = timeslidersmf.TimeSliderSMF()
+        self._labelSeparator = tsSMF.get_separator()
+        del tsSMF
+
+
+    def _cleanup_rsync_target(self):
+
+        # Delete non archival type backups according to the same retention
+        # rules defined in:
+        # svc://system/filesystem/zfs/auto-snapshot:<schedule>
+        archived = self.smfInst.get_archived_schedules()
+        triggers = self.smfInst.get_trigger_list()
+        try:
+            triggers.index('all')
+            # Expand the wildcard value 'all' 
+            defScheds = [sched for sched,i,p,k in \
+                         autosnapsmf.get_default_schedules()]
+            customScheds = [sched for sched,i,p,k in \
+                            autosnapsmf.get_custom_schedules()]
+            triggers = defScheds[:]
+            triggers.extend(customScheds)
+        except ValueError:
+            pass
+        tempSchedules = [schedule for schedule in triggers if \
+                        schedule not in archived]
+
+        #FIXME write a function to do this and don't hardcode the zfs prop
+        filesystems = []
+        cmd = [zfs.ZFSCMD, "list", "-H", "-t", "filesystem", \
+                "-s", "name", \
+                "-o","name,org.opensolaris:time-slider-rsync"]
+        outdata,errdata = util.run_command(cmd)
+        for line in outdata.rstrip().split('\n'):
+            line = line.split()
+            if line[1] == "true":
+                filesystems.append(line[0])
+
+        for fsName in filesystems:   
+            fsRootDir = "%s/%s" % (self.rsyncDir, fsName)
+            dirList = []
+            if os.path.exists(fsRootDir):
+                os.chdir(fsRootDir)
+                # List the directory contents of fsRootDir
+                dirList = [d for d in os.listdir(fsRootDir) \
+                            if os.path.isdir(d) and
+                            not os.path.islink(d)]
+                for schedule in tempSchedules:
+                    label = "%s%s%s" % (autosnapsmf.SNAPLABELPREFIX,
+                                        self._labelSeparator,
+                                        schedule)
+                    schedBackups = [d for d in dirList if 
+                                    d.find(label) == 0]
+                    # The minimum that can be kept around is one:
+                    # keeping zero is stupid since it might trigger
+                    # a total replication rather than an incremental
+                    # rsync replication.
+                    if len(schedBackups) <= 1:
+                        continue
+                    smfInst = autosnapsmf.AutoSnap(schedule)
+                    s,i,p,keep = smfInst.get_schedule_details()
+                    if len(schedBackups) <= keep:
+                        continue
+                    #FIXME catch IOErrors
+                    sortedBackupList = []
+                    for backup in schedBackups:
+                        stInfo = os.stat(backup)
+                        # List is sorted by mtime, oldest first
+                        insort(sortedBackupList, [stInfo.st_mtime, backup])
+                        
+                    purgeList = sortedBackupList[0:-keep]
+                    for mtime,dirName in purgeList:
+                        # FIXME
+                        # Add assertions to ensure that an attempt is not
+                        # made to delete a system directory.
+                        util.debug("Deleting expired rsync backup: %s" \
+                                   % (dirName))
+                        shutil.rmtree(dirName)
 
     def backup_snapshot(self):
-        if len(self.pendingList) == 0:
-            self._bus.rsync_synced()
-            # Nothing to do exit
-            if self.mainLoop:
-                self.mainLoop.quit()
-            sys.exit(0)
 
-        # Check to see if the rsync destination directory is accessible.
+        # First, check to see if the rsync destination
+        # directory is accessible.
         try:
             statinfo = os.stat(self.rsyncDir)
         except OSError:
@@ -79,6 +153,11 @@ class BackupQueue():
                 self.mainLoop.quit()
             sys.exit(0)
 
+        # Before getting started. See what needs to be cleaned up on 
+        # the backup target.
+        if self.started == False:
+            self._cleanup_rsync_target()
+            
         # Check how much capacity is in use on the destination directory
         # FIXME - then do something useful with this data later
         capacity = util.get_filesystem_capacity(self.rsyncDir)
@@ -86,9 +165,16 @@ class BackupQueue():
         avail = util.get_available_size(self.rsyncDir)
         total = util.get_total_size(self.rsyncDir)
 
+        if len(self.pendingList) == 0:
+            self._bus.rsync_synced()
+            # Nothing to do exit
+            if self.mainLoop:
+                self.mainLoop.quit()
+            sys.exit(0)
+
         if self.started == False:
             self.started = True
-            self._bus.rsync_started(self.rsyncDir)
+            self._bus.rsync_started(self.rsyncBaseDir)
 
         ctime,snapname = self.pendingList[0]
         snapshot = zfs.Snapshot(snapname, long(ctime))
@@ -193,7 +279,7 @@ class BackupQueue():
         if len(remainingList) >= 1:
             return True
         else:
-            self._bus.rsync_complete(self.rsyncDir)
+            self._bus.rsync_complete(self.rsyncBaseDir)
             self._bus.rsync_synced()
             if self.mainLoop:
                 self.mainLoop.quit()

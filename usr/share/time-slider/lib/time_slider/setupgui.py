@@ -629,30 +629,29 @@ class EnableService(threading.Thread):
 
 def main(argv):
     rbacp = RBACprofile()
-    # The user security attributes checked are the following:
-    # 1. The "Primary Administrator" role
-    # 2. The "solaris.smf.manage.zfs-auto-snapshot" auth
-    # 3. The "Service Management" profile
-    # 4. The "ZFS Files System Management" profile.
-    #
-    # Valid combinations of the above are:
-    # - 1
-    # - 2 & 4
-    # - 3 & 4
-    # Note that an effective UID=0 will match any profile search so
-    # no need to check it explicitly.
-    if rbacp.has_profile("Primary Administrator") or \
-            rbacp.has_profile("ZFS File System Management") and \
-            (rbacp.has_auth("solaris.smf.manage.zfs-auto-snapshot") or \
-                rbacp.has_profile("Service Management")):
+    # The setup GUI needs to be run as root in order to ensure
+    # that the rsync backup target directory is accessible by
+    # root and to perform validation checks on it.
+    # This GUI can be launched with an euid of root in one of
+    # the following 3 ways;
+    # 0. Run by the superuser (root)
+    # 1. Run by a user assigned "Primary Administrator" profile.
+    # 3. Run via gksu to allow a non priviliged user to authenticate
+    #    as the superuser (root)
 
+    if os.geteuid() == 0:
         manager = SetupManager(argv)
         gtk.gdk.threads_enter()
         gtk.main()
         gtk.gdk.threads_leave()
+    elif rbacp.has_profile("Primary Administrator"):
+        # Run via pfexec, which will launch the GUI as superuser
+        os.execl("/usr/bin/pfexec", "pfexec", argv)
+        # Shouldn't reach this point
+        sys.exit(1)
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):
         # Run via gksu, which will prompt for the root password
-        os.execl("/usr/bin/gksu", "gksu", argv);
+        os.execl("/usr/bin/gksu", "gksu", argv)
         # Shouldn't reach this point
         sys.exit(1)
     else:
@@ -667,6 +666,5 @@ def main(argv):
                                        "administrative priviliges."
                                        "\n\nConsult your system administrator "))
         dialog.run()
-        print argv + "is not a valid executable path"
         sys.exit(1)
 

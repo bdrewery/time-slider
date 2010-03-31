@@ -53,8 +53,6 @@ _HOUR = _MINUTE * 60
 _DAY = _HOUR * 24
 _WEEK = _DAY * 7
 
-# Prepended to snapshots labels created by time-sliderd
-PREFIX = "zfs-auto-snap"
 
 # Status codes for actual zpool capacity levels.
 # These are relative to the SMF property defined
@@ -261,7 +259,8 @@ class SnapshotManager(threading.Thread):
         # We need to check for both the old and new format when looking for
         # snapshots.
         self._separator = self._smf.get_separator()
-        self._prefix = "zfs-auto-snap[:%s]" % self._separator 
+        self._prefix = "%s[:%s]" \
+            % (autosnapsmf.SNAPLABELPREFIX, self._separator)
 
         # Rebuild pool list
         self._zpools = []
@@ -456,7 +455,7 @@ class SnapshotManager(threading.Thread):
         # to time taken to complete snapshot.
         tm = long(time.time())
         label = "%s%s%s-%s" % \
-                (PREFIX, self._separator, schedule,
+                (autosnapsmf.SNAPLABELPREFIX, self._separator, schedule,
                  datetime.datetime.now().strftime("%Y-%m-%d-%H%M"))
         try:
             self._datasets.create_auto_snapshot_set(label, tag=schedule)

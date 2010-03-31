@@ -1,3 +1,29 @@
+2010-03-31 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py: Implement cleanup
+	  of expired backups on rsync target directory. Uses same rules as
+	  time-slider as defined by each auto-snapshot schedule's SMF instance
+	* usr/share/time-slider/lib/plugin/rsync/rsyncsmf.py: Add a method to
+	  return the list of archived schedules (ie. ones that don't get 
+	  cleaned according to the normal schedule retention rules)
+	* usr/share/time-slider/lib/time_slider/applet.py: add a 
+	  'Synchronize Now' menu item to the applet. Added gio based file
+	  monitoring to keep track of when the rsync backup target directory
+	  is mounted/unmounted and adjust menu sensitivty accordingly.
+	* usr/share/time-slider/lib/time_slider/autosnapsmf.py: Define 
+	  SNAPLABELPREFIX as a constant for snapshot label names
+	* usr/share/time-slider/lib/time_slider/setupgui.py: Modify RBAC
+	  rules to ensure that setup GUI is run with euid of root which is
+	  necessary for validation and initialisation of rsync backup target
+	  directory
+	* usr/share/time-slider/lib/time_slider/timesliderd.py: use 
+	  SNAPLABELPREFIX constant instead of local multiply defined values.
+	* var/svc/manifest/application/time-slider-plugin.xml: Override
+	  "plugin/trigger_on" value in rsync plugin manifest. Add a new
+	  property "rsync/archived_schedules" to define snapshot schedules
+	  that are archived as long as possible and not purged according
+	  to the normal schule retention rules.
+
 2010-03-25 Niall Power - <niall.power@sun.com>
 
 	* etc/dbus-1/system.d/time-slider.conf: add policies for

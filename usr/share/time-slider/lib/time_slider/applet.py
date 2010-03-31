@@ -21,13 +21,16 @@
 #
 
 import sys
+import os
 import subprocess
+import threading
 import gobject
 import dbus
 import dbus.decorators
 import dbus.glib
 import dbus.mainloop
 import dbus.mainloop.glib
+import gio
 import gtk
 import pygtk
 import pynotify
@@ -38,7 +41,7 @@ from os.path import abspath, dirname, join, pardir
 sys.path.insert(0, join(dirname(__file__), pardir, "plugin"))
 import plugin
 sys.path.insert(0, join(dirname(__file__), pardir, "plugin", "rsync"))
-import backup
+import backup, rsyncsmf
 
 class Note:
 
@@ -93,6 +96,10 @@ class RsyncNote(Note):
         dbus.bus.NameOwnerWatch(bus,
                                 "org.opensolaris.TimeSlider.plugin.rsync",
                                 self._watch_handler)
+
+        self.smfInst = rsyncsmf.RsyncSMF("%s:rsync" \
+                                         % (plugin.PLUGINBASEFMRI))
+        self._lock = threading.Lock()
         # Every time the rsync backup script runs it will
         # register with d-bus and trigger self._watch_handler().
         # Use this variable to keep track of it's running status.
@@ -101,8 +108,9 @@ class RsyncNote(Note):
         self._syncNowItem.set_sensitive(False)
         self._syncNowItem.connect("activate",
                                   self._sync_now)
-        self._syncNowItem.show()
         self._menu.append(self._syncNowItem)
+        self._setup_file_monitor()
+        self._syncNowItem.show()
         # Kick start things by initially obtaining the
         # backlog size and triggering a callback.
         # Signal handlers will keep tooltip status up
@@ -114,17 +122,59 @@ class RsyncNote(Note):
         if self.queueSize == 0:
             self._rsync_synced_handler()
         else:
-            self._rsync_unsynced_handler(self.queueSize)            
+            self._rsync_unsynced_handler(self.queueSize)
+
+    def _setup_file_monitor(self):
+        self._baseTargetDir = self.smfInst.get_target_dir()
+        self._targetDir = join(self._baseTargetDir, rsyncsmf.RSYNCDIRSUFFIX)
+        self._targetDirAvail = False
+
+        self._lock.acquire()
+        try:
+            os.stat(self._targetDir)
+            self._targetDirAvail = True
+        except OSError:
+            pass
+        self._lock.release()
+        
+        gFile = gio.File(path=self._baseTargetDir)
+        self._monitor = gFile.monitor_file(gio.FILE_MONITOR_WATCH_MOUNTS)
+        self._monitor.connect("changed", self._target_dir_changed)
+
+    def _target_dir_changed(self, filemonitor, file, other_file, event_type):
+
+        # It seems that FILE_MONITOR_EVENT_UNMOUNTED is unreliable
+        # and is generated when a non-priviliged user attempts to
+        # unmount a zfs file system. So check the status
+        # of the target dir using os.stat() to confirm.
+        if event_type == gio.FILE_MONITOR_EVENT_UNMOUNTED or \
+           event_type == gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
+            self._lock.acquire()
+            try:
+                os.stat(self._targetDir)
+                self._targetDirAvail = True
+            except OSError:
+                self._targetDirAvail = False
+            self._update_menu_state()
+            self._lock.release()
+
+    def _update_menu_state(self):
+        if self._targetDirAvail == True and \
+            self._scriptRunning == False:
+            self._syncNowItem.set_sensitive(True)
+        else:
+            self._syncNowItem.set_sensitive(False)
 
     def _watch_handler(self, new_owner = None):
+        self._lock.acquire()
         if new_owner == None or len(new_owner) == 0:
             # Script not running or exited
             self._scriptRunning = False
-            self._syncNowItem.set_sensitive(True)
         else:
             self._scriptRunning = True
-            self._syncNowItem.set_sensitive(False)
             self._connect_to_object()
+        self._update_menu_state()
+        self._lock.release()
 
     def _rsync_started_handler(self, target, sender=None, interface=None, path=None):
         urgency = pynotify.URGENCY_NORMAL
@@ -177,7 +227,7 @@ class RsyncNote(Note):
                     ("/org/opensolaris/TimeSlider/plugin/rsync")
             return
 
-        #Create an Interface wrapper for the remote object
+        # Create an Interface wrapper for the remote object
         iface = dbus.Interface(remote_object, "org.opensolaris.TimeSlider.plugin.rsync")
 
         iface.connect_to_signal("rsync_started", self._rsync_started_handler, sender_keyword='sender',
@@ -334,5 +384,4 @@ def main(argv):
 
 if __name__ == '__main__':
     main()
-
 
