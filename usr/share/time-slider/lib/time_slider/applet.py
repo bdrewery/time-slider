@@ -35,7 +35,7 @@ import gtk
 import pygtk
 import pynotify
 
-from time_slider import util
+from time_slider import util, rbac
 
 from os.path import abspath, dirname, join, pardir
 sys.path.insert(0, join(dirname(__file__), pardir, "plugin"))
@@ -57,9 +57,11 @@ class Note:
 
     def _activate_menu(self, icon, button, time):
         if button == 3:
-            self._menu.popup(None, None,
-                             gtk.status_icon_position_menu,
-                             button, time, icon)
+            # Don't popup an empty menu
+            if len(self._menu.get_children()) > 0:
+                self._menu.popup(None, None,
+                                 gtk.status_icon_position_menu,
+                                 button, time, icon)
 
     def _dialog_response(self, dialog, response):
         dialog.destroy()
@@ -104,13 +106,20 @@ class RsyncNote(Note):
         # register with d-bus and trigger self._watch_handler().
         # Use this variable to keep track of it's running status.
         self._scriptRunning = False
-        self._syncNowItem = gtk.MenuItem(_("Synchronise Now"))
-        self._syncNowItem.set_sensitive(False)
-        self._syncNowItem.connect("activate",
-                                  self._sync_now)
-        self._menu.append(self._syncNowItem)
+        # If the user is authorised, allow them to manually synchronise
+        # rsync backups.
+        self._syncNowItem = None
+        if os.geteuid() == 0 or \
+            rbac.RBACprofile().has_profile("Primary Administrator"):
+            self._syncNowItem = gtk.MenuItem(_("Synchronise Now"))
+            self._syncNowItem.set_sensitive(False)
+            self._syncNowItem.connect("activate",
+                                      self._sync_now)
+            self._menu.append(self._syncNowItem)
+            self._syncNowItem.show()
+
+
         self._setup_file_monitor()
-        self._syncNowItem.show()
         # Kick start things by initially obtaining the
         # backlog size and triggering a callback.
         # Signal handlers will keep tooltip status up
@@ -159,11 +168,12 @@ class RsyncNote(Note):
             self._lock.release()
 
     def _update_menu_state(self):
-        if self._targetDirAvail == True and \
-            self._scriptRunning == False:
-            self._syncNowItem.set_sensitive(True)
-        else:
-            self._syncNowItem.set_sensitive(False)
+        if self._syncNowItem:
+            if self._targetDirAvail == True and \
+                self._scriptRunning == False:
+                self._syncNowItem.set_sensitive(True)
+            else:
+                self._syncNowItem.set_sensitive(False)
 
     def _watch_handler(self, new_owner = None):
         self._lock.acquire()
@@ -242,10 +252,15 @@ class RsyncNote(Note):
                                 interface_keyword='interface', path_keyword='path')
 
     def _sync_now(self, menuItem):
-        # FIXME This is a placeholder. The actual proper implementation will need to
-        # do some privilige checking and should ideally check if the backup target
-        # is accessible before proceeding
-        cmd = ["/usr/bin/pfexec", "/usr/lib/time-slider/plugins/rsync/rsync-backup", \
+        """Runs the rsync-bacjup script manually
+           Assumes that user is either root or has the 
+           Primary Administrator profile since it is only
+           called from the menu item which is invisilbe to
+           not authorised users
+        """
+        cmdPath = os.path.join(os.path.dirname(sys.argv[0]), \
+                               "time-slider/plugins/rsync/rsync-backup")
+        cmd = ["/usr/bin/pfexec", cmdPath, \
                "%s:rsync" % (plugin.PLUGINBASEFMRI)]
         subprocess.Popen(cmd, close_fds=True, cwd="/")
 

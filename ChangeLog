@@ -1,5 +1,12 @@
 2010-03-31 Niall Power - <niall.power@sun.com>
 
+	* usr/share/time-slider/lib/time_slider/applet.py: Restrict manual
+	  synchronisation menu item to priviliged users only (root or
+	  users assigned Primary Administrator profile). Also, don't
+	  bother popping up a right click menu if it's empty.
+
+2010-03-31 Niall Power - <niall.power@sun.com>
+
 	* usr/share/time-slider/lib/plugin/rsync/backup.py: Implement cleanup
 	  of expired backups on rsync target directory. Uses same rules as
 	  time-slider as defined by each auto-snapshot schedule's SMF instance
