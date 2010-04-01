@@ -75,6 +75,7 @@ import zfs
 from timeslidersmf import TimeSliderSMF
 from rbac import RBACprofile
 
+
 class FilesystemIntention:
 
     def __init__(self, name, selected, inherited):
@@ -177,6 +178,7 @@ class SetupManager:
 
         rsyncChooser = self.xml.get_widget("rsyncchooser")
         rsyncChooser.set_current_folder(self.rsyncTargetDir)
+
         if state != "disabled":
             self.rsyncEnabled = True
             self.xml.get_widget("rsyncbutton").set_active(True)
@@ -335,7 +337,7 @@ class SetupManager:
                 # FIXME - perform the swathe of validation checks on the
                 # target directory for rsync here
                 rsyncChooser = self.xml.get_widget("rsyncchooser")
-                newTargetDir = rsyncChooser.get_filename()
+                newTargetDir = rsyncChooser.get_current_folder()
                 self.rsyncTargetDir = newTargetDir
 
                 # Get device ID of rsync target dir.
@@ -618,6 +620,9 @@ class EnableService(threading.Thread):
             self._setupManager.commit_filesystem_selection()
             self._setupManager.commit_rsync_selection()
             self._setupManager.set_cleanup_level()
+            rsyncSMF = self._setupManager.rsyncSMF
+            rsyncTargetDir = self._setupManager.rsyncTargetDir
+            rsyncSMF.set_target_dir(rsyncTargetDir)
             # First enable the auto-snapshot schedule instances
             # These are just transient SMF configuration so
             # shouldn't encounter any errors during enablement              

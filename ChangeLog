@@ -1,3 +1,14 @@
+2010-04-01 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/time_slider/applet.py: Improve string
+	  formatting on notifications and tooltips. Stop the status icon
+	  blinking once the notification has been closed.
+	* usr/share/time-slider/lib/time_slider/setupgui.py: Forgot to
+	  connect rsync folder selection to rsync SMF instance
+	  configuration. Added. Also use get_current_folder() instead of
+	  get_filename() to get correct folder from FileChooserButton
+	  widget.
+
 2010-03-31 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/applet.py: Restrict manual

@@ -68,6 +68,7 @@ class Note:
 
     def _notification_closed(self, notifcation):
         self._note = None
+        self._icon.set_blinking(False)
 
     def _show_notification(self):
         if self._icon.is_embedded() == True:
@@ -191,8 +192,8 @@ class RsyncNote(Note):
         if (self._note != None):
             self._note.close()
         self._note = pynotify.Notification(_("Backup Started"),
-                                           _("Backing up snapshots to: \'%s\'\n" \
-                                           "Please do not disconnect the backup device") \
+                                           _("Backing up snapshots to:\n<b>\'%s\'</b>\n" \
+                                           "Do not disconnect the backup device.") \
                                             % (target))
         self._note.connect("closed", \
                            self._notification_closed)
@@ -201,7 +202,8 @@ class RsyncNote(Note):
         gobject.idle_add(self._show_notification)
 
     def _rsync_current_handler(self, snapshot, remaining, sender=None, interface=None, path=None):
-        self._icon.set_tooltip_markup(_("Backing up: <b>\'%s\'\n%d</b> snapshots remaining.") \
+        self._icon.set_tooltip_markup(_("Backing up: <b>\'%s\'\n%d</b> snapshots remaining.\n" \
+                                      "Do not disconnect the backup device.") \
                                       % (snapshot, remaining))
 
     def _rsync_complete_handler(self, target, sender=None, interface=None, path=None):
@@ -209,7 +211,7 @@ class RsyncNote(Note):
         if (self._note != None):
             self._note.close()
         self._note = pynotify.Notification(_("Backup Complete"),
-                                           _("Your snapshots have been backed up to: \'%s\'") \
+                                           _("Your snapshots have been backed up to:\n<b>\'%s\'</b>") \
                                            % (target))
         self._note.connect("closed", \
                            self._notification_closed)
