@@ -1,5 +1,13 @@
 2010-04-01 Niall Power - <niall.power@sun.com>
 
+	* usr/share/time-slider/lib/time_slider/timesliderd.py: insert a
+	  'h' character between hour and minute values of auto snapshot
+	  labels as a subsitute for the previously removed ':' character
+	  used in time stamps. Makes life easier for nautilus component
+	  and plays nicely with strptime()
+
+2010-04-01 Niall Power - <niall.power@sun.com>
+
 	* usr/share/time-slider/lib/time_slider/applet.py: gio FileMonitor
 	  events are inconsistent between UFS/ZFS filesystem mounting.
 	  Ignore event type from gio FileMonitor and verify backup target

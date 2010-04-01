@@ -456,7 +456,7 @@ class SnapshotManager(threading.Thread):
         tm = long(time.time())
         label = "%s%s%s-%s" % \
                 (autosnapsmf.SNAPLABELPREFIX, self._separator, schedule,
-                 datetime.datetime.now().strftime("%Y-%m-%d-%H%M"))
+                 datetime.datetime.now().strftime("%Y-%m-%d-%Hh%M"))
         try:
             self._datasets.create_auto_snapshot_set(label, tag=schedule)
         except RuntimeError, message:
