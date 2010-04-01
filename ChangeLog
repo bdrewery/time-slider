@@ -1,5 +1,12 @@
 2010-04-01 Niall Power - <niall.power@sun.com>
 
+	* usr/share/time-slider/lib/time_slider/applet.py: gio FileMonitor
+	  events are inconsistent between UFS/ZFS filesystem mounting.
+	  Ignore event type from gio FileMonitor and verify backup target
+	  status manually using os.stat()
+
+2010-04-01 Niall Power - <niall.power@sun.com>
+
 	* usr/share/time-slider/lib/time_slider/applet.py: Improve string
 	  formatting on notifications and tooltips. Stop the status icon
 	  blinking once the notification has been closed.

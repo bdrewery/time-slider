@@ -157,16 +157,14 @@ class RsyncNote(Note):
         # and is generated when a non-priviliged user attempts to
         # unmount a zfs file system. So check the status
         # of the target dir using os.stat() to confirm.
-        if event_type == gio.FILE_MONITOR_EVENT_UNMOUNTED or \
-           event_type == gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
-            self._lock.acquire()
-            try:
-                os.stat(self._targetDir)
-                self._targetDirAvail = True
-            except OSError:
-                self._targetDirAvail = False
-            self._update_menu_state()
-            self._lock.release()
+        self._lock.acquire()
+        try:
+            os.stat(self._targetDir)
+            self._targetDirAvail = True
+        except OSError:
+            self._targetDirAvail = False
+        self._update_menu_state()
+        self._lock.release()
 
     def _update_menu_state(self):
         if self._syncNowItem:
