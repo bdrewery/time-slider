@@ -1,4 +1,8 @@
 2010-04-13 Niall Power - <niall.power@sun.com>
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Fix broken target directory retrieval from FileChooser button
+
+2010-04-13 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/plugin/rsync/backup.py: Create a
 	  RsyncBackup class to run rsync backup commands in a 

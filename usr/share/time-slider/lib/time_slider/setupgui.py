@@ -337,7 +337,7 @@ class SetupManager:
                 # FIXME - perform the swathe of validation checks on the
                 # target directory for rsync here
                 rsyncChooser = self.xml.get_widget("rsyncchooser")
-                newTargetDir = rsyncChooser.get_current_folder()
+                newTargetDir = rsyncChooser.get_file().get_path()
                 self.rsyncTargetDir = newTargetDir
 
                 # Get device ID of rsync target dir.
