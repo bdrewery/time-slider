@@ -136,7 +136,10 @@ class RsyncNote(Note):
 
     def _setup_file_monitor(self):
         self._baseTargetDir = self.smfInst.get_target_dir()
-        self._targetDir = join(self._baseTargetDir, rsyncsmf.RSYNCDIRSUFFIX)
+        sys,nodeName,rel,ver,arch = os.uname()
+        self._targetDir = join(self._baseTargetDir,
+                               rsyncsmf.RSYNCDIRPREFIX,
+                               nodeName)
         self._targetDirAvail = False
 
         self._lock.acquire()
@@ -146,7 +149,7 @@ class RsyncNote(Note):
         except OSError:
             pass
         self._lock.release()
-        
+
         gFile = gio.File(path=self._baseTargetDir)
         self._monitor = gFile.monitor_file(gio.FILE_MONITOR_WATCH_MOUNTS)
         self._monitor.connect("changed", self._target_dir_changed)

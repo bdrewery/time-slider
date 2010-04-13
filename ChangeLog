@@ -1,3 +1,33 @@
+2010-04-13 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py: Create a
+	  RsyncBackup class to run rsync backup commands in a 
+	  separate thread. Define Rsync exception clases and map
+	  to expected rsync exit codes.
+	  Modify toplevel backup path for backups to begin with:
+	  <SMF defined target dir>/TIMESLIDER/<nodename>/
+	  Deal with rsync exceptions raised and place into maintenance
+	  state if non recoverable.
+	  Try to recover space on target directory (work in progress)
+	  Add debugging and error logging output.
+
+	* usr/share/time-slider/lib/plugin/rsync/rsyncsmf.py: define
+	  backup RSYNCDIRPREFIX to "TIMESLIDER".
+
+	* usr/share/time-slider/lib/time_slider/applet.py:
+	  Use new backup path format as described above.
+
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Use new backup path format as described above.
+
+	* usr/share/time-slider/lib/time_slider/util.py:
+	  Add general purpose syslog wrapper function.
+
+	* var/svc/manifest/application/time-slider-plugin.xml:
+	  remove accidental definition of <plugin/target_dir>
+	  Set to empty string value "" instead of a directory on my
+	  own system. Doh.
+
 2010-04-01 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/timesliderd.py: insert a

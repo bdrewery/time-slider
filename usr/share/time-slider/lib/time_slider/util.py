@@ -60,6 +60,15 @@ def debug(message, verbose=False):
         syslog.syslog(syslog.LOG_NOTICE, message + '\n')
         sys.stderr.write(message + '\n')
 
+def log_error(loglevel, message):
+    """
+    Trivial syslog wrapper that also outputs to stderr
+    Requires caller to have first opened a syslog session
+    using syslog.openlog()
+    """
+    syslog.syslog(loglevel, message + '\n')
+    sys.stderr.write(message + '\n')
+
 def get_filesystem_capacity(path):
     """Returns filesystem space usage of path as an integer percentage of
        the entire capacity of path.
@@ -81,7 +90,6 @@ def get_available_size(path):
     free = long(f[statvfs.F_BAVAIL] * f[statvfs.F_FRSIZE])
     
     return free
-
 
 def get_used_size(path):
     """Returns the used space in bytes of path"""

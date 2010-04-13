@@ -198,7 +198,7 @@
 
 	<property_group name="rsync" type="application">
 		<propval name="target_dir"
-			type="astring" value="/rpool/rsyncdir" override="true"/>
+			type="astring" value="" override="true"/>
         <!-- Backups matching a schedule in this list will not be
              expired according to the standard auto-snapshot retention
              rules, and will instead be archived indefinitely on

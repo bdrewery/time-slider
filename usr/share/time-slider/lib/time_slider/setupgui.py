@@ -447,8 +447,11 @@ class SetupManager:
                 ratio = targetDirAvail/float(sumPoolSize)
 
                 # Create the subdirectory underneath the target directory
-                # selected by the user if necessary ".time-slider/rsync"
-                fullPath = os.path.join(newTargetDir, rsyncsmf.RSYNCDIRSUFFIX)
+                # selected by the user if necessary "TIMESLIDER/<nodename>"
+                sys,nodeName,rel,ver,arch = os.uname()
+                fullPath = os.path.join(newTargetDir,
+                                        rsyncsmf.RSYNCDIRPREFIX,
+                                        nodeName)
                 if not os.path.exists(fullPath):
                     os.makedirs(fullPath, 0755)
 
