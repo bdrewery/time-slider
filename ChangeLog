@@ -1,3 +1,12 @@
+2010-04-15 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py: Clean up 
+	  dangling holds on snapshots left by abnormally terminated
+	  rsync transfers from previous invocations. Also, release
+	  snapshot holds if an Rsync exception is caught during
+	  transfer. Allows time-sliderd to delete snapshots when they
+	  naturally expire.
+
 2010-04-13 Niall Power - <niall.power@sun.com>
 	* usr/share/time-slider/lib/time_slider/setupgui.py:
 	  Fix broken target directory retrieval from FileChooser button

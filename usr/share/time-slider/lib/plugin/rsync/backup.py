@@ -172,7 +172,8 @@ class RsyncBackup(threading.Thread):
         except OSError:
             util.debug("Backup directory is not " \
                        "currently accessible: %s" \
-                       % (self._backupDir))
+                       % (self._backupDir),
+                       self.verbose)
             #FIXME exit/exception needs to be raise here
             # or status needs to be set.
             return
@@ -182,7 +183,8 @@ class RsyncBackup(threading.Thread):
         except OSError:
             util.debug("Backup source directory is not " \
                        "currently accessible: %s" \
-                       % (self._sourceDir))
+                       % (self._sourceDir),
+                       self.verbose)
             #FIXME exit/excpetion needs to be raise here
             # or status needs to be set.
             return
@@ -204,10 +206,15 @@ class BackupQueue():
     def __init__(self, fmri, dbus, mainLoop=None):
         self.started = False
         self.pluginFMRI = fmri
-        self.propName = "%s:%s" % (propbasename, fmri.rsplit(':', 1)[1])
-        self._bus = dbus
         self.smfInst = rsyncsmf.RsyncSMF(self.pluginFMRI)
         self.verbose = self.smfInst.get_verbose()
+        self.propName = "%s:%s" % (propbasename, fmri.rsplit(':', 1)[1])
+        released = release_held_snapshots(self.propName)
+        for snapName in released:
+            util.debug("Released dangling userref on: " + snapName,
+                       self.verbose)
+        self._bus = dbus
+
         self.pendingList = list_pending_snapshots(self.propName)
         self.mainLoop = mainLoop
 
@@ -326,7 +333,6 @@ class BackupQueue():
                 dirs.remove ('.time-slider')
                 backupDirs.append(os.path.join(root, ".time-slider/rsync"))
         for dir in backupDirs:
-            print dir
             os.chdir(dir)
             dirList = [d for d in os.listdir(dir) \
                         if os.path.isdir(d) and
@@ -338,7 +344,6 @@ class BackupQueue():
         while util.get_filesystem_capacity(self.rsyncDir) > 90:
             mtime,dirName = backups[0]
             remaining = backups[1:]
-            print "Removing " + str(dirName)
             shutil.rmtree(dirName)
             backups = remaining
 
@@ -397,12 +402,7 @@ class BackupQueue():
 
         # Place a hold on the snapshot so it doesn't go anywhere
         # while rsync is trying to back it up.
-        # If a hold already exists, it's probably from a 
-        # botched previous attempt to rsync
-        try:
-            snapshot.holds().index(self.propName)
-        except ValueError:
-            snapshot.hold(self.propName)
+        snapshot.hold(self.propName)
 
         fs = zfs.Filesystem(snapshot.fsname)
         sourceDir = None
@@ -485,12 +485,14 @@ class BackupQueue():
         except (RsyncTransferInterruptedError,
                 RsyncTargetDisconnectedError,
                 RsyncSourceVanishedError) as e:
+            snapshot.release(self.propName)
             util.log_error(syslog.LOG_ERR, str(e))
             # These are recoverable, so exit for now and try again
             # later
             sys.exit(-1)
 
         except RsyncError as e:
+            snapshot.release(self.propName)
             util.log_error(syslog.LOG_ERR,
                            "Unexpected rsync error encountered: \n" + \
                            str(e))
@@ -529,6 +531,40 @@ class BackupQueue():
                 self.mainLoop.quit()
             sys.exit(0)
             return False
+
+def release_held_snapshots(propName):
+    """
+    Releases dangling user snapshot holds that could
+    have occured during abnormal termination of a
+    previous invocation of this command during a 
+    previous rsync transfer.
+    Returns a list of snapshots that had holds mathcing
+    propName released.
+    """ 
+    # First narrow the list down by finding snapshots
+    # with userref count > 0
+    heldList = []
+    released = []
+    cmd = [zfs.ZFSCMD, "list", "-H",
+           "-t", "snapshot",
+           "-o", "userrefs,name"]
+    outdata,errdata = util.run_command(cmd)
+    for line in outdata.rstrip().split('\n'):
+        holdCount,name = line.split()
+        if int(holdCount) > 0:
+            heldList.append(name)
+    # Now check to see if any of those holds
+    # match 'propName'
+    for snapName in heldList:
+        snapshot = zfs.Snapshot(snapName)
+        holds = snapshot.holds()
+        try:
+            holds.index(propName)
+            snapshot.release(propName)
+            released.append(snapName)
+        except ValueError:
+            pass
+    return released
 
 def list_pending_snapshots(propName):
     """
