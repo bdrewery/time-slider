@@ -1,3 +1,13 @@
+2010-04-16 Niall Power - <niall.power@sun.com>
+
+	* usr/share/time-slider/lib/time_slider/zfs.py: Fix bug in 
+	  method "create_auto_snapshot_set() where it would skip
+	  the entire pool if the root of the pool was tagged and 
+	  all datastets under the root inherited from it. Also,
+	  use sorted lists and binary searching to speed up the
+	  operation and avoid making repeated unnecessary calls
+	  to Dataset.list_children() (the data is already provided)
+
 2010-04-15 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/plugin/rsync/backup.py: Clean up 

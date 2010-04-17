@@ -23,7 +23,7 @@
 import subprocess
 import re
 import threading
-from bisect import insort
+from bisect import insort, bisect_left, bisect_right
 
 import util
 
@@ -68,13 +68,15 @@ class Datasets(Exception):
             override the wildcard property: "com.sun:auto-snapshot"
             Default value = None
         """
-        excluded = []
+        everything = []
         included = []
+        excluded = []
         single = []
         recursive = []
-        #Get auto-snap property in two passes. First with the global
-        #value, then overriding with the label/schedule specific value
+        finalrecursive = []
 
+        # Get auto-snap property in two passes. First with the schedule
+        # specific tag override value, then with the general property value
         cmd = [ZFSCMD, "list", "-H", "-t", "filesystem,volume",
                "-o", "name,com.sun:auto-snapshot", "-s", "name"]
         if tag:
@@ -84,61 +86,68 @@ class Datasets(Exception):
             outdata,errdata = util.run_command(scmd)
             for line in outdata.rstrip().split('\n'):
                 line = line.split()
-                #Skip over unset values
+                # Skip over unset values. 
                 if line[1] == "-":
                     continue
-                elif line[1] == "true":
+                # Add to everything list. This is used later
+                # for identifying parents/children of a given
+                # filesystem or volume.
+                everything.append(line[0])
+                if line[1] == "true":
                     included.append(line[0])
                 elif line[1] == "false":
                     excluded.append(line[0])
+        # Now use the general property. If no value
+        # was set in the first pass, we set it here.
         outdata,errdata = util.run_command(cmd)
         for line in outdata.rstrip().split('\n'):
             line = line.split()
-            #Only set values that aren't already set. Don't override
-            try:
-                included.index(line[0])
-                continue
-            except ValueError:
-                try:
-                    excluded.index(line[0])
+            idx = bisect_right(everything, line[0])
+            if len(everything) == 0 or \
+               everything[idx-1] != line[0]:           
+                # Dataset is neither included nor excluded so far
+                if line[1] == "-":
                     continue
-                except ValueError:
-                    #Dataset is not listed in either list.
-                    if line[1] == "-":
-                        continue
-                    elif line[1] == "true":
-                        included.append(line[0])
-                    elif line[1] == "false":
-                        excluded.append(line[0])
+                everything.insert(idx, line[0])
+                if line[1] == "true":
+                    included.insert(0, line[0])
+                elif line[1] == "false":
+                    excluded.append(line[0])
 
-        #Now figure out what can be recursively snapshotted and what
-        #must be singly snapshotted. Single snapshots restrictions apply
-        #to those datasets who have a child in the excluded list.
+        # Now figure out what can be recursively snapshotted and what
+        # must be singly snapshotted. Single snapshot restrictions apply
+        # to those datasets who have a child in the excluded list.
+        # 'included' is sorted in reverse alphabetical order. 
         for datasetname in included:
             excludedchild = False
-            dataset = ReadWritableDataset(datasetname)
-            children = dataset.list_children()
+            idx = bisect_right(everything, datasetname)
+            children = [name for name in everything[idx:] if \
+                        name.find(datasetname) == 0]
             for child in children:
-                try:
-                    excluded.index(child)
+                idx = bisect_left(excluded, child)
+                if excluded[idx] == child:
                     excludedchild = True
                     single.append(datasetname)
                     break
-                except ValueError:
-                    pass
-
             if excludedchild == False:
-                recursive.append(datasetname)
-         
-        finalrecursive = []
+                # We want recursive list sorted in alphabetical order
+                # so insert instead of append to the list.
+                recursive.insert(0, datasetname)
+
         for datasetname in recursive:
             parts = datasetname.rsplit('/', 1)
             parent = parts[0]
             if parent == datasetname:
-                #toplevel node. Skip
+                # Root filesystem of the Zpool, so
+                # this can't be inherited and must be
+                # set locally.
+                finalrecursive.append(datasetname)
                 continue
-            if parent in recursive:
-               continue
+            idx = bisect_right(recursive, parent)
+            if len(recursive) > 0 and \
+               recursive[idx-1] == parent:
+                # Parent already marked for recursive snapshot: so skip
+                continue
             else:
                 finalrecursive.append(datasetname)
 
