@@ -314,14 +314,19 @@ class BackupQueue():
                                        % (dirName), self.verbose)
                             shutil.rmtree(dirName)
                             # Log file needs to be deleted too.
-                            logFile = os.path.join(dirName, os.path.pardir,
-                                                ".partial",
+                            logFile = os.path.join(".partial",
                                                 dirName + ".log")
                             try:
                                 os.stat(logFile)
+                                util.debug("Deleting rsync log file: %s" \
+                                           % (os.path.abspath(logFile)),
+                                           self.verbose)
                                 os.unlink(logFile)
                             except OSError:
-                                pass
+                                util.debug("Expected rsync log file not " \
+                                           "found: %s"\
+                                           % (os.path.abspath(logFile)),
+                                           self.verbose)
                                                        
                         except ValueError:
                             util.log_error(syslog.LOG_ALERT,
@@ -357,7 +362,25 @@ class BackupQueue():
         while util.get_filesystem_capacity(self.rsyncDir) > 90:
             mtime,dirName = backups[0]
             remaining = backups[1:]
+            util.debug("Deleting rsync backup: %s" \
+                       % (dirName), self.verbose)
             shutil.rmtree(dirName)
+            # Remove log file too
+            head,tail = os.path.split(dirName)
+            logFile = os.path.join(head,
+                                   ".partial",
+                                   tail + ".log")
+            try:
+                os.stat(logFile)
+                util.debug("Deleting rsync log file: %s" \
+                            % (os.path.abspath(logFile)),
+                            self.verbose)
+                os.unlink(logFile)
+            except OSError:
+                util.debug("Expected rsync log file not " \
+                            "found: %s"\
+                            % (os.path.abspath(logFile)),
+                            self.verbose)    
             backups = remaining
 
     def backup_snapshot(self):
@@ -518,6 +541,9 @@ class BackupQueue():
             util.log_error(syslog.LOG_ERR,
                            "Unexpected rsync error encountered: \n" + \
                            str(e))
+            util.log_error(syslog.LOG_ERR,
+                           "Rsync log file location: %s" \
+                           % (os.path.abspath(logFile)))
             util.log_error(syslog.LOG_ERR,
                            "Placing plugin into maintenance mode")
             self.smfInst.mark_maintenance()

@@ -1,6 +1,11 @@
 2010-04-27 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Remember to also delete log files when deleting backups.
+
+2010-04-27 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
 	  Exit if effective UID of process is not 0 (root)
 
 2010-04-27 Niall Power - <niall.power@oracle.com>
