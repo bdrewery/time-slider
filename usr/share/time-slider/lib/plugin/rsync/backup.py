@@ -648,7 +648,14 @@ def list_pending_snapshots(propName):
 
 
 def main(argv):
-    # FIXME  RBAC checking!
+    # This command needs to be executed by the super user (root) to
+    # ensure that rsync has permissions to access all local filesystem
+    # snapshots and to replicate permissions and ownership on the target
+    # device
+    if os.geteuid() != 0:
+        head,tail = os.path.split(sys.argv[0])
+        sys.stderr.write(tail + " can only be executed by root")
+        sys.exit(-1)
 
     # This process needs to be run as a system wide single instance
     # only at any given time. So create a lockfile in /tmp and try
@@ -664,8 +671,8 @@ def main(argv):
     try:
         fcntl.flock(lockFp, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
-        print "Another instance is already running"
-        sys.exit(0)
+        sys.stderr.write("Another instance is already running")
+        sys.exit(1)
 
     # The SMF fmri of the time-slider plugin instance associated with
     # this command needs to be supplied as the argument immeditately

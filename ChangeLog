@@ -1,6 +1,11 @@
 2010-04-27 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Exit if effective UID of process is not 0 (root)
+
+2010-04-27 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
 	  Send rsync loggint to individual log files on the backup
 	  device. Delete log files when corresponding backup gets
 	  deleted.
