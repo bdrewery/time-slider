@@ -22,11 +22,13 @@
 
 import subprocess
 import threading
+#from string import letters, digits
 from plugin import pluginsmf
 
 RSYNCPROPGROUP = "rsync"
 RSYNCDIRPREFIX = "TIMESLIDER"
 RSYNCDIRSUFFIX = ".time-slider/rsync"
+RSYNCCONFIGFILE = ".rsync-config"
 RSYNCFSTAG = "org.opensolaris:time-slider-rsync"
 
 class RsyncSMF(pluginsmf.PluginSMF):
@@ -36,10 +38,18 @@ class RsyncSMF(pluginsmf.PluginSMF):
         self._archivedSchedules = None
 
     def get_target_dir(self):
-        return self.get_prop(RSYNCPROPGROUP, "target_dir").strip()
+        result = self.get_prop(RSYNCPROPGROUP, "target_dir").strip()
+        # Strip out '\' characters inserted by svcprop
+        return result.strip().replace('\\', '')
+
+    def get_target_key(self):
+        return self.get_prop(RSYNCPROPGROUP, "target_key").strip()
 
     def set_target_dir(self, path):
-        self.set_prop(RSYNCPROPGROUP, "target_dir", "astring", path) 
+        self.set_string_prop(RSYNCPROPGROUP, "target_dir", path)
+
+    def set_target_key(self, key):
+        self.set_string_prop(RSYNCPROPGROUP, "target_key", key)
 
     def get_archived_schedules(self):
         #FIXME Use mutex locking to make MT-safe

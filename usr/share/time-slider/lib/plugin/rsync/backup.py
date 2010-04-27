@@ -101,7 +101,7 @@ class RsyncSourceVanishedError(RsyncError):
 class RsyncBackup(threading.Thread):
 
 
-    def __init__(self, source, target, latest=None, verbose=False):
+    def __init__(self, source, target, latest=None, verbose=False, logfile=None):
 
         self._sourceDir = source
         self._backupDir = target
@@ -109,15 +109,15 @@ class RsyncBackup(threading.Thread):
         self.verbose = verbose
         self._proc = None
         self._forkError = None
+        self._logFile = logfile
         # Init done. Now initiaslise threading.
         threading.Thread.__init__ (self)
 
     def run(self):
         try:
             self._proc = subprocess.Popen(self._cmd,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.PIPE,
-                                            close_fds=True)
+                                          stderr=subprocess.PIPE,
+                                          close_fds=True)
         except OSError as e:
             # _check_exit_code() will pick up this and raise an
             # exception in the original thread.
@@ -190,14 +190,18 @@ class RsyncBackup(threading.Thread):
             return
 
         if self._latest:
-            self._cmd = ["/usr/bin/rsync", "-a", "--progress",\
+            self._cmd = ["/usr/bin/rsync", "-a", "--inplace", "--progress",\
                    "%s/." % (self._sourceDir), \
                    "--link-dest=%s" % (self._latest), \
                    self._backupDir]
         else:
-            self._cmd = ["/usr/bin/rsync", "-a", "--progress",\
+            self._cmd = ["/usr/bin/rsync", "-a", "--inplace", "--progress",\
                    "%s/." % (self._sourceDir), \
                    self._backupDir]
+
+        if self._logFile:
+            self._cmd.insert(1, "--log-file=%s" % (self._logFile))
+
         self.start()
 
 
@@ -298,7 +302,6 @@ class BackupQueue():
                         stInfo = os.stat(backup)
                         # List is sorted by mtime, oldest first
                         insort(sortedBackupList, [stInfo.st_mtime, backup])
-                        
                     purgeList = sortedBackupList[0:-keep]
                     for mtime,dirName in purgeList:
                         # Perform a final sanity check to make sure a backup
@@ -310,6 +313,16 @@ class BackupQueue():
                             util.debug("Deleting expired rsync backup: %s" \
                                        % (dirName), self.verbose)
                             shutil.rmtree(dirName)
+                            # Log file needs to be deleted too.
+                            logFile = os.path.join(dirName, os.path.pardir,
+                                                ".partial",
+                                                dirName + ".log")
+                            try:
+                                os.stat(logFile)
+                                os.unlink(logFile)
+                            except OSError:
+                                pass
+                                                       
                         except ValueError:
                             util.log_error(syslog.LOG_ALERT,
                                            "Invalid attempt to delete " \
@@ -330,8 +343,8 @@ class BackupQueue():
         os.chdir(self.rsyncDir)
         for root, dirs, files in os.walk(self.rsyncDir):
             if '.time-slider' in dirs:
-                dirs.remove ('.time-slider')
-                backupDirs.append(os.path.join(root, ".time-slider/rsync"))
+                dirs.remove('.time-slider')
+                backupDirs.append(os.path.join(root, rsyncsmf.RSYNCDIRSUFFIX))
         for dir in backupDirs:
             os.chdir(dir)
             dirList = [d for d in os.listdir(dir) \
@@ -428,13 +441,21 @@ class BackupQueue():
         targetDir = os.path.join(self.rsyncDir,
                                  snapshot.fsname,
                                  rsyncsmf.RSYNCDIRSUFFIX)
+        # partialDir is a subdirectory in the targetDir where
+        # snapshots are initially backed up to. Upon successful
+        # completion they are moved to the backupDir
+        partialDir = os.path.join(targetDir, ".partial", snapshot.snaplabel)
+        logFile = os.path.join(targetDir,
+                               ".partial",
+                               snapshot.snaplabel + ".log")
+        
         # backupDir is the full directory path where the new
         # backup will be located ie <targetDir>/<snapshot label>
         backupDir = os.path.join(targetDir, snapshot.snaplabel)
 
         dirlist = []
-        if not os.path.exists(backupDir):
-            os.makedirs(backupDir, 0755)
+        if not os.path.exists(partialDir):
+            os.makedirs(partialDir, 0755)
             os.chdir(targetDir)
         else:
             # List the directory contents of targetDir
@@ -443,6 +464,7 @@ class BackupQueue():
             os.chdir(targetDir)
             dirlist = [d for d in os.listdir(targetDir) \
                         if os.path.isdir(d) and
+                        d != ".partial" and
                         not os.path.islink(d)]
 
         # FIXME - check free space on targetDir
@@ -462,7 +484,7 @@ class BackupQueue():
                 # Remove the dangling link
                 os.unlink(linkFile)
 
-        self.rsyncBackup = RsyncBackup(sourceDir, backupDir, latest)
+        self.rsyncBackup = RsyncBackup(sourceDir, partialDir, latest, logfile=logFile)
 
         # Notify the applet of current status via dbus
         self._bus.rsync_current(snapshot.name, len(remainingList))
@@ -472,7 +494,7 @@ class BackupQueue():
         # permissions of each snapshot as appropriate.
         origmask = os.umask(0222)
         util.debug("Starting rsync backup of '%s' to: %s" \
-                   % (sourceDir, backupDir),
+                   % (sourceDir, partialDir),
                    self.verbose)
 
         self.rsyncBackup.start_backup()
@@ -503,16 +525,17 @@ class BackupQueue():
 
         util.debug("Rsync process exited", self.verbose)
         os.umask(origmask)
-        util.debug("Rsync stdout:\n"
-                   "--------BEGIN RSYNC STDOUT--------\n" + \
-                   self.rsyncBackup.stdout + \
-                   "\n---------END RSYNC STDOUT---------",
-                   self.verbose)
+
+        # Move the completed backup from the partial dir to the
+        # the propert backup directory 
+        util.debug("Renaming completed backup from %s to %s" \
+                   % (partialDir, backupDir), self.verbose)
+        os.rename(partialDir, backupDir)
 
         # Create a symlink pointing to the latest backup. Remove
         # the old one first.
         if latest:
-            os.unlink(linkFile)            
+            os.unlink(linkFile)         
         os.symlink(snapshot.snaplabel, linkFile)
 
         # Reset the mtime and atime properties of the backup directory so that

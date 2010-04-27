@@ -1,3 +1,50 @@
+2010-04-27 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Send rsync loggint to individual log files on the backup
+	  device. Delete log files when corresponding backup gets
+	  deleted.
+	  Create rsync backups in a temporary directory first and
+	  move to permanent location when completed. Prevents 
+	  incomplete backups appearing in backup view in Nautilus.
+	  Also use "--inplace" rsync option to allow resumption of
+	  partial (interrupted) backups.
+
+	* usr/share/time-slider/lib/plugin/rsync/rsyncsmf.py:
+	  Add shared key get/set methods for rsync SMF instance.
+	  Use new "set_string_prop" Smf class method for setting
+	  rsync target directory so that path names containing 
+	  spaces can be correctly set. Conversely, strip out '\ '
+	  space formatting characters returned by SMF in 
+	  get_target_dir() method.
+
+	* usr/share/time-slider/lib/plugin/rsync/trigger.py:
+	  Don't tag new snapshots whose filesystems are not mounted
+	  Prevents piling up of snapshots from unmounted BEs. Might
+	  be best to make this behaviour configurable via SMF.
+
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Clean up OK button clicked callback by farming out several
+	  validation checks to separate methods. Add rsync config
+	  checking method to chek configuration/selection of rsync
+	  target device. Implement shared key checking to validate/
+	  identify pre-configured backup devices. Rejects devices
+	  configured for use on other systems. Add checks to ensure
+	  target device is writable by root and supports hard links
+	  as required for rsync incremental backups. Add a random
+	  key generation function. Perform basic space checking on
+	  rsync target device to see if it's big enough.
+
+	* usr/share/time-slider/lib/time_slider/smf.py:
+	  Implement set_string_prop() method that allows white space
+	  string characters.
+
+	* var/svc/manifest/application/time-slider-plugin.xml:
+	  Remove rsync plugin's property override of
+	  <plugin/trigger_on> and inherit defaults instead. Backing
+	  up frequent snapshots caused near constant backup disk
+	  churn.
+
 2010-04-16 Niall Power - <niall.power@sun.com>
 
 	* usr/share/time-slider/lib/time_slider/zfs.py: Fix bug in 

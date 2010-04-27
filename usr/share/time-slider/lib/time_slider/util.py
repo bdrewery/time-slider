@@ -83,7 +83,7 @@ def get_filesystem_capacity(path):
     return capacity
 
 def get_available_size(path):
-    """Returns the available space in bytes of path"""
+    """Returns the available space in bytes under path"""
     if not os.path.exists(path):
         raise ValueError("%s is a non-existent path" % path)
     f = os.statvfs(path)
@@ -92,7 +92,8 @@ def get_available_size(path):
     return free
 
 def get_used_size(path):
-    """Returns the used space in bytes of path"""
+    """Returns the used space in bytes of fileystem associated
+       with path"""
     if not os.path.exists(path):
         raise ValueError("%s is a non-existent path" % path)
     f = os.statvfs(path)
@@ -103,7 +104,8 @@ def get_used_size(path):
     return used
 
 def get_total_size(path):
-    """Returns the total storage space in bytes of path"""
+    """Returns the total storage space in bytes of fileystem
+       associated with path"""
     if not os.path.exists(path):
         raise ValueError("%s is a non-existent path" % path)
     f = os.statvfs(path)

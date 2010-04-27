@@ -101,6 +101,13 @@ class SMFInstance(Exception):
         util.run_command(cmd)
         self.refresh_service()
 
+    def set_string_prop(self, propgroup, propname, value):
+        cmd = [PFCMD, SVCCFGCMD, "-s", self.instanceName, "setprop", \
+               propgroup + '/' + propname, "=", "astring:",
+               "\"%s\"" % (value)]
+        util.run_command(cmd)
+        self.refresh_service()
+
     def set_boolean_prop(self, propgroup, propname, value):
         if value == True:
             strval = "true"

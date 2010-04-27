@@ -119,8 +119,12 @@ def main(argv):
         snapshot = zfs.Snapshot(snap)
         fs = zfs.Filesystem(snapshot.fsname)
         if fs.get_user_property(rsyncsmf.RSYNCFSTAG) == "true":
-            snapshot.set_user_property(propname, "pending")
-            util.debug("Marking %s as pending rsync" % (snap), verbose)
+            if fs.is_mounted() == True:
+                snapshot.set_user_property(propname, "pending")
+                util.debug("Marking %s as pending rsync" % (snap), verbose)
+            else:
+                util.debug("Ignoring snapshot of unmounted fileystem: %s" \
+                           % (snap), verbose)
 
 def maintenance(svcfmri):
     log_error(syslog.LOG_ERR,

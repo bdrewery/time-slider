@@ -192,13 +192,13 @@
 	<property_group name="plugin" type="application">
 		<propval name="trigger_command"
 			type="astring" value="/usr/lib/time-slider/plugins/rsync/rsync-trigger" override="true"/>
-		<propval name="trigger_on" type="astring"
-			value="all" override="true"/>
 	</property_group>
 
 	<property_group name="rsync" type="application">
 		<propval name="target_dir"
 			type="astring" value="" override="true"/>
+		<propval name="target_key"
+			type="astring" value='' override="true"/>
         <!-- Backups matching a schedule in this list will not be
              expired according to the standard auto-snapshot retention
              rules, and will instead be archived indefinitely on
