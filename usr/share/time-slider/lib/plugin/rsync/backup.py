@@ -335,7 +335,71 @@ class BackupQueue():
                                            "Placing plugin into " \
                                            "maintenance state" % (dirName))
                             self.smfInst.mark_maintenance()
-                            sys.exit(-1)  
+                            sys.exit(-1)
+
+    def _remove_dead_backups(self):
+        """
+           Identifies and removes partially completed backups whose origin
+           snapshot is no longer in the pending queue, indicating that the
+           backup will never get completed, in which case it's just a waste
+           of space
+        """
+        backupDirs = []
+        partialDirs = []
+        deadBackups = []
+        os.chdir(self.rsyncDir)
+        for root, dirs, files in os.walk(self.rsyncDir):
+            if '.time-slider' in dirs:
+                dirs.remove ('.time-slider')
+                partialDir = os.path.join(root,
+                                          rsyncsmf.RSYNCDIRSUFFIX,
+                                          ".partial")
+                partialDirs.append(partialDir)
+        for dirName in partialDirs:
+            if not os.path.exists(partialDir):
+                continue
+            os.chdir(dirName)
+            partials = [d for d in os.listdir(dirName) \
+                        if os.path.isdir(d)]
+            if len(partials) == 0:
+                continue
+            suffix = os.path.join(rsyncsmf.RSYNCDIRSUFFIX,
+                                  ".partial")
+            prefix = self.rsyncDir
+            # Reconstruct the origin ZFS filesystem name
+            baseName = dirName.replace(prefix, '', 1).lstrip('/')
+            fsName = baseName.replace(suffix, '', 1).rstrip('/')
+            for snapshotLabel in partials:
+                pending = False
+                # Reconstruct the origin snapshot name and see
+                # if it's still pending rsync backup. If it is
+                # then leave it alone since it can be used to
+                # resume a partial backup later. Otherwise it's
+                # never going to be backed up and needs to be
+                # manually deleted.
+                snapshotName = "%s@%s" % (fsName, snapshotLabel)
+                for ctime,name in self.pendingList:
+                    if name == snapshotName:
+                        pending = True
+                        continue
+                if pending == False:
+                    util.debug("Deleting zombied partial backup: %s" \
+                               % (os.path.abspath(snapshotLabel)),
+                               self.verbose)
+                    shutil.rmtree(snapshotLabel)
+                    # Don't forget the log file too.
+                    logFile = snapshotLabel + ".log"
+                    try:
+                        os.stat(logFile)
+                        util.debug("Deleting zombie log file: %s" \
+                                   % (os.path.abspath(logFile)),
+                                   self.verbose)
+                        os.unlink(logFile)
+                    except OSError:
+                        util.debug("Expected rsync log file not " \
+                                   "found: %s"\
+                                   % (os.path.abspath(logFile)),
+                                   self.verbose)
 
     def _recover_space(self):
         backupDirs = []
@@ -350,9 +414,9 @@ class BackupQueue():
             if '.time-slider' in dirs:
                 dirs.remove('.time-slider')
                 backupDirs.append(os.path.join(root, rsyncsmf.RSYNCDIRSUFFIX))
-        for dir in backupDirs:
-            os.chdir(dir)
-            dirList = [d for d in os.listdir(dir) \
+        for dirName in backupDirs:
+            os.chdir(dirName)
+            dirList = [d for d in os.listdir(dirName) \
                         if os.path.isdir(d) and
                         not os.path.islink(d)]
             for d in dirList:
@@ -403,6 +467,7 @@ class BackupQueue():
         # the backup target.
         if self.started == False:
             self._cleanup_rsync_target()
+            self._remove_dead_backups()
             
         # Check how much capacity is in use on the destination directory
         # FIXME - then do something useful with this data later
@@ -530,6 +595,7 @@ class BackupQueue():
         except (RsyncTransferInterruptedError,
                 RsyncTargetDisconnectedError,
                 RsyncSourceVanishedError) as e:
+            os.chdir("/")
             snapshot.release(self.propName)
             util.log_error(syslog.LOG_ERR, str(e))
             # These are recoverable, so exit for now and try again
@@ -537,7 +603,9 @@ class BackupQueue():
             sys.exit(-1)
 
         except RsyncError as e:
-            snapshot.release(self.propName)
+            # If the backup device went offline we need to chdir
+            # out of it or running further commands might fail.
+            os.chdir("/")
             util.log_error(syslog.LOG_ERR,
                            "Unexpected rsync error encountered: \n" + \
                            str(e))
@@ -547,6 +615,7 @@ class BackupQueue():
             util.log_error(syslog.LOG_ERR,
                            "Placing plugin into maintenance mode")
             self.smfInst.mark_maintenance()
+            snapshot.release(self.propName)
             sys.exit(-1)
 
         util.debug("Rsync process exited", self.verbose)
@@ -617,8 +686,8 @@ def release_held_snapshots(propName):
 
 def list_pending_snapshots(propName):
     """
-    Lists all snaphots which have 'prop" set locally.
-    Resulting list is returned in ascending sorted order
+    Lists all snaphots which have 'propName" set locally.
+    Resulting list is returned sorted in ascending order
     of creation time. Each element in the returned list
     is tuple of the form: [creationtime, snapshotname]
     """

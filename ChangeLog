@@ -1,3 +1,15 @@
+2010-04-28 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Add removal of partial backups missing a  matching 
+	  snapshot in the backup queue. They are zombies.
+	  When catching an rsync exception, change directory
+	  to "/" so that pfexec doesn't freak out when trying
+	  to release the snapshot. pfexec bails out when it
+	  tries to add cwd to it's path if cwd is non-existent 
+	  which can be the case if the backup device suddenly
+	  goes offline.
+
 2010-04-27 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/plugin/rsync/backup.py:
