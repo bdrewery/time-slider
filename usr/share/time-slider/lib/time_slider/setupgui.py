@@ -31,7 +31,6 @@ from autosnapsmf import enable_default_schedules, disable_default_schedules
 from os.path import abspath, dirname, join, pardir
 sys.path.insert(0, join(dirname(__file__), pardir, "plugin"))
 import plugin
-from os.path import abspath, dirname, join, pardir
 sys.path.insert(0, join(dirname(__file__), pardir, "plugin", "rsync"))
 import rsyncsmf
 
@@ -87,6 +86,25 @@ class FilesystemIntention:
         self.selected = selected
         self.inherited = inherited
 
+    def __str__(self):
+        return_string = "Filesystem name: " + self.name + \
+                "\n\tSelected: " + str(self.selected) + \
+                "\n\tInherited: " + str(self.inherited)
+        return return_string
+
+    def __eq__(self, other):
+        if self.name != other.name:
+            return False
+        if self.inherited and other.inherited:
+            return True
+        elif not self.inherited and other.inherited:
+            return False
+        if (self.selected == other.selected) and \
+           (self.inherited == other.inherited):
+            return True
+        else:
+            return False
+
 class SetupManager:
 
     def __init__(self, execpath):
@@ -94,6 +112,32 @@ class SetupManager:
         self.__datasets = zfs.Datasets()
         self.xml = gtk.glade.XML("%s/../../glade/time-slider-setup.glade" \
                                   % (os.path.dirname(__file__)))
+
+        # These variables record the initial UI state which are used
+        # later to compare against the UI state when the OK or Cancel
+        # button is clicked and apply the minimum set of necessary 
+        # configuration changes. Prevents minor changes taking ages
+        # to be applied by the GUI.
+        self._initialEnabledState = None
+        self._initialRsyncState = None
+        self._initialRsyncTargetDir = None
+        self._initialCleanupLevel = None
+        self._initialCustomSelection = False
+        self._initialSnapStateDic = {}
+        self._initialRsyncStateDic = {}
+        self._initialFsIntentDic = {}
+        self._initialRsyncIntentDic = {}
+
+        # Currently selected rsync backup device via the GUI.
+        self.rsyncTargetDir = None
+        # Used to store GUI filesystem selection state and the
+        # set of intended properties to apply to zfs filesystems.
+        self.snapstatedic = {}
+        self.fsintentdic = {}
+        self.rsyncintentdic = {}
+        # Dictionary that maps device ID numbers to zfs filesystem objects
+        self.fsDevices = {}
+
         # signal dictionary	
         dic = {"on_ok_clicked" : self.__on_ok_clicked,
                "on_cancel_clicked" : gtk.main_quit,
@@ -109,15 +153,7 @@ class SetupManager:
         self._pulseDialog = self.xml.get_widget("pulsedialog")
         self._pulseDialog.set_transient_for(topLevel)
 
-        # Currently configured rsync backup device path
-        self.rsyncTargetDir = None
-        # Used to store GUI filesystem selection state and the
-        # set of intended properties to apply to zfs filesystems.
-        self.snapstatedic = {}
-        self.fsintentdic = {}
-        self.rsyncintentdic = {}
-        # Dictionary that maps device ID numbers to zfs filesystem objects
-        self.fsDevices = {}
+
 
         self.liststorefs = gtk.ListStore(bool,
                                          bool,
@@ -131,7 +167,7 @@ class SetupManager:
             else:
                 mountpoint = fsmountpoint
             fs = zfs.Filesystem(fsname, fsmountpoint)
-            # Note that we don't deal support legacy mountpoints.
+            # Note that we don't deal with legacy mountpoints.
             if fsmountpoint != "legacy" and fs.is_mounted():
                 self.fsDevices[os.stat(fsmountpoint).st_dev] = fs
             snap = fs.get_auto_snap()
@@ -144,7 +180,16 @@ class SetupManager:
             # So treat as False if rsync is set to true independently
             self.liststorefs.append([snap, snap & rsync,
                                      mountpoint, fs.name, fs])
-                
+            self._initialSnapStateDic[fs.name] = snap
+            self._initialRsyncStateDic[fs.name] = snap & rsync
+        for fsname in self._initialSnapStateDic:
+                self.__refine_filesys_actions(fsname,
+                                              self._initialSnapStateDic,
+                                              self._initialFsIntentDic)
+                self.__refine_filesys_actions(fsname,
+                                              self._initialRsyncStateDic,
+                                              self._initialRsyncIntentDic)
+   
         self.fstv = self.xml.get_widget("fstreeview")
         self.fstv.set_sensitive(False)
         # FIXME: A bit hacky but it seems to work nicely
@@ -180,7 +225,8 @@ class SetupManager:
         self.rsyncSMF = rsyncsmf.RsyncSMF("%s:rsync" \
                                           %(plugin.PLUGINBASEFMRI))
         state = self.rsyncSMF.get_service_state()
-        self.rsyncTargetDir = self.rsyncSMF.get_target_dir()
+        self._initialRsyncTargetDir = self.rsyncSMF.get_target_dir()
+        self.rsyncTargetDir = self._initialRsyncTargetDir
 
         rsyncChooser = self.xml.get_widget("rsyncchooser")
         rsyncChooser.set_current_folder(self.rsyncTargetDir)
@@ -188,9 +234,11 @@ class SetupManager:
         if state != "disabled":
             self.rsyncEnabled = True
             self.xml.get_widget("rsyncbutton").set_active(True)
+            self._initialRsyncState = True
         else:
             self.rsyncEnabled = False
             rsyncChooser.set_sensitive(False)
+            self._initialRsyncState = False
 
         # Initialise SMF service instance state.
         try:
@@ -214,6 +262,7 @@ class SetupManager:
 
         if self.sliderSMF.svcstate == "disabled":
             self.xml.get_widget("enablebutton").set_active(False)
+            self._initialEnabledState = False
         elif self.sliderSMF.svcstate == "offline":
             self.xml.get_widget("toplevel").set_sensitive(False)
             errors = ''.join("%s\n" % (error) for error in \
@@ -250,12 +299,14 @@ class SetupManager:
         else:
             # FIXME: Check transitional states 
             self.xml.get_widget("enablebutton").set_active(True)
+            self._initialEnabledState = True
 
 
         # Emit a toggled signal so that the initial GUI state is consistent
         self.xml.get_widget("enablebutton").emit("toggled")
         # Check the snapshotting policy (UserData (default), or Custom)
-        if self.sliderSMF.is_custom_selection() == True:
+        self._initialCustomSelection = self.sliderSMF.is_custom_selection()
+        if self._initialCustomSelection == True:
             self.xml.get_widget("selectfsradio").set_active(True)
             # Show the advanced controls so the user can see the
             # customised configuration.
@@ -273,6 +324,7 @@ class SetupManager:
         # on the lower end, and make it no greater than the
         # critical level specified in the SVC instance.
         spinButton.set_range(70, critLevel)
+        self._initialCleanupLevel = warnLevel
         if warnLevel > 70:
             spinButton.set_value(warnLevel)
         else:
@@ -359,7 +411,6 @@ class SetupManager:
         dialog.set_transient_for(topLevel)
         dialog.set_markup(msg)
         dialog.set_icon_name("time-slider-setup")
-        container = dialog.get_content_area()
 
         response = dialog.run()
         dialog.hide()
@@ -384,8 +435,8 @@ class SetupManager:
 
         if self.rsyncEnabled != True:
             return True
-        # FIXME - perform the swathe of validation checks on the
-        # target directory for rsync here
+        # Perform the required validation checks on the
+        # target directory.
         rsyncChooser = self.xml.get_widget("rsyncchooser")
         newTargetDir = rsyncChooser.get_file().get_path()
 
@@ -463,7 +514,7 @@ class SetupManager:
                     # item must be a directory and must match the
                     # system nodename and SMF's key value respectively
                     # respectively
-                    if dirList[0] != nodeName or \
+                    if dirList[0] != nodeName and \
                         targetDirKey != self._smfTargetKey:
                         msg = _("\'%s\'\n"
                                 "is a Time Slider external backup device "
@@ -475,8 +526,35 @@ class SetupManager:
                         self.__rsync_config_error(msg)                                
                         return False
                     else:
-                        # Appears to be our own pre-configured directory.
-                        self.newRsyncTarget = False
+                        if dirList[0] == nodeName and \
+                           targetDirKey != self._smfTargetKey:
+                            # Looks like a device that we previously used,
+                            # but discontinued using in favour of some other
+                            # device.
+                            msg = _("\'<b>%s</b>\' appears to be a a device "
+                                    "previously configured for use by this "
+                                    "system.\n\nDo you want resume use of "
+                                    "this device for backups?") \
+                                    % (newTargetDir)
+
+                            topLevel = self.xml.get_widget("toplevel")
+                            dialog = gtk.MessageDialog(topLevel,
+                                                       0,
+                                                       gtk.MESSAGE_QUESTION,
+                                                       gtk.BUTTONS_YES_NO,
+                                                       _("Time Slider"))
+                            dialog.set_default_response(gtk.RESPONSE_NO)
+                            dialog.set_transient_for(topLevel)
+                            dialog.set_markup(msg)
+                            dialog.set_icon_name("time-slider-setup")
+
+                            response = dialog.run()
+                            dialog.hide()
+                            if response == gtk.RESPONSE_NO:
+                                return False
+                        else:
+                            # Appears to be our own pre-configured directory.
+                            self.newRsyncTarget = False
 
         # If it's a new directory check that it's writable.
         if self.newRsyncTarget == True:
@@ -647,24 +725,23 @@ class SetupManager:
         enabled = self.xml.get_widget("enablebutton").get_active()
         self.rsyncEnabled = self.xml.get_widget("rsyncbutton").get_active()
         if enabled == False:
-            self.sliderSMF.disable_service()
-            self.rsyncSMF.disable_service()
-            disable_default_schedules() # auto-snapshot schedule instances
-            # Ignore any possible changes to the snapshot configuration
-            # of filesystems if the service is disabled.
-            # So nothing else to do here.
+            if self.rsyncEnabled == False and \
+               self._initialRsyncState == True:
+                self.rsyncSMF.disable_service()
+            if self._initialEnabledState == True:
+                self.sliderSMF.disable_service()
+            # Ignore other changes to the snapshot/rsync configuration
+            # of filesystems. Just exit.
             gtk.main_quit()
         else:
             model = self.fstv.get_model()
             snapalldata = self.xml.get_widget("defaultfsradio").get_active()
                 
             if snapalldata == True:
-                self.sliderSMF.set_custom_selection(False)
                 model.foreach(self.__set_fs_selection_state, True)
                 if self.rsyncEnabled == True:
                     model.foreach(self.__set_rsync_selection_state, True)
             else:
-                self.sliderSMF.set_custom_selection(True)
                 model.foreach(self.__get_fs_selection_state)
                 model.foreach(self.__get_rsync_selection_state)
             for fsname in self.snapstatedic:
@@ -713,7 +790,7 @@ class SetupManager:
             self.xml.get_widget("fstreeview").set_sensitive(True)
 
     def __on_capspinbutton_value_changed(self, widget):
-        value = widget.get_value_as_int()
+        pass
 
     def __advancedbox_unmap(self, widget):
         # Auto shrink the window by subtracting the frame's height
@@ -781,75 +858,92 @@ class SetupManager:
     def commit_filesystem_selection(self):
         """
         Commits the intended filesystem selection actions based on the
-        user's UI configuration to disk
+        user's UI configuration to disk. Compares with initial startup
+        configuration and applies the minimum set of necessary changes.
         """
         for fsname,fsmountpoint in self.__datasets.list_filesystems():
             fs = zfs.Filesystem(fsname, fsmountpoint)
             try:
+                initialIntent = self._initialFsIntentDic[fsname]
                 intent = self.fsintentdic[fsname]
+                if intent == initialIntent:
+                    continue
                 fs.set_auto_snap(intent.selected, intent.inherited)
+
             except KeyError:
                 pass
 
     def commit_rsync_selection(self):
         """
         Commits the intended filesystem selection actions based on the
-        user's UI configuration to disk
+        user's UI configuration to disk. Compares with initial startup
+        configuration and applies the minimum set of necessary changes.
         """
         for fsname,fsmountpoint in self.__datasets.list_filesystems():
             fs = zfs.Filesystem(fsname, fsmountpoint)
             try:
+                initialIntent = self._initialRsyncIntentDic[fsname]
                 intent = self.rsyncintentdic[fsname]
-                if intent.inherited == True:
-                    fs.unset_user_property("org.opensolaris:time-slider-rsync")
+                if intent == initialIntent:
+                    continue
+                if intent.inherited == True and \
+                    initialIntent.inherited == False:
+                    fs.unset_user_property(rsyncsmf.RSYNCFSTAG)
                 else:
                     if intent.selected == True:
                         value = "true"
                     else:
                         value = "false"
-                    fs.set_user_property("org.opensolaris:time-slider-rsync",
+                    fs.set_user_property(rsyncsmf.RSYNCFSTAG,
                                          value)
             except KeyError:
                 pass
 
     def setup_rsync_config(self):
         if self.rsyncEnabled == True:
-            sys,nodeName,rel,ver,arch = os.uname()
-            basePath = os.path.join(self.rsyncTargetDir,
-                                    rsyncsmf.RSYNCDIRPREFIX,)
-            nodePath = os.path.join(basePath,
-                                    nodeName)
-            configPath = os.path.join(basePath,
-                                        rsyncsmf.RSYNCCONFIGFILE)
-            newKey = generate_random_key()
-            try:
-                origmask = os.umask(0222)
-                if not os.path.exists(nodePath):
-                    os.makedirs(nodePath, 0755)
-                f = open(configPath, 'w')
-                f.write("target_key=%s\n" % (newKey))
-                f.close()
-                os.umask(origmask)
-            except OSError as e:
-                # Drop the pulse dialog and pop up error dialog
-                self._pulseDialog.hide()
-                sys.stderr.write("Error configuring external backup device:\n"
-                        "%s\n\nReason:\n %s") \
-                        % (self.rsyncTargetDir, str(e))
-                sys.exit(-1)
-            self.rsyncSMF.set_target_dir(self.rsyncTargetDir)
-            self.rsyncSMF.set_target_key(newKey)
-            self.rsyncSMF.enable_service()
-        else:
-            self.rsyncSMF.disable_service()
+            if self.rsyncTargetDir != self._initialRsyncTargetDir:
+                sys,nodeName,rel,ver,arch = os.uname()
+                basePath = os.path.join(self.rsyncTargetDir,
+                                        rsyncsmf.RSYNCDIRPREFIX,)
+                nodePath = os.path.join(basePath,
+                                        nodeName)
+                configPath = os.path.join(basePath,
+                                            rsyncsmf.RSYNCCONFIGFILE)
+                newKey = generate_random_key()
+                try:
+                    origmask = os.umask(0222)
+                    if not os.path.exists(nodePath):
+                        os.makedirs(nodePath, 0755)
+                    f = open(configPath, 'w')
+                    f.write("target_key=%s\n" % (newKey))
+                    f.close()
+                    os.umask(origmask)
+                except OSError as e:
+                    self._pulseDialog.hide()
+                    sys.stderr.write("Error configuring external " \
+                                     "backup device:\n" \
+                                     "%s\n\nReason:\n %s") \
+                                     % (self.rsyncTargetDir, str(e))
+                    sys.exit(-1)
+                self.rsyncSMF.set_target_dir(self.rsyncTargetDir)
+                self.rsyncSMF.set_target_key(newKey)
         return
 
-    def enable_service(self):
-        if self.rsyncEnabled == True:
+    def setup_services(self):
+        # Take care of the rsync plugin service first
+        # since time-slider will query it.
+        if self.rsyncEnabled == True and \
+            self._initialRsyncState == False:
             self.rsyncSMF.enable_service()
-        else:
+        elif self.rsyncEnabled == False and \
+            self._initialRsyncState == True:
             self.rsyncSMF.disable_service()
-        self.sliderSMF.enable_service()
+        customSelection = self.xml.get_widget("selectfsradio").get_active()
+        if customSelection != self._initialCustomSelection:
+            self.sliderSMF.set_custom_selection(customSelection)
+        if self._initialEnabledState == False:
+            enable_default_schedules()
+            self.sliderSMF.enable_service()
 
     def set_cleanup_level(self):
         """
@@ -857,7 +951,8 @@ class SetupManager:
         value as a percentage of pool capacity.
         """
         level = self.xml.get_widget("capspinbutton").get_value_as_int()
-        self.sliderSMF.set_cleanup_level("warning", level)
+        if level != self._initialCleanupLevel:
+            self.sliderSMF.set_cleanup_level("warning", level)
 
     def __on_deletesnapshots_clicked(self, widget):
         cmdpath = os.path.join(os.path.dirname(self.execpath), \
@@ -879,12 +974,9 @@ class EnableService(threading.Thread):
             self._setupManager.commit_rsync_selection()
             self._setupManager.set_cleanup_level()
             self._setupManager.setup_rsync_config()
-            # First enable the auto-snapshot schedule instances
-            # These are just transient SMF configuration so
-            # shouldn't encounter any errors during enablement              
-            enable_default_schedules()
-            self._setupManager.enable_service()
-        except RuntimeError, message: #FIXME Do something more meaningful
+
+            self._setupManager.setup_services()
+        except RuntimeError, message:
             sys.stderr.write(str(message))
 
 def generate_random_key(length=32):

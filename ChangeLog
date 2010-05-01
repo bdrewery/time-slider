@@ -1,3 +1,19 @@
+2010-05-01 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Cache all GUI configuration values at startup and
+	  use them later to compare changes in configuration
+	  state. Only apply the minimum set of configuration
+	  changes necessary instead of previous method of
+	  blindly applying everything, even if unchanged.
+	  Configuration is much much faster now, especially
+	  for minor configuration changes.
+	  Recognise previously configured backup devices and
+	  ask the user if they want to start using it again
+	  instead of rejecting it as belonging to another 
+	  system.
+	  Remove duplicate import of os.path modules.
+
 2010-04-28 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/plugin/rsync/backup.py:
