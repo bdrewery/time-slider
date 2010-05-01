@@ -190,17 +190,20 @@ class RsyncBackup(threading.Thread):
             return
 
         if self._latest:
-            self._cmd = ["/usr/bin/rsync", "-a", "--inplace", "--progress",\
+            self._cmd = ["/usr/bin/rsync", "-a", "--inplace",\
                    "%s/." % (self._sourceDir), \
                    "--link-dest=%s" % (self._latest), \
                    self._backupDir]
         else:
-            self._cmd = ["/usr/bin/rsync", "-a", "--inplace", "--progress",\
+            self._cmd = ["/usr/bin/rsync", "-a", "--inplace",\
                    "%s/." % (self._sourceDir), \
                    self._backupDir]
 
         if self._logFile:
             self._cmd.insert(1, "--log-file=%s" % (self._logFile))
+
+        if self.verbose:
+            self._cmd.insert(1, "-vv")
 
         self.start()
 
@@ -572,7 +575,11 @@ class BackupQueue():
                 # Remove the dangling link
                 os.unlink(linkFile)
 
-        self.rsyncBackup = RsyncBackup(sourceDir, partialDir, latest, logfile=logFile)
+        self.rsyncBackup = RsyncBackup(sourceDir,
+                                       partialDir,
+                                       latest,
+                                       self.verbose,
+                                       logFile)
 
         # Notify the applet of current status via dbus
         self._bus.rsync_current(snapshot.name, len(remainingList))

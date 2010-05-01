@@ -1,3 +1,11 @@
+2010-05-02 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Instantiate RsyncBackup objects with verbose flag
+	  passed through. Remove "--progress" argument from
+	  rsync and add "-vv" argument instead if verbose
+	  flag is set.
+
 2010-05-01 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/plugin/plugin.py: Fix some
