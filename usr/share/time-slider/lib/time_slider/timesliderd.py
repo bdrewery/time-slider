@@ -382,12 +382,12 @@ class SnapshotManager(threading.Thread):
                 year += period / 12
                 period = period % 12
 
-                mon = (tm_mon + period) % 12
+                mon = (snap_tm.tm_mon + period) % 12
                 # Result of 0 actually means december.
                 if mon == 0:
                     mon = 12
                 # Account for period that spans calendar year boundary.
-                elif tm_mon + period > 12:
+                elif snap_tm.tm_mon + period > 12:
                     year += 1
 
                 d,dlastmon = calendar.monthrange(snap_tm.tm_year, snap_tm.tm_mon)
