@@ -1,6 +1,12 @@
 2010-05-02 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/timesliderd.py:
+	  Fix incorrect invocation of util.debug() that caused
+	  unconditional verbose output.
+ 
+2010-05-02 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/time_slider/timesliderd.py:
 	  Fix small typo in monthly calculation.
 
 2010-05-02 Niall Power - <niall.power@oracle.com>

@@ -344,7 +344,7 @@ class SnapshotManager(threading.Thread):
                 if len(snaps) > 0:
                     util.debug("Last %s snapshot was: %s" % \
                                (schedule, snaps[-1][0]), \
-                               util.debug)
+                               self.verbose)
                     self._last[schedule] = snaps[-1][1]
 
             last = self._last[schedule]
