@@ -377,13 +377,19 @@ class SnapshotManager(threading.Thread):
                 util.debug("Recalculating %s schedule" % (schedule), \
                            self.verbose)
                 snap_tm = time.gmtime(self._last[schedule])
-                # Increment year if frequency is less than 1 calender year.
-                year = snap_tm.tm_year + int(period / 12)
-                if snap_tm.tm_mon + period <= 12:
-                    mon = snap_tm.tm_mon + period
-                else: # Next snapshot in schedule crosses a year boundary
-                    mon = (snap_tm.tm_mon + period) % 12
+                # Increment year if period >= than 1 calender year.
+                year = snap_tm.tm_year
+                year += period / 12
+                period = period % 12
+
+                mon = (tm_mon + period) % 12
+                # Result of 0 actually means december.
+                if mon == 0:
+                    mon = 12
+                # Account for period that spans calendar year boundary.
+                elif tm_mon + period > 12:
                     year += 1
+
                 d,dlastmon = calendar.monthrange(snap_tm.tm_year, snap_tm.tm_mon)
                 d,dnewmon = calendar.monthrange(year, mon)
                 mday = snap_tm.tm_mday

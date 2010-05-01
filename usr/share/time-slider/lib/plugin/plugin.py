@@ -103,15 +103,16 @@ class Plugin(Exception):
 
     def is_running(self):
         if self._proc == None:
-            util.debug("Plugin child process is not started")
+            util.debug("Plugin child process is not started", self.verbose)
             return False
         else:
             self._proc.poll()
             if self._proc.returncode == None:
-                util.debug("Plugin child process is still running")
+                util.debug("Plugin child process is still running",
+                           self.verbose)
                 return True
             else:
-                util.debug("Plugin child process has ended")
+                util.debug("Plugin child process has ended", self.verbose)
                 return False
 
 

@@ -1,5 +1,17 @@
 2010-05-01 Niall Power - <niall.power@oracle.com>
 
+	* usr/share/time-slider/lib/plugin/plugin.py: Fix some
+	  incorrect invocations that didn't pass verbose
+	  parameter (and were therefore no-ops)
+
+	* usr/share/time-slider/lib/time_slider/timesliderd.py:
+	  Fix monthly period calculation. Now handles period
+	  increments > 12 months and period increments that
+	  land on december (originally logged as bugster
+	  CR #6904417)
+
+2010-05-01 Niall Power - <niall.power@oracle.com>
+
 	* usr/share/time-slider/lib/time_slider/setupgui.py:
 	  Cache all GUI configuration values at startup and
 	  use them later to compare changes in configuration
