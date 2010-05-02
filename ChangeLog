@@ -1,5 +1,13 @@
 2010-05-02 Niall Power - <niall.power@oracle.com>
 
+	* lib/svc/method/time-slider:
+	  Remove any legacy zfs-auto-snapshot cron jobs in
+	  zfssnap's crontab that may not have been removed
+	  if the old auto-snapshot services were not stopped
+	  cleanly.
+
+2010-05-02 Niall Power - <niall.power@oracle.com>
+
 	* usr/share/time-slider/lib/time_slider/timesliderd.py:
 	  Fix incorrect invocation of util.debug() that caused
 	  unconditional verbose output.
