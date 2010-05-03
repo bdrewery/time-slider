@@ -71,6 +71,8 @@ install:
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib/time-slider/plugins/zfssend usr/lib/time-slider/plugins/zfssend/zfssend
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib/time-slider/plugins/rsync usr/lib/time-slider/plugins/rsync/rsync-trigger
 	$(INSTALL_PROGRAM) $(DESTDIR)/usr/lib/time-slider/plugins/rsync usr/lib/time-slider/plugins/rsync/rsync-backup
+	$(mkinstalldirs) $(DESTDIR)/usr/share/applications
+	$(INSTALL_DATA) $(DESTDIR)/usr/share/applications usr/share/applications/time-slider.desktop
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps
 	$(INSTALL_DATA) $(DESTDIR)/usr/share/icons/hicolor/16x16/apps usr/share/icons/hicolor/16x16/apps/time-slider-setup.png
 	$(mkinstalldirs) $(DESTDIR)/usr/share/icons/hicolor/24x24/apps
@@ -142,6 +144,7 @@ uninstall:
 	$(RM) $(DESTDIR)/usr/lib/time-slider-rsync
 	$(RMRF) $(DESTDIR)/usr/lib/time-slider/plugins/rsync
 	$(RMRF) $(DESTDIR)/usr/lib/time-slider/plugins/zfssend
+	$(RM) $(DESTDIR)/usr/share/applications/time-slider.desktop
 	$(RM) $(DESTDIR)/usr/share/icons/hicolor/*/apps/time-slider-setup.png
 	$(RMRF) $(DESTDIR)/usr/share/time-slider
 	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider.xml

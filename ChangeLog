@@ -1,3 +1,9 @@
+2010-05-03 Niall Power - <niall.power@oracle.com>
+
+	* Makefile:
+	  Install/uninstall time-slider.desktop into 
+	  $(DESTDIR)/usr/share/applications/
+
 2010-05-02 Niall Power - <niall.power@oracle.com>
 
 	* lib/svc/method/time-slider:
