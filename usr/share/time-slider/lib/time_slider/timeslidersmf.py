@@ -76,6 +76,13 @@ class TimeSliderSMF(smf.SMFInstance):
             raise ValueError("zfs/sep must be a single character length")
         return result
 
+    def get_remedial_cleanup(self):
+        value = self.get_prop(ZPOOLPROPGROUP, "remedial-cleanup")
+        if value == "false":
+            return False
+        else:
+            return True
+
     def get_cleanup_level(self, cleanupType):
         if cleanupType not in cleanupTypes:
             raise ValueError("\'%s\' is not a valid cleanup type" % \

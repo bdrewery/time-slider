@@ -1,5 +1,21 @@
 2010-05-03 Niall Power - <niall.power@oracle.com>
 
+	* usr/share/time-slider/lib/time_slider/timesliderd.py:
+	  Determine if <zpool/remedial-cleanup> SMF property is set to true.
+	  Do not perform remedial cleanups if it's value is false.
+
+	* usr/share/time-slider/lib/time_slider/timeslidersmf.py:
+	  Add new method: get_remedial_cleanup() to indicate the value of
+	  property <zpool/remedial-cleanup>
+
+	* var/svc/manifest/application/time-slider.xml:
+	  Add new SMF property: <zpool/remedial-cleanup> as boolean with
+	  default value of 'true'. Indicates that time-sliderd should
+	  perform remedial cleanups when snapshotted pool runs low on
+	  space.
+
+2010-05-03 Niall Power - <niall.power@oracle.com>
+
 	* Makefile:
 	  Install/uninstall time-slider.desktop into 
 	  $(DESTDIR)/usr/share/applications/

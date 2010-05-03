@@ -217,6 +217,7 @@ class SnapshotManager(threading.Thread):
             self.verbose = False
 
         try:
+            cleanup = self._smf.get_remedial_cleanup()
             warn = self._smf.get_cleanup_level("warning")
             util.debug("Warning level value is:   %d%%" % warn, self.verbose)
             crit = self._smf.get_cleanup_level("critical")
@@ -232,10 +233,12 @@ class SnapshotManager(threading.Thread):
             sys.stderr.write("Using factory defaults of 80%, 90% and 95%\n")
             #Go with defaults
             #FIXME - this would be an appropriate case to mark svc as degraded
+            self._remedialCleanup = True
             self._warningLevel = 80
             self._criticalLevel = 90
             self._emergencyLevel = 95
         else:
+            self._remedialCleanup = cleanup
             self._warningLevel = warn
             self._criticalLevel = crit
             self._emergencyLevel = emer
@@ -585,6 +588,10 @@ class SnapshotManager(threading.Thread):
             raise RuntimeError,message
 
     def _needs_cleanup(self):
+        if self._remedialCleanup == False:
+            # Sys admin has explicitly instructed for remedial cleanups
+            # not to be performed.
+            return False
         now = long(time.time())
         # Don't run checks any less than 15 minutes apart.
         if self._cleanupLock.acquire(False) == False:

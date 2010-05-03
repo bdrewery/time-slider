@@ -131,6 +131,8 @@
 	</property_group>
 
 	<property_group name='zpool' type='application'>
+	    <propval name='remedial-cleanup' type='boolean' value='true'
+	        override='true'/>
 		<propval name='warning-level' type='integer' value='80'
             override='true'/>
 		<propval name='critical-level' type='integer' value='90'
