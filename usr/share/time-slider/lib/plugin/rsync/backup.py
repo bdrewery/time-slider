@@ -216,13 +216,24 @@ class BackupQueue():
         self.smfInst = rsyncsmf.RsyncSMF(self.pluginFMRI)
         self.verbose = self.smfInst.get_verbose()
         self.propName = "%s:%s" % (propbasename, fmri.rsplit(':', 1)[1])
+        self.backupTimes = {}
         released = release_held_snapshots(self.propName)
         for snapName in released:
             util.debug("Released dangling userref on: " + snapName,
                        self.verbose)
         self._bus = dbus
-
+        self._tempSchedules = None
+        # FIXME - Think we can leave this until later since
+        # we will regenerate the list numerous times.
         self.pendingList = list_pending_snapshots(self.propName)
+        # Try to backup in sets of snapshots grouped by a common
+        # snapshot label. These get take from the head of the
+        # pending list. After a working set has been completed,
+        # pending list gets refreshed and a new working set is
+        # extracted.
+        self.currentWorkingSetQueue = []
+        self.skipList = []
+        self.queueLength = 0
         self.mainLoop = mainLoop
 
         # Determine the rsync backup dir. This is the target dir
@@ -238,107 +249,54 @@ class BackupQueue():
         del tsSMF
 
 
-    def _cleanup_rsync_target(self):
+    def empty_trash_folders(self):
+        trashDirs = []
+        trashedBackups = []
+        os.chdir(self.rsyncDir)
+        for root, dirs, files in os.walk(self.rsyncDir):
+            if '.time-slider' in dirs:
+                dirs.remove ('.time-slider')
+                trashDir = os.path.join(root,
+                                        rsyncsmf.RSYNCTRASHSUFFIX)
+                if os.path.exists(trashDir):
+                    trashDirs.append(trashDir)
+        for trashDir in trashDirs:
+            os.chdir(trashDir)
+            trashItems = []
+            trashItems = [d for d in os.listdir(trashDir) \
+                          if os.path.isdir(d) and
+                          not os.path.islink(d)]
+            if len(trashItems) > 0:
+                util.debug("Deleting trash backups in %s" % (trashDir),
+                           self.verbose)
+            for trashItem in trashItems:
+                util.debug("Deleting trash item: %s" % (trashItem),
+                           self.verbose)
+                # FIXME add some dbus notification here to let the
+                # applet know what's going on.
+                shutil.rmtree(trashItem)
 
-        # Delete non archival type backups according to the same retention
+    def _get_temp_schedules(self):
+        # Get retention rule for non archival snapshots as per
         # rules defined in:
         # svc://system/filesystem/zfs/auto-snapshot:<schedule>
         archived = self.smfInst.get_archived_schedules()
         triggers = self.smfInst.get_trigger_list()
+        defScheds = autosnapsmf.get_default_schedules()
+        customScheds = autosnapsmf.get_custom_schedules()
         try:
             triggers.index('all')
             # Expand the wildcard value 'all' 
-            defScheds = [sched for sched,i,p,k in \
-                         autosnapsmf.get_default_schedules()]
-            customScheds = [sched for sched,i,p,k in \
-                            autosnapsmf.get_custom_schedules()]
-            triggers = defScheds[:]
-            triggers.extend(customScheds)
+            triggers = [sched for sched,i,p,k in defScheds]
+            customTriggers = [sched for sched,i,p,k in customScheds]
+            triggers.extend(customTriggers)
         except ValueError:
             pass
-        tempSchedules = [schedule for schedule in triggers if \
-                        schedule not in archived]
 
-        #FIXME write a function to do this and don't hardcode the zfs prop
-        filesystems = []
-        cmd = [zfs.ZFSCMD, "list", "-H", "-t", "filesystem", \
-                "-s", "name", \
-                "-o","name,org.opensolaris:time-slider-rsync"]
-        outdata,errdata = util.run_command(cmd)
-        for line in outdata.rstrip().split('\n'):
-            line = line.split()
-            if line[1] == "true":
-                filesystems.append(line[0])
-
-        for fsName in filesystems:   
-            fsRootDir = "%s/%s/%s" % (self.rsyncDir,
-                                      fsName,
-                                      rsyncsmf.RSYNCDIRSUFFIX)
-            dirList = []
-            if os.path.exists(fsRootDir):
-                os.chdir(fsRootDir)
-                # List the directory contents of fsRootDir
-                dirList = [d for d in os.listdir(fsRootDir) \
-                            if os.path.isdir(d) and
-                            not os.path.islink(d)]
-                for schedule in tempSchedules:
-                    util.debug("Checking for expired '%s' backups in %s" \
-                               % (schedule, fsRootDir), self.verbose)
-                    label = "%s%s%s" % (autosnapsmf.SNAPLABELPREFIX,
-                                        self._labelSeparator,
-                                        schedule)
-                    schedBackups = [d for d in dirList if 
-                                    d.find(label) == 0]
-                    # The minimum that can be kept around is one:
-                    # keeping zero is stupid since it might trigger
-                    # a total replication rather than an incremental
-                    # rsync replication.
-                    if len(schedBackups) <= 1:
-                        continue
-                    smfInst = autosnapsmf.AutoSnap(schedule)
-                    s,i,p,keep = smfInst.get_schedule_details()
-                    if len(schedBackups) <= keep:
-                        continue
-
-                    sortedBackupList = []
-                    for backup in schedBackups:
-                        stInfo = os.stat(backup)
-                        # List is sorted by mtime, oldest first
-                        insort(sortedBackupList, [stInfo.st_mtime, backup])
-                    purgeList = sortedBackupList[0:-keep]
-                    for mtime,dirName in purgeList:
-                        # Perform a final sanity check to make sure a backup
-                        # directory and not a system directory is being deleted.
-                        # If it doesn't contain the RSYNCDIRSUFFIX string a
-                        # ValueError will be raised.
-                        try:
-                            os.getcwd().index(rsyncsmf.RSYNCDIRSUFFIX)
-                            util.debug("Deleting expired rsync backup: %s" \
-                                       % (dirName), self.verbose)
-                            shutil.rmtree(dirName)
-                            # Log file needs to be deleted too.
-                            logFile = os.path.join(".partial",
-                                                dirName + ".log")
-                            try:
-                                os.stat(logFile)
-                                util.debug("Deleting rsync log file: %s" \
-                                           % (os.path.abspath(logFile)),
-                                           self.verbose)
-                                os.unlink(logFile)
-                            except OSError:
-                                util.debug("Expected rsync log file not " \
-                                           "found: %s"\
-                                           % (os.path.abspath(logFile)),
-                                           self.verbose)
-                                                       
-                        except ValueError:
-                            util.log_error(syslog.LOG_ALERT,
-                                           "Invalid attempt to delete " \
-                                           "non-backup directory: %s\n" \
-                                           "Placing plugin into " \
-                                           "maintenance state" % (dirName))
-                            self.smfInst.mark_maintenance()
-                            sys.exit(-1)
+        self._tempSchedules = [schedule for schedule in defScheds if \
+                               schedule[0] not in archived]
+        self._tempSchedules.extend([schedule for schedule in customScheds if \
+                                   schedule[0] not in archived])
 
     def _remove_dead_backups(self):
         """
@@ -355,8 +313,7 @@ class BackupQueue():
             if '.time-slider' in dirs:
                 dirs.remove ('.time-slider')
                 partialDir = os.path.join(root,
-                                          rsyncsmf.RSYNCDIRSUFFIX,
-                                          ".partial")
+                                          rsyncsmf.RSYNCPARTIALSUFFIX)
                 partialDirs.append(partialDir)
         for dirName in partialDirs:
             if not os.path.exists(partialDir):
@@ -366,8 +323,7 @@ class BackupQueue():
                         if os.path.isdir(d)]
             if len(partials) == 0:
                 continue
-            suffix = os.path.join(rsyncsmf.RSYNCDIRSUFFIX,
-                                  ".partial")
+            suffix = rsyncsmf.RSYNCPARTIALSUFFIX
             prefix = self.rsyncDir
             # Reconstruct the origin ZFS filesystem name
             baseName = dirName.replace(prefix, '', 1).lstrip('/')
@@ -391,7 +347,10 @@ class BackupQueue():
                                self.verbose)
                     shutil.rmtree(snapshotLabel)
                     # Don't forget the log file too.
-                    logFile = snapshotLabel + ".log"
+                    logFile = os.path.join(os.path.pardir,
+                                           os.path.pardir,
+                                           rsyncsmf.RSYNCLOGSUFFIX,
+                                           snapshotLabel + ".log")
                     try:
                         os.stat(logFile)
                         util.debug("Deleting zombie log file: %s" \
@@ -435,7 +394,9 @@ class BackupQueue():
             # Remove log file too
             head,tail = os.path.split(dirName)
             logFile = os.path.join(head,
-                                   ".partial",
+                                   os.path.pardir,
+                                   os.path.pardir,
+                                   rsyncsmf.RSYNCLOGSUFFIX,
                                    tail + ".log")
             try:
                 os.stat(logFile)
@@ -466,48 +427,80 @@ class BackupQueue():
                 self.mainLoop.quit()
             sys.exit(0)
 
-        # Before getting started. See what needs to be cleaned up on 
+        # Before getting started. Identify what needs to be cleaned up on 
         # the backup target.
+        if self._tempSchedules == None:
+            self._get_temp_schedules()
+        
         if self.started == False:
-            self._cleanup_rsync_target()
             self._remove_dead_backups()
             
         # Check how much capacity is in use on the destination directory
-        # FIXME - then do something useful with this data later
         capacity = util.get_filesystem_capacity(self.rsyncDir)
-        #FIXME - first cut hack.
+        #FIXME - first rough cut effort.
         if capacity > 90:
             self._recover_space()
-        used = util.get_used_size(self.rsyncDir)
-        avail = util.get_available_size(self.rsyncDir)
-        total = util.get_total_size(self.rsyncDir)
 
-        if len(self.pendingList) == 0:
+        if len(self.currentWorkingSetQueue) == 0:
+            # Means we are just getting started or have just completed
+            # backup of one full set of snapshots. Clear out anything
+            # we may have moved to the trash during the previous 
+            # backup set iterations.
+            self.empty_trash_folders()
+            # Refresh the pending list and build a new working set queue
+            self.pendingList =  list_pending_snapshots(self.propName)
+            # Remove skipped items to avoid infinite looping.
+            for item in self.skipList:
+                try:
+                    self.pendingList.remove(item)
+                except ValueError:
+                    pass
+            if len(self.pendingList) == 0:
+                self._bus.rsync_synced()
+                # Nothing to do exit
+                if self.mainLoop:
+                    self.mainLoop.quit()
+                sys.exit(0)
+            else:
+                # Construct a new working set queue
+                # Identify the newest snapshot and then all
+                # snapshots with a matching snapshot label
+                self.queueLength = len(self.pendingList)
+                ctime,headSnapName = self.pendingList[0]
+                label = headSnapName.rsplit("@", 1)[1]
+                self.currentWorkingSetQueue = \
+                    [(ctime,snapName) for \
+                     ctime,snapName in self.pendingList if \
+                     snapName.rsplit("@", 1)[1] == label]
+
+        if len(self.currentWorkingSetQueue) == 0 and \
+            self.started == True:
+            self._bus.rsync_complete(self.rsyncBaseDir)
             self._bus.rsync_synced()
-            # Nothing to do exit
             if self.mainLoop:
                 self.mainLoop.quit()
             sys.exit(0)
+            return False
 
         if self.started == False:
             self.started = True
             self._bus.rsync_started(self.rsyncBaseDir)
 
-        ctime,snapname = self.pendingList[0]
-        snapshot = zfs.Snapshot(snapname, long(ctime))
+        ctime,snapName = self.currentWorkingSetQueue[0]
+        snapshot = zfs.Snapshot(snapName, long(ctime))
         # Make sure the snapshot didn't get destroyed since we last
         # checked it.
-        remainingList = self.pendingList[1:]
+        remainingList = self.currentWorkingSetQueue[1:]
         if snapshot.exists() == False:
             util.debug("Snapshot: %s no longer exists. Skipping" \
-                        % (snapname), self.verbose)
-            self.pendingList = remainingList
+                        % (snapName), self.verbose)
+            self.currentWorkingSetQueue = remainingList
             return True
 
         # Place a hold on the snapshot so it doesn't go anywhere
         # while rsync is trying to back it up.
         snapshot.hold(self.propName)
-
+        self.queueLength -= 1
         fs = zfs.Filesystem(snapshot.fsname)
         sourceDir = None
         if fs.is_mounted() == True:
@@ -523,66 +516,121 @@ class BackupQueue():
             util.debug("%s is not mounted. Skipping." \
                         % (snapshot.fsname), self.verbose)
             snapshot.release(self.propName)
-            self.pendingList = remainingList
+            self.skipList.append(ctime, snapName)
+            self.currentWorkingSetQueue = remainingList
             return True
-
 
         # targetDir is the parent folder of all backups
         # for a given filesystem
         targetDir = os.path.join(self.rsyncDir,
                                  snapshot.fsname,
                                  rsyncsmf.RSYNCDIRSUFFIX)
-        # partialDir is a subdirectory in the targetDir where
+        # partialDir is a separate directory in  where
         # snapshots are initially backed up to. Upon successful
         # completion they are moved to the backupDir
-        partialDir = os.path.join(targetDir, ".partial", snapshot.snaplabel)
-        logFile = os.path.join(targetDir,
-                               ".partial",
+        partialDir = os.path.join(self.rsyncDir,
+                                  snapshot.fsname,
+                                  rsyncsmf.RSYNCPARTIALSUFFIX,
+                                  snapshot.snaplabel)
+        lockFileDir = os.path.join(self.rsyncDir,
+                                   snapshot.fsname,
+                                   rsyncsmf.RSYNCLOCKSUFFIX)
+        logDir = os.path.join(self.rsyncDir,
+                              snapshot.fsname,
+                              rsyncsmf.RSYNCLOGSUFFIX)
+        logFile = os.path.join(logDir,
                                snapshot.snaplabel + ".log")
+
         
         # backupDir is the full directory path where the new
         # backup will be located ie <targetDir>/<snapshot label>
         backupDir = os.path.join(targetDir, snapshot.snaplabel)
 
-        dirlist = []
+        # Figure out the closest previous backup. Since we
+        # backup newest first instead of oldest first it's
+        # determined as follows:
+        # If queued backup item is newer than the most recent
+        # backup on the backup target, use the most recent 
+        # backup as the incremental source.
+        # Othewise identify the backup on the device that is
+        # nearest to but newer than the queued backup.
+        nearestOlder = None
+        nearestNewer = None
+        dirList = []
         if not os.path.exists(partialDir):
             os.makedirs(partialDir, 0755)
-            os.chdir(targetDir)
+        if not os.path.exists(logDir):
+            os.makedirs(logDir, 0755)
+        if not os.path.exists(targetDir):
+            os.makedirs(targetDir, 0755)
         else:
-            # List the directory contents of targetDir
-            # FIXME The list will be inspected later
-            # FIXME is chdir necessary?
             os.chdir(targetDir)
-            dirlist = [d for d in os.listdir(targetDir) \
+            try:
+                dirDict = self.backupTimes[targetDir]
+            except KeyError:
+                self.backupTimes[targetDir] = {}
+            # Note that backupTimes dictionary is not used
+            # to store directory listings, only to map 
+            # mtimes to directories.
+            dirList = [d for d in os.listdir(targetDir) \
                         if os.path.isdir(d) and
-                        d != ".partial" and
                         not os.path.islink(d)]
+            for d in dirList:
+                try:
+                    dirTime = self.backupTimes[targetDir][d]
+                except KeyError:
+                    self.backupTimes[targetDir][d] = os.stat(d).st_mtime
 
-        # FIXME - check free space on targetDir
+            for name,value in self.backupTimes[targetDir].items():
+                if ctime > value:
+                    if nearestOlder == None or \
+                       value > nearestOlder[1]:
+                        nearestOlder = [name, value]
+                else:
+                    if nearestNewer == None or \
+                       value < nearestNewer[1]:
+                        nearestNewer = [name, value]
+        link = None
+        linkDest = None
+        lockFile = None
+        lockFp = None
+        if nearestNewer:
+            link = nearestNewer[0]
+        elif nearestOlder:
+            link = nearestOlder[0]
+        if link:
+            linkDest = os.path.realpath(link)
+            # Create a lock for linkDest. We need to ensure that
+            # nautilus' restore view or the time-slider-delete
+            # GUI doesn't attempt to delete it or move it to the
+            # trash while it is being used by rsync for incremental
+            # backup.
+            lockFile = os.path.join(lockFileDir,
+                                    link + ".lock")
 
-        # Get previous backup dir if it exists
-        linkFile = ".latest-rsync"
-        latest = None
+            if not os.path.exists(lockFileDir):
+                os.makedirs(lockFileDir, 0755)
 
-        if os.path.lexists(linkFile):
-            # We've confirmed that the symlink exists
-            # but we need to check if it's dangling.
-            if os.path.exists(linkFile):
-                latest = os.path.realpath(linkFile)
-            else:
-                # FIXME - create a link to the latest dir
-                # so we can avoid doing a full backup.
-                # Remove the dangling link
-                os.unlink(linkFile)
+            try:
+                lockFp = open(lockFile, 'w')
+                fcntl.flock(lockFp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except IOError:
+                util.debug("Can't perform incremental rsync of %s because " \
+                           "unable to obtain exclusive lock on incremental " \
+                           "backup reference point: %s. Exiting" \
+                           % (lockFile), self.verbose)
+                os.chdir("/")
+                snapshot.release(self.propName)
+                sys.exit(1)
 
         self.rsyncBackup = RsyncBackup(sourceDir,
                                        partialDir,
-                                       latest,
+                                       linkDest,
                                        self.verbose,
                                        logFile)
 
         # Notify the applet of current status via dbus
-        self._bus.rsync_current(snapshot.name, len(remainingList))
+        self._bus.rsync_current(snapshot.name, self.queueLength)
 
         # Set umask temporarily so that rsync backups are read-only to
         # the owner by default. Rync will override this to match the
@@ -591,10 +639,11 @@ class BackupQueue():
         util.debug("Starting rsync backup of '%s' to: %s" \
                    % (sourceDir, partialDir),
                    self.verbose)
-
         self.rsyncBackup.start_backup()
 
         while self.rsyncBackup.is_alive():
+            # FIXME Might be a good opportunity to monitor backup
+            # target capacity while we wait for rsync.
             time.sleep(1)
 
         try:
@@ -625,6 +674,11 @@ class BackupQueue():
             snapshot.release(self.propName)
             sys.exit(-1)
 
+        finally:
+            if lockFp:
+                lockFp.close()
+                os.unlink(lockFile)
+
         util.debug("Rsync process exited", self.verbose)
         os.umask(origmask)
 
@@ -634,28 +688,122 @@ class BackupQueue():
                    % (partialDir, backupDir), self.verbose)
         os.rename(partialDir, backupDir)
 
-        # Create a symlink pointing to the latest backup. Remove
-        # the old one first.
-        if latest:
-            os.unlink(linkFile)         
-        os.symlink(snapshot.snaplabel, linkFile)
-
         # Reset the mtime and atime properties of the backup directory so that
-        # they match the snapshot creation time.
+        # they match the snapshot creation time. This is extremely important
+        # because the backup mechanism relies on it to determine backup times
+        # and nearest matches for incremental rsync (linkDest)
         os.utime(backupDir, (long(ctime), long(ctime)))
+        # Update the dictionary with the new backup's mtime
+        self.backupTimes[targetDir][snapshot.snaplabel] = long(ctime)
         snapshot.set_user_property(self.propName, "completed")
-
-        self.pendingList = remainingList
         snapshot.release(self.propName)
-        if len(remainingList) >= 1:
-            return True
-        else:
-            self._bus.rsync_complete(self.rsyncBaseDir)
-            self._bus.rsync_synced()
-            if self.mainLoop:
-                self.mainLoop.quit()
-            sys.exit(0)
-            return False
+        self.currentWorkingSetQueue = remainingList
+        
+        # Now is a good time to clean out the directory:
+        # Check to see if the backup just completed belonged to an
+        # auto-snapshot schedule and whether older backups should get
+        # deleted.
+        if snapshot.snaplabel.find(autosnapsmf.SNAPLABELPREFIX) == 0:
+            tempSchedule = None
+            label = None
+            for schedule in self._tempSchedules:
+                label = "%s%s%s" % (autosnapsmf.SNAPLABELPREFIX,
+                                    self._labelSeparator,
+                                    schedule[0])
+                if snapshot.snaplabel.find(label) == 0:
+                    tempSchedule = schedule
+                    break
+            if tempSchedule == None:
+                # Backup doesn't belong to a temporary schedule so 
+                # nothing left to do
+                return True
+
+            keep = tempSchedule[3] # [schedule,interval,period,keep]
+            schedBackups = [d for d in os.listdir(targetDir) if 
+                            d.find(label) == 0]
+            
+
+            schedBackups = [d for d in dirList if 
+                            d.find(label) == 0]
+            # The minimum that can be kept around is one:
+            # keeping zero is stupid since it might trigger
+            # a total replication rather than an incremental
+            # rsync replication.
+            if len(schedBackups) <= 1:
+                return True
+            if len(schedBackups) <= keep:
+                return True
+
+            sortedBackupList = []
+            for backup in schedBackups:
+                stInfo = os.stat(backup)
+                # List is sorted by mtime, oldest first
+                insort(sortedBackupList, [stInfo.st_mtime, backup])
+            purgeList = sortedBackupList[0:-keep]
+
+            trash = os.path.join(self.rsyncDir,
+                                 snapshot.fsname,
+                                 rsyncsmf.RSYNCTRASHSUFFIX)
+            if not os.path.exists(trash):
+                os.makedirs(trash, 0755)
+            for mtime,dirName in purgeList:
+                trashDir = os.path.join(trash,
+                                        dirName)
+                # Perform a final sanity check to make sure a backup
+                # directory and not a system directory is being purged.
+                # If it doesn't contain the RSYNCDIRSUFFIX string a
+                # ValueError will be raised.
+                try:
+                    os.getcwd().index(rsyncsmf.RSYNCDIRSUFFIX)
+                    lockFp = None
+                    lockFile = os.path.join(lockFileDir,
+                                            dirName + ".lock")
+
+                    if not os.path.exists(lockFileDir):
+                        os.makedirs(lockFileDir, 0755)
+
+                    try:
+                        lockFp = open(lockFile, 'w')
+                        fcntl.flock(lockFp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except IOError:
+                        util.debug("Can't move expired  backup %s to trash " \
+                                   "because it is locked by another " \
+                                   "process. Skipping" % (dirName),
+                                   self.verbose)
+
+                    util.debug("Moving expired rsync backup to trash:" \
+                               " %s -> %s" % (dirName, trash),
+                               self.verbose)
+                    os.rename(dirName, trashDir)
+                    # Release and delete lock file
+                    lockFp.close()
+                    os.unlink(lockFile)
+                    # Remove it's mtime key/value from self.backupTimes
+                    del self.backupTimes[targetDir][dirName]
+                    # Log file needs to be deleted too.
+                    logFile = os.path.join(logDir,
+                                            dirName + ".log")
+                    try:
+                        os.stat(logFile)
+                        util.debug("Deleting rsync log file: %s" \
+                                    % (os.path.abspath(logFile)),
+                                    self.verbose)
+                        os.unlink(logFile)
+                    except OSError:
+                        util.debug("Expected rsync log file not " \
+                                    "found: %s"\
+                                    % (os.path.abspath(logFile)),
+                                    self.verbose)
+                                                
+                except ValueError:
+                    util.log_error(syslog.LOG_ALERT,
+                                    "Invalid attempt to delete " \
+                                    "non-backup directory: %s\n" \
+                                    "Placing plugin into " \
+                                    "maintenance state" % (dirName))
+                    self.smfInst.mark_maintenance()
+                    sys.exit(-1)
+        return True
 
 def release_held_snapshots(propName):
     """
@@ -694,9 +842,10 @@ def release_held_snapshots(propName):
 def list_pending_snapshots(propName):
     """
     Lists all snaphots which have 'propName" set locally.
-    Resulting list is returned sorted in ascending order
-    of creation time. Each element in the returned list
-    is tuple of the form: [creationtime, snapshotname]
+    Resulting list is returned sorted in descending order
+    of creation time (ie.newest first).
+    Each element in the returned list is tuple of the form:
+    [creationtime, snapshotname]
     """
     results = []
     snaplist = []
@@ -745,7 +894,9 @@ def list_pending_snapshots(propName):
 
     outdata,errdata = util.run_command(cmd)
     for line in outdata.rstrip().split('\n'):
-        insort(sortsnaplist, tuple(line.split()))
+        ctimeStr,name = line.split()
+        insort(sortsnaplist, tuple((long(ctimeStr), name)))
+    sortsnaplist.reverse()
     return sortsnaplist
 
 

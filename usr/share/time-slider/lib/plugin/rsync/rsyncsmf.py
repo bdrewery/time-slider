@@ -28,6 +28,10 @@ from plugin import pluginsmf
 RSYNCPROPGROUP = "rsync"
 RSYNCDIRPREFIX = "TIMESLIDER"
 RSYNCDIRSUFFIX = ".time-slider/rsync"
+RSYNCPARTIALSUFFIX = ".time-slider/.rsync-partial"
+RSYNCTRASHSUFFIX = ".time-slider/.trash"
+RSYNCLOCKSUFFIX = ".time-slider/.rsync-lock"
+RSYNCLOGSUFFIX = ".time-slider/.rsync-log"
 RSYNCCONFIGFILE = ".rsync-config"
 RSYNCFSTAG = "org.opensolaris:time-slider-rsync"
 

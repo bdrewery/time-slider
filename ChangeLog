@@ -1,3 +1,26 @@
+2010-05-05 Niall Power - <niall.power@oracle.com>
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Redesigned queue management and backlog mechanism. Backs up
+	  most recent snapshot set first, then works backwards through
+	  the queue. Stops backup mechanism falling too far behind while
+	  still allowing backup of older snapshots to take place if
+	  time and space permit.
+	  Enhancements to filesystem layout of backups - added seperate
+	  folders for partial transfers, log files, trash folder and lock
+	  files. Added file locking mechanism to prevent deletion by other
+	  tools of backups in use (eg during incremental backups).
+	  Added trash mechanism, replaces in place deletion of snapshots
+	  which messes up directory mtimes and incremental backups.
+	  Instead, expired backups are moved to a .trash folder and a new
+	  method: empty_trash_folders() cleans it up after before starting
+	  the next snapshot set backup.
+	  Fix bug in list_pending_snapshots() where ctime of snapshots was
+	  returned as a string instead of a long.
+
+	* usr/share/time-slider/lib/plugin/rsync/rsyncsmf.py: Add new 
+	  filesystem suffix definitions for partial backups, trash
+	  folders, backup lock files and backup log files.
+
 2010-05-03 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/timesliderd.py:
