@@ -27,12 +27,12 @@
 
 -->
 
-<service_bundle type='manifest' name='SUNWgnome-time-slider'>
+<service_bundle type='manifest' name='SUNWtime-slider'>
 
 <service
 	name='system/filesystem/zfs/auto-snapshot'
 	type='service'
-	version='0.2.95'>
+	version='0.2.96'>
 
 	<!-- we need time-slider  -->
 	<dependency

@@ -49,7 +49,7 @@ def run_command(command):
                             (str(command), err, errdata)
     return outdata,errdata
 
-def debug(message, verbose=False):
+def debug(message, verbose):
     """
     Prints message out to standard error and syslog if
     verbose = True.

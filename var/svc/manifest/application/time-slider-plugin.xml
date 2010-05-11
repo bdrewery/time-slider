@@ -207,6 +207,25 @@
         -->
         <propval name="archived_schedules"
 			type="astring" value="weekly,monthly" override="true"/>
+        <!-- Percentage of file system utilisation at which point
+             this plugin will start deleting indefinitely archived
+             backups in order to avoid the filesystem filling up
+             completely. Backups get deleted in reverse chronological
+             order. ie. oldest first until capacity falls back below
+             cleanup_threshold's value, or there is only 1 remaining
+             backup per fileystem remaining on the device, at which
+             point it gives up.
+        -->
+		<propval name="cleanup_threshold"
+			type="integer" value="95" override="true"/>
+        <!-- If set to true, instruct rsync to produce extra verbose
+        	 output using rsync's "-vv" command line option. Note that
+        	 this is independent of the generic <plugin/verbose> 
+        	 property, which governs verbosity of the plugin itself
+        	 and not specifically rsync.
+        -->
+		<propval name="verbose"
+			type="boolean" value="false" override="true"/>
 	</property_group>
 	</instance>
 

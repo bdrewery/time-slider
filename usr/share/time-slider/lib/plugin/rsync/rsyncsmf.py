@@ -41,6 +41,10 @@ class RsyncSMF(pluginsmf.PluginSMF):
         pluginsmf.PluginSMF.__init__(self, instanceName)
         self._archivedSchedules = None
 
+    def get_cleanup_threshold(self):
+        result = self.get_prop(RSYNCPROPGROUP, "cleanup_threshold").strip()
+        return int(result)
+
     def get_target_dir(self):
         result = self.get_prop(RSYNCPROPGROUP, "target_dir").strip()
         # Strip out '\' characters inserted by svcprop
@@ -66,6 +70,13 @@ class RsyncSMF(pluginsmf.PluginSMF):
             for schedule in archiveList:
                 self._archivedSchedules.append(schedule.strip())
         return self._archivedSchedules
+
+    def get_rsync_verbose(self):
+        value = self.get_prop(RSYNCPROPGROUP, "verbose")
+        if value == "true":
+            return True
+        else:
+            return False
 
     def __str__(self):
         ret = "SMF Instance:\n" +\

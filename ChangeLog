@@ -1,3 +1,58 @@
+2010-05-11 Niall Power - <niall.power@oracle.com>
+
+	* var/svc/manifest/system/filesystem/auto-snapshot.xml:
+	  Update service bundle name and version number to 
+	  SUNWtime-slider and 0.2.96 respectively.
+
+	* var/svc/manifest/application/time-slider-plugin.xml:
+	  Add 2 new properties to define cleanup threshhold level of
+	  rsync backup device and verbosity of rsync output for
+	  debugging purposes.
+
+	* usr/share/time-slider/lib/time_slider/util.py: Adjust
+	  signature of util.debug() to make the verbose argument 
+	  mandatory instead of automatic.
+
+	* usr/share/time-slider/lib/plugin/rsync/rsyncsmf.py:
+	  Add 2 new methods to retrieve cleanup threshhold and rsync
+	  verbosity properties from the rsync SMF service instance.
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Cleanup variable naming, making class private variables
+	  actually private using leading "_" character.
+	  Rename RsyncBackup class to RsyncProcess to me more descriptive.
+	  Add support for rsync verbosity in RsyncProcess class.
+	  Implement better cleanup and space management mechanism:
+	  - Removes old backups in parallel to new rsync backups running
+	    in a separate thread if space falls below threshhold level.
+	  - Identifies what backups can and can't be deleted for a given
+	    new rsync backup based on age and number of backups left for
+	    the associated filesystem.
+	  - Cleanup threshhold tuneable via SMF atic.
+
+	* usr/share/time-slider/lib/plugin/rsync/rsyncsmf.py:
+	  Add 2 new methods to retrieve cleanup threshhold and rsync
+	  verbosity properties from the rsync SMF service instance.
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Add check to make sure config key on target device matches that
+	  stored in SMF before commencing backups.
+	  Cleanup variable naming, making class private variables
+	  actually private using leading "_" character.
+	  Rename RsyncBackup class to RsyncProcess to me more descriptive.
+	  Add support for rsync verbosity in RsyncProcess class.
+	  Implement better cleanup and space management mechanism:
+	  - Removes old backups in parallel to new rsync backups running
+	    in a separate thread if space falls below threshhold level.
+	    Avoids having to make rough, inaccurate guesses about size 
+	    required for new backups because it responds in real time.
+	  - Identifies what backups can and can't be deleted for a given
+	    new rsync backup based on age and number of backups left for
+	    the associated filesystem.
+	  - Cleanup threshhold tuneable via SMF.
+	  - Doesn't try to backup snapshots older than what's already on
+	    the backup device if device is almost full.
+ 
 2010-05-05 Niall Power - <niall.power@oracle.com>
 	* usr/share/time-slider/lib/plugin/rsync/backup.py:
 	  Redesigned queue management and backlog mechanism. Backs up
