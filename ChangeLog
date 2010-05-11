@@ -1,5 +1,16 @@
 2010-05-11 Niall Power - <niall.power@oracle.com>
 
+    * usr/share/time-slider/lib/plugin/rsync/backup.py:
+      Tweak the space management of the rsync device for better
+      performance:
+      - don't scan for deleteables unless the device starts to 
+        exceed threshhold capacity.
+      - Rescan capacity periodically during rsync backup thread
+        lifecycle and rescan for deleteable backups only if
+        device exceeds threshold capacity level.
+
+2010-05-11 Niall Power - <niall.power@oracle.com>
+
 	* var/svc/manifest/system/filesystem/auto-snapshot.xml:
 	  Update service bundle name and version number to 
 	  SUNWtime-slider and 0.2.96 respectively.

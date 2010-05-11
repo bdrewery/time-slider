@@ -642,7 +642,6 @@ class BackupQueue():
             self._remove_dead_backups()
             self._discover_backups()
 
-        deleteables = []
         if len(self._currentQueueSet) == 0:
             # Means we are just getting started or have just completed
             # backup of one full set of snapshots. Clear out anything
@@ -679,46 +678,40 @@ class BackupQueue():
                      ctime,snapName in self._pendingList if \
                      snapName.rsplit("@", 1)[1] == label]
 
-                # If the backup device is nearly full, don't
-                # bother trying to backup anything unless it's
-                # newer than the oldest backup set already on
-                # the device.
-                # This avoids potential situations where if the
-                # backup device has severely limited capacity and
-                # older backups sets were in the queue, newer backups
-                # might get deleted in order to make room for older
-                # ones, creating a downward spiral.
-                capacity = util.get_filesystem_capacity(self._rsyncDir)
-                if capacity > self._cleanupThreshold:
-                    # Check if the ctime of this pending snapshot set
-                    # is older than what's already on the device. If so
-                    # don't try to backup anything.
+        oldestBackupTime, oldestBackup = self._backups[0]
+        qTime, qItem = self._currentQueueSet[0]
 
-                    oldestBackupTime, oldestBackup = self._backups[0]
-                    qTime, qItem = self._currentQueueSet[0]
-                    # Find backups older than qTime that could be deleted
-                    # in order to make room for the curtent pending item.
-                    deleteables = self._find_deleteable_backups(qTime)
+        # If the backup device is nearly full, don't
+        # bother trying to backup anything unless it's
+        # newer than the oldest backup set already on
+        # the device.
+        # This avoids potential situations where if the
+        # backup device has severely limited capacity and
+        # older backups sets were in the queue, newer backups
+        # might get deleted in order to make room for older
+        # ones, creating a downward spiral.
+        capacity = util.get_filesystem_capacity(self._rsyncDir)
+        if capacity > self._cleanupThreshold:
+            # Find backups older than qTime that could in theory
+            # be deleted in order to make room for the curtent
+            # pending item.
+            deleteables = self._find_deleteable_backups(qTime)
 
-                    # If there's nothing that can be deleted in order to make
-                    # room and the snapshot set that we are attempting to 
-                    # backup to the rsync device is older than anything that's
-                    # already on there, don't bother.
-                    if len(deleteables) == 0 and \
-                        qTime < oldestBackupTime:
-                        util.debug("%s has exceeded %d%% of its capacity. " \
-                                   "Skipping pending backups prior to: " \
-                                   "%s" % (self._rsyncDir,
-                                           self._cleanupThreshold,
-                                           time.ctime(oldestBackupTime)),
-                                   self._verbose)
-                        if self._started == True:
-                            self._bus.rsync_complete(self._rsyncBaseDir)
-                        self._bus.rsync_synced()
-                        # Nothing to do exit
-                        if self._mainLoop:
-                            self._mainLoop.quit()
-                        sys.exit(0)
+            if len(deleteables) == 0 and \
+               qTime < oldestBackupTime:
+                util.debug("%s has exceeded %d%% of its capacity. " \
+                            "Skipping pending backups prior to: " \
+                            "%s" % (self._rsyncDir,
+                                    self._cleanupThreshold,
+                                    time.ctime(oldestBackupTime)),
+                            self._verbose)
+                if self._started == True:
+                    self._bus.rsync_complete(self._rsyncBaseDir)
+                self._bus.rsync_synced()
+                # Nothing to do exit
+                if self._mainLoop:
+                    self._mainLoop.quit()
+                sys.exit(0)
 
         if self._started == False:
             self._started = True
@@ -870,14 +863,28 @@ class BackupQueue():
                    self._verbose)
         self._rsyncProc.start_backup()
 
+        warningDone = False
         while self._rsyncProc.is_alive():
             # Monitor backup target capacity while we wait for rsync.
-            # Check how much capacity is in use on the destination directory
-            # If deleteables > 0 it means that threshhold capacity has been
-            # exceeded already - no need to check it again just yet.
-            if len(deleteables) > 0:
-                deleteables = self._recover_space(deleteables)
-            time.sleep(5)
+            capacity = util.get_filesystem_capacity(self._rsyncDir)
+            if capacity > self._cleanupThreshold:
+                # Find backups older than qTime that could in theory
+                # be deleted in order to make room for the curtent
+                # pending item.
+                deleteables = self._find_deleteable_backups(qTime)
+                # Only generate annoying debug message once instead of every
+                # 5 seconds.
+                if warningDone == False:
+                    util.debug("Backup device capacity exceeds %d%%. " \
+                               "Found %d deleteable backups for space " \
+                               "recovery." \
+                                % (capacity, len(deleteables)),
+                                self._verbose)
+                    warningDone = True
+                if len(deleteables) > 0:
+                    deleteables = self._recover_space(deleteables)
+            else:
+                time.sleep(5)
 
         try:
             self._rsyncProc._check_exit_code()
