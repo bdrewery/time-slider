@@ -45,11 +45,15 @@ try:
     gtk.gdk.threads_init()
 except:
     sys.exit(1)
-try:
-    import glib
-    import gobject
-except:
-    sys.exit(1)
+
+import glib
+import gobject
+import dbus
+import dbus.service
+import dbus.mainloop
+import dbus.mainloop.glib
+import dbussvc
+
 
 # This is the rough guess ratio used for rsync backup device size
 # vs. the total size of the pools it's expected to backup.
@@ -112,6 +116,20 @@ class SetupManager:
         self.__datasets = zfs.Datasets()
         self.xml = gtk.glade.XML("%s/../../glade/time-slider-setup.glade" \
                                   % (os.path.dirname(__file__)))
+
+        # Tell dbus to use the gobject mainloop for async ops
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        dbus.mainloop.glib.threads_init()
+
+        # Register a bus name with the system dbus daemon
+        systemBus = dbus.SystemBus()
+        busName = dbus.service.BusName("org.opensolaris.TimeSlider.config",
+                                       systemBus)
+        self._dbus = dbussvc.Config(systemBus,
+                                    '/org/opensolaris/TimeSlider/config')
+        # Used later to trigger a D-Bus notification of select configuration 
+        # changes made
+        self._configNotify = False
 
         # These variables record the initial UI state which are used
         # later to compare against the UI state when the OK or Cancel
@@ -731,7 +749,9 @@ class SetupManager:
             if self._initialEnabledState == True:
                 self.sliderSMF.disable_service()
             # Ignore other changes to the snapshot/rsync configuration
-            # of filesystems. Just exit.
+            # of filesystems. Just broadcast the change and exit.
+            self._configNotify = True
+            self.broadcast_changes()
             gtk.main_quit()
         else:
             model = self.fstv.get_model()
@@ -927,23 +947,30 @@ class SetupManager:
                     sys.exit(-1)
                 self.rsyncSMF.set_target_dir(self.rsyncTargetDir)
                 self.rsyncSMF.set_target_key(newKey)
+                # Applet monitors rsyncTargetDir so make sure to notify it.
+                self._configNotify = True
         return
 
     def setup_services(self):
-        # Take care of the rsync plugin service first
-        # since time-slider will query it.
+        # Take care of the rsync plugin service first since time-slider
+        # will query it.
+        # Changes to rsync or time-slider SMF service State should be
+        # broadcast to let notification applet refresh.
         if self.rsyncEnabled == True and \
             self._initialRsyncState == False:
             self.rsyncSMF.enable_service()
+            self._configNotify = True
         elif self.rsyncEnabled == False and \
             self._initialRsyncState == True:
             self.rsyncSMF.disable_service()
+            self._configNotify = True
         customSelection = self.xml.get_widget("selectfsradio").get_active()
         if customSelection != self._initialCustomSelection:
             self.sliderSMF.set_custom_selection(customSelection)
         if self._initialEnabledState == False:
             enable_default_schedules()
             self.sliderSMF.enable_service()
+            self._configNotify = True
 
     def set_cleanup_level(self):
         """
@@ -953,6 +980,15 @@ class SetupManager:
         level = self.xml.get_widget("capspinbutton").get_value_as_int()
         if level != self._initialCleanupLevel:
             self.sliderSMF.set_cleanup_level("warning", level)
+
+    def broadcast_changes(self):
+        """
+        Blunt instrument to notify D-Bus listeners such as notification
+        applet to rescan service configuration
+        """
+        if self._configNotify == False:
+            return
+        self._dbus.config_changed()
 
     def __on_deletesnapshots_clicked(self, widget):
         cmdpath = os.path.join(os.path.dirname(self.execpath), \
@@ -976,6 +1012,7 @@ class EnableService(threading.Thread):
             self._setupManager.setup_rsync_config()
 
             self._setupManager.setup_services()
+            self._setupManager.broadcast_changes()
         except RuntimeError, message:
             sys.stderr.write(str(message))
 

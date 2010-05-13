@@ -1,3 +1,33 @@
+2010-05-14 Niall Power - <niall.power@oracle.com>
+
+	* etc/dbus-1/system.d/time-slider.conf:
+	  Add service and policy definitions for TimSlider.config
+	  service.
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Deal with backup device being mounted under variable
+	  removable media mount points if not found in it's expected
+	  location. Find and validate alternate mount points.
+
+	* usr/share/time-slider/lib/time_slider/applet.py:
+	  Refactored to allow more modular notification management.
+	  Improved rsync device monitoring by implementing both gio.File
+	  and gio.Volume monitors so we can track mounting/unmounting of
+	  static mounts like nfs/zfs and variable mount points for 
+	  hotpluggable devices. Validate rsync target is correct using
+	  SMF configuration key. Listen to TimeSlider.Config D-Bus events
+	  and refresh configuration when D-Bus notification is received.
+	  Add menu item to enable launching of setup GUI from the applet.
+
+	* usr/share/time-slider/lib/time_slider/dbussvc.py:
+	  Add class and method definition for TimeSlider Config service
+	  notifications.
+
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Register with system D-Bus and send notification of changes
+	  to time-slider and rsync plugin services so the applet can
+	  refresh.
+
 2010-05-13 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/plugin/rsync/backup.py:

@@ -84,3 +84,20 @@ class RsyncBackup(dbus.service.Object):
     def rsync_unsynced(self, queueSize):
         pass
 
+
+class Config(dbus.service.Object):
+    """
+    D-Bus object representing Time Slider service configuration changes.
+    """
+    def __init__(self, bus, path):
+        self._bus = bus
+        dbus.service.Object.__init__(self, 
+                                        bus,  
+                                        path)
+    # Service configuration change signal. Nothing fancy for now. 
+    # Listeners need to figure out what changed for themselves.
+    @dbus.service.signal(dbus_interface="org.opensolaris.TimeSlider.config",
+                         signature='')
+    def config_changed(self):
+        pass
+

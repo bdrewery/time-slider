@@ -32,6 +32,7 @@ import threading
 import math
 import syslog
 import gobject
+import gio
 import dbus
 import shutil
 import copy
@@ -255,22 +256,20 @@ class BackupQueue():
                            "<rsync/cleanup_threshold>: %d." \
                            "Using default value of 95%" \
                            % (self._cleanupThreshold))
-        # Determine the rsync backup dir. This is the target dir
-        # defined by the SMF instance plus the "TIMESLIDER/<nodename>"
-        # suffix
-        self._rsyncBaseDir = self._smfInst.get_target_dir()
-        sys,nodeName,rel,ver,arch = os.uname()
-        self._rsyncDir = os.path.join(self._rsyncBaseDir,
-                                     rsyncsmf.RSYNCDIRPREFIX,
-                                     nodeName)
-        self._keyFile = os.path.join(self._rsyncBaseDir,
-                                     rsyncsmf.RSYNCDIRPREFIX,
-                                     rsyncsmf.RSYNCCONFIGFILE)
+
+        # Base variables for backup device. Will be initialised
+        # later in _find_backup_device()
         self._smfTargetKey = self._smfInst.get_target_key()
+        sys,self._nodeName,rel,ver,arch = os.uname()
+        self._rsyncBaseDir = None
+        self._rsyncDir = None
+        self._keyFile = None
+
         tsSMF = timeslidersmf.TimeSliderSMF()
         self._labelSeparator = tsSMF.get_separator()
         del tsSMF
-
+        # Finally go look for the backup device
+        self._find_backup_device()
 
     def empty_trash_folders(self):
         trashDirs = []
@@ -411,6 +410,73 @@ class BackupQueue():
                 mtime = os.stat(d).st_mtime
                 insort(self._backups, [long(mtime), os.path.abspath(d)])
                 self._backupTimes[dirName][d] = mtime
+
+    def _find_backup_device(self):
+        # Determine the rsync backup dir. This is the target dir
+        # defined by the SMF instance plus the "TIMESLIDER/<nodename>"
+        # suffix. Try finding it at the preconfigured path first,
+        # then failing that, scan removable media mounts, in case it
+        # got remounted under a different path than at setup time.
+        self._rsyncBaseDir = None
+        path = self._smfInst.get_target_dir()
+        if self._validate_rsync_target(path) == True:
+            self._rsyncBaseDir = path
+            util.debug("Backup target device online: %s" % (path),
+                       self._verbose)
+        else:
+            util.debug("Backup target device not mounted at: %s" \
+                       "Scanning removable devices.." \
+                       % (path),
+                       self._verbose)
+            volMonitor = gio.volume_monitor_get()
+            mounts = volMonitor.get_mounts()
+            for mount in mounts:
+                root = mount.get_root()
+                path = root.get_path()
+                if self._validate_rsync_target(path) == True:
+                    util.debug("Located backup target device at: %s" \
+                               % (path),
+                               self._verbose)
+                    self._rsyncBaseDir = path
+
+        if self._rsyncBaseDir != None:
+            self._rsyncDir = os.path.join(self._rsyncBaseDir,
+                                         rsyncsmf.RSYNCDIRPREFIX,
+                                         self._nodeName)
+            self._keyFile = os.path.join(self._rsyncBaseDir,
+                                         rsyncsmf.RSYNCDIRPREFIX,
+                                         rsyncsmf.RSYNCCONFIGFILE)
+
+        
+    def _validate_rsync_target(self, path):
+        """
+           Tests path to see if it is the pre-configured
+           rsync backup device path.
+           Returns True on success, otherwise False
+        """
+        # FIXME - this is duplicate in the applet and should
+        # be moved into a shared module
+        if not os.path.exists(path):
+            return False
+        testDir = os.path.join(path,
+                               rsyncsmf.RSYNCDIRPREFIX,
+                               self._nodeName)
+        testKeyFile = os.path.join(path,
+                                   rsyncsmf.RSYNCDIRPREFIX,
+                                   rsyncsmf.RSYNCCONFIGFILE)
+        if os.path.exists(testDir) and \
+            os.path.exists(testKeyFile):
+            testKeyVal = None
+            f = open(testKeyFile, 'r')
+            for line in f.readlines():
+                key, val = line.strip().split('=')
+                if key.strip() == "target_key":
+                    targetKey = val.strip()
+                    break
+            f.close()
+            if targetKey == self._smfTargetKey:
+                return True
+        return False
 
     def _find_deleteable_backups(self, timestamp):
         """
@@ -585,42 +651,19 @@ class BackupQueue():
     def backup_snapshot(self):
         # First, check to see if the rsync destination
         # directory is accessible.
-        try:
-            os.stat(self._rsyncDir)
-        except OSError:
-            util.debug("Backup target directory is not " \
+
+        if self._rsyncBaseDir == None:
+            util.debug("Backup target device is not " \
                        "accessible right now: %s" \
-                       % (self._rsyncDir),
+                       % (self._smfInst.get_target_dir()),
                        self._verbose)
             self._bus.rsync_unsynced(len(self._pendingList))
             if self._mainLoop:
                 self._mainLoop.quit()
             sys.exit(0)
 
-        # Check its config key matches what's recorded in SMF
-        try:
-            os.stat(self._keyFile)
-        except OSError:
-            util.debug("Backup target directory has no" \
-                       "configuration file. Possibly wrong " \
-                       "or misconfigured device: %s" \
-                       % (self._keyFile),
-                       self._verbose)
-            self._bus.rsync_unsynced(len(self._pendingList))
-            if self._mainLoop:
-                self._mainLoop.quit()
-            sys.exit(0)
-        
-        targetKey = None
-        f = open(self._keyFile, 'r')
-        for line in f.readlines():
-            key, val = line.strip().split('=')
-            if key.strip() == "target_key":
-                targetKey = val.strip()
-                break
-        f.close()
-
-        if targetKey != self._smfTargetKey:
+        # Extra paranoia
+        if self._validate_rsync_target(self._rsyncBaseDir) == False:
             util.debug("Backup target directory does not " \
                        "have a matching configuration key. " \
                        "Possibly old or wrong device: %s" \
