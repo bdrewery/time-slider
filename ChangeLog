@@ -1,13 +1,19 @@
+2010-05-13 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Fix list IndexError exception caused by looking
+	  for non-existent backups on an empty device.
+	
 2010-05-11 Niall Power - <niall.power@oracle.com>
 
-    * usr/share/time-slider/lib/plugin/rsync/backup.py:
-      Tweak the space management of the rsync device for better
-      performance:
-      - don't scan for deleteables unless the device starts to 
-        exceed threshhold capacity.
-      - Rescan capacity periodically during rsync backup thread
-        lifecycle and rescan for deleteable backups only if
-        device exceeds threshold capacity level.
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Tweak the space management of the rsync device for better
+	  performance:
+	  - don't scan for deleteables unless the device starts to 
+	    exceed threshhold capacity.
+	  - Rescan capacity periodically during rsync backup thread
+	    lifecycle and rescan for deleteable backups only if
+	    device exceeds threshold capacity level.
 
 2010-05-11 Niall Power - <niall.power@oracle.com>
 
