@@ -1,3 +1,10 @@
+2010-05-04 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/glade/time-slider-setup.glade:
+	  Fix resizing issue that prevented list view from expanding
+	  to occupy all extra space when window gets vertically
+	  extended.
+
 2010-05-14 Niall Power - <niall.power@oracle.com>
 
 	* etc/dbus-1/system.d/time-slider.conf:
