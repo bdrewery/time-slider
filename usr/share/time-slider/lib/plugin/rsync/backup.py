@@ -1170,8 +1170,9 @@ def list_pending_snapshots(propName):
             propName]
     outdata,errdata = util.run_command(cmd)
     for line in outdata.rstrip().split('\n'):
-        line = line.split()
-        results.append(line)
+        if len(line) > 1:
+            line = line.split()
+            results.append(line)
 
     for name,value in results:
         if value != "pending":

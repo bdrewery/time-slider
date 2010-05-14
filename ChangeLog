@@ -1,4 +1,12 @@
-2010-05-04 Niall Power - <niall.power@oracle.com>
+2010-05-14 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Fix list ValueError in list_pending_snapshots() caused
+	  when rsync plugin is enabled but no fileystems are 
+	  selected for backup. Check that zfs returns something
+	  more than a blank in such cases.
+
+2010-05-14 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/glade/time-slider-setup.glade:
 	  Fix resizing issue that prevented list view from expanding
