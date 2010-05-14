@@ -86,9 +86,16 @@ class Note:
         else:
             self._connect_to_object()
 
-    def _setup_icon_for_note(self): 
+    def _setup_icon_for_note(self, themed=None):
+        if themed:
+            iconList = themed.get_names()
+        else:
+            iconList = ['gnome-dev-harddisk']
+
         iconTheme = gtk.icon_theme_get_default()
-        pixbuf = iconTheme.load_icon("gnome-dev-harddisk", 48, 0)
+        iconInfo = iconTheme.choose_icon(iconList, 48, 0)
+        pixbuf = iconInfo.load_icon()
+
         self._note.set_category("device")
         self._note.set_icon_from_pixbuf(pixbuf)
 
@@ -311,10 +318,16 @@ class RsyncNote(Note):
         if (self._note != None):
             self._note.close()
         # Try to pretty things up a bit by displaying volume name
-        # instead of the raw device path, if possible.
-        volName = path_to_volume_name(target)
-        if volName == None:
+        # and hinted icon instead of the raw device path,
+        # and standard harddisk icon if possible.
+        icon = None
+        volume = path_to_volume(target)
+        if volume == None:
             volName = target
+        else:
+            volName = volume.get_name()
+            icon = volume.get_icon()
+                      
         self._note = pynotify.Notification(_("Backup Started"),
                                            _("Backing up snapshots to:\n<b>%s</b>\n" \
                                            "Do not disconnect the backup device.") \
@@ -322,7 +335,7 @@ class RsyncNote(Note):
         self._note.connect("closed", \
                            self._notification_closed)
         self._note.set_urgency(urgency)
-        self._setup_icon_for_note()
+        self._setup_icon_for_note(icon)
         gobject.idle_add(self._show_notification)
 
     def _rsync_current_handler(self, snapshot, remaining, sender=None, interface=None, path=None):
@@ -335,17 +348,23 @@ class RsyncNote(Note):
         if (self._note != None):
             self._note.close()
         # Try to pretty things up a bit by displaying volume name
-        # instead of the raw device path, if possible.
-        volName = path_to_volume_name(target)
-        if volName == None:
+        # and hinted icon instead of the raw device path,
+        # and standard harddisk icon if possible.
+        icon = None
+        volume = path_to_volume(target)
+        if volume == None:
             volName = target
+        else:
+            volName = volume.get_name()
+            icon = volume.get_icon()
+
         self._note = pynotify.Notification(_("Backup Complete"),
                                            _("Your snapshots have been backed up to:\n<b>%s</b>") \
                                            % (volName))
         self._note.connect("closed", \
                            self._notification_closed)
         self._note.set_urgency(urgency)
-        self._setup_icon_for_note()
+        self._setup_icon_for_note(icon)
         self._icon.set_has_tooltip(False)
         self.queueSize = 0
         gobject.idle_add(self._show_notification)
@@ -599,12 +618,12 @@ class NoteManager():
     def refresh(self):
         self._rsyncNote.refresh()
 
-def path_to_volume_name(path):
+def path_to_volume(path):
     """
        Tries to map a given path name to a gio Volume and
-       returns the user displayable name of the enclosing
+       returns the gio.Volume object the enclosing
        volume.
-       If it fails to find an enclosing mount it returns
+       If it fails to find an enclosing volume it returns
        None
     """
     gFile = gio.File(path)
@@ -615,9 +634,7 @@ def path_to_volume_name(path):
     else:
         if mount != None:
             volume = mount.get_volume()
-            if volume != None:
-                volumeName = volume.get_name()
-                return volumeName
+            return volume
     return None
 
 bus = dbus.SystemBus()

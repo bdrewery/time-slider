@@ -1,3 +1,10 @@
+2010-04-14 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/time_slider/applet.py:
+	  Use icon list hinted by gio.Volume instead of hardcoded
+	  harddisk icon when possible when displaying notifications.
+	  Makes icon more context specific to type of backup device.
+
 2010-05-14 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/applet.py:
