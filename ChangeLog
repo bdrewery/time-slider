@@ -1,3 +1,10 @@
+2010-05-14 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/time_slider/applet.py:
+	  Determine volume name of rsync target if available and
+	  display that instead of the raw mount point in 
+	  notifications. More user friendly.
+
 2010-05-14 Erwann Chenede - <erwann.chenede@sun.com>
 
 	* usr/share/time-slider/glade/time-slider-delete.glade:

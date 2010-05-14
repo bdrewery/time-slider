@@ -310,10 +310,15 @@ class RsyncNote(Note):
         urgency = pynotify.URGENCY_NORMAL
         if (self._note != None):
             self._note.close()
+        # Try to pretty things up a bit by displaying volume name
+        # instead of the raw device path, if possible.
+        volName = path_to_volume_name(target)
+        if volName == None:
+            volName = target
         self._note = pynotify.Notification(_("Backup Started"),
-                                           _("Backing up snapshots to:\n<b>\'%s\'</b>\n" \
+                                           _("Backing up snapshots to:\n<b>%s</b>\n" \
                                            "Do not disconnect the backup device.") \
-                                            % (target))
+                                            % (volName))
         self._note.connect("closed", \
                            self._notification_closed)
         self._note.set_urgency(urgency)
@@ -329,9 +334,14 @@ class RsyncNote(Note):
         urgency = pynotify.URGENCY_NORMAL
         if (self._note != None):
             self._note.close()
+        # Try to pretty things up a bit by displaying volume name
+        # instead of the raw device path, if possible.
+        volName = path_to_volume_name(target)
+        if volName == None:
+            volName = target
         self._note = pynotify.Notification(_("Backup Complete"),
-                                           _("Your snapshots have been backed up to:\n<b>\'%s\'</b>") \
-                                           % (target))
+                                           _("Your snapshots have been backed up to:\n<b>%s</b>") \
+                                           % (volName))
         self._note.connect("closed", \
                            self._notification_closed)
         self._note.set_urgency(urgency)
@@ -588,6 +598,27 @@ class NoteManager():
 
     def refresh(self):
         self._rsyncNote.refresh()
+
+def path_to_volume_name(path):
+    """
+       Tries to map a given path name to a gio Volume and
+       returns the user displayable name of the enclosing
+       volume.
+       If it fails to find an enclosing mount it returns
+       None
+    """
+    gFile = gio.File(path)
+    try:
+        mount = gFile.find_enclosing_mount()
+    except gio.Error:
+        return None
+    else:
+        if mount != None:
+            volume = mount.get_volume()
+            if volume != None:
+                volumeName = volume.get_name()
+                return volumeName
+    return None
 
 bus = dbus.SystemBus()
 
