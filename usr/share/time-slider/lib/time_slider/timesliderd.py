@@ -527,7 +527,7 @@ class SnapshotManager(threading.Thread):
                         util.debug("Destroying zero sized: " + snapname, \
                                    self.verbose)
                         try:
-                            snapshot.destroy_snapshot()
+                            snapshot.destroy()
                         except RuntimeError,message:
                             sys.stderr.write("Failed to destroy snapshot: " +
                                              snapname + "\n")
@@ -560,7 +560,7 @@ class SnapshotManager(threading.Thread):
                     counter += 1
                     continue
             try:
-                snapshot.destroy_snapshot()
+                snapshot.destroy()
             except RuntimeError,message:
                 sys.stderr.write("Failed to destroy snapshot: " +
                                  snapshot.name + "\n")
@@ -783,7 +783,7 @@ class SnapshotManager(threading.Thread):
             # non zero sized.
             util.debug("Destroying %s" % snapname, self.verbose)
             try:
-                snapshot.destroy_snapshot()
+                snapshot.destroy()
             except RuntimeError,message:
                 # Would be nice to be able to mark service as degraded here
                 # but it's better to try to continue on rather than to give

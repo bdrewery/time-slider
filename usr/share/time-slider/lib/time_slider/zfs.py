@@ -728,7 +728,7 @@ class Snapshot(ReadableDataset):
                 return True
         return False
 
-    def destroy_snapshot(self, deferred=True):
+    def destroy(self, deferred=True):
         """
         Permanently remove this snapshot from the filesystem
         Performs deferred destruction by default.

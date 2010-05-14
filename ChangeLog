@@ -1,3 +1,20 @@
+2010-05-14 Erwann Chenede - <erwann.chenede@sun.com>
+
+	* usr/share/time-slider/glade/time-slider-delete.glade:
+	  Added Type combobox
+	* usr/share/time-slider/lib/plugin/pluginsmf.py:
+	  fix import to call this class from a non standard 
+	  location
+	* usr/share/time-slider/lib/time_slider/deletegui.py:
+	  implemented rsync backup visualization and deletion
+	* usr/share/time-slider/lib/time_slider/zfs.py: 
+	  renamed member function destroy_snapshot to destroy 
+	  to reflect allow polymorphic call in deletegui.py
+	  as the list of backup to delete can now be snapshots
+	  or rsync backups.
+	* usr/share/time-slider/lib/time_slider/timesliderd.py:
+	  propagated member function destroy name change.
+
 2010-05-14 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/plugin/rsync/backup.py:

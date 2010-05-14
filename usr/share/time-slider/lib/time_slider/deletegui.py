@@ -26,6 +26,9 @@ import os
 import time
 import getopt
 import locale
+import shutil
+import fcntl
+from bisect import insort
 
 try:
     import pygtk
@@ -43,6 +46,13 @@ try:
     import gobject
 except:
     sys.exit(1)
+
+from os.path import abspath, dirname, join, pardir
+sys.path.insert(0, join(dirname(__file__), pardir, "plugin"))
+import plugin
+sys.path.insert(0, join(dirname(__file__), pardir, "plugin", "rsync"))
+import rsyncsmf
+
 
 # here we define the path constants so that other modules can use it.
 # this allows us to get access to the shared files without having to
@@ -66,12 +76,105 @@ gtk.glade.textdomain(GETTEXT_DOMAIN)
 import zfs
 from rbac import RBACprofile
 
+class RsyncBackup:
+
+    def __init__(self, mountpoint, rsync_dir = None,  fsname= None, snaplabel= None, creationtime= None):
+
+        if rsync_dir == None:
+            self.__init_from_mp (mountpoint)
+        else:
+            self.rsync_dir = rsync_dir
+            self.mountpoint = mountpoint
+            self.fsname = fsname
+            self.snaplabel = snaplabel
+
+            self.creationtime = creationtime
+            try:
+                tm = time.localtime(self.creationtime)
+                self.creationtime_str = unicode(time.strftime ("%c", tm),
+                           locale.getpreferredencoding()).encode('utf-8')
+            except:
+                self.creationtime_str = time.ctime(self.creationtime)
+        fs = zfs.Filesystem (self.fsname)
+        self.zfs_mountpoint = fs.get_mountpoint ()
+
+    def __init_from_mp (self, mountpoint):
+        self.rsyncsmf = rsyncsmf.RsyncSMF("%s:rsync" %(plugin.PLUGINBASEFMRI))
+        rsyncBaseDir = self.rsyncsmf.get_target_dir()
+        sys,nodeName,rel,ver,arch = os.uname()
+        self.rsync_dir = os.path.join(rsyncBaseDir,
+                                     rsyncsmf.RSYNCDIRPREFIX,
+                                     nodeName)
+        self.mountpoint = mountpoint
+
+        s1 = mountpoint.split ("%s/" % self.rsync_dir, 1)
+        s2 = s1[1].split ("/%s" % rsyncsmf.RSYNCDIRSUFFIX, 1)
+        s3 = s2[1].split ('/',2)
+        self.fsname = s2[0]
+        self.snaplabel =  s3[1]
+        self.creationtime = os.stat(mountpoint).st_mtime
+
+    def __str__(self):
+        ret = "self.rsync_dir = %s\n \
+               self.mountpoint = %s\n \
+               self.fsname = %s\n \
+               self.snaplabel = %s\n" % (self.rsync_dir,
+                                         self.mountpoint, self.fsname,
+                                         self.snaplabel)
+        return ret
+
+
+    def exists(self):
+        return os.path.exists(self.mountpoint)
+
+    def destroy(self):
+        lockFileDir = os.path.join(self.rsync_dir,
+                             self.fsname,
+                             rsyncsmf.RSYNCLOCKSUFFIX)
+
+        if not os.path.exists(lockFileDir):
+            os.makedirs(lockFileDir, 0755)
+
+        lockFile = os.path.join(lockFileDir, self.snaplabel + ".lock")
+        try:
+            lockFp = open(lockFile, 'w')
+            fcntl.flock(lockFp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError:
+            raise RuntimeError, \
+            "couldn't delete %s, already used by another process" % self.mountpoint
+            return
+
+        trashDir = os.path.join(self.rsync_dir,
+                          self.fsname,
+                          rsyncsmf.RSYNCTRASHSUFFIX)
+        if not os.path.exists(trashDir):
+            os.makedirs(trashDir, 0755)
+
+        backupTrashDir = os.path.join (self.rsync_dir,
+                                 self.fsname,
+                                 rsyncsmf.RSYNCTRASHSUFFIX,
+                                 self.snaplabel)
+
+        # move then delete
+        os.rename (self.mountpoint, backupTrashDir)
+        shutil.rmtree (backupTrashDir)
+
+        log = "%s/%s/%s/%s.log" % (self.rsync_dir,
+                                   self.fsname,
+                                   rsyncsmf.RSYNCLOGSUFFIX,
+                                   self.snaplabel)
+        if os.path.exists (log):
+            os.unlink (log)
+
+        lockFp.close()
+        os.unlink(lockFile)
+
 class DeleteSnapManager:
 
     def __init__(self, snapshots = None):
         self.xml = gtk.glade.XML("%s/../../glade/time-slider-delete.glade" \
                                   % (os.path.dirname(__file__)))
-        self.snapstodelete = []
+        self.backuptodelete = []
         self.shortcircuit = []
         maindialog = self.xml.get_widget("time-slider-delete")
         self.pulsedialog = self.xml.get_widget("pulsedialog")
@@ -86,12 +189,13 @@ class DeleteSnapManager:
         self.progressdialog = self.xml.get_widget("deletingdialog")
         self.progressdialog.set_transient_for(maindialog)
         self.progressbar = self.xml.get_widget("deletingprogress")
-        # signal dictionary	
+        # signal dictionary
         dic = {"on_closebutton_clicked" : gtk.main_quit,
                "on_window_delete_event" : gtk.main_quit,
                "on_snapshotmanager_delete_event" : gtk.main_quit,
                "on_fsfilterentry_changed" : self.__on_filterentry_changed,
                "on_schedfilterentry_changed" : self.__on_filterentry_changed,
+               "on_typefiltercombo_changed" : self.__on_filterentry_changed,
                "on_selectbutton_clicked" : self.__on_selectbutton_clicked,
                "on_deselectbutton_clicked" : self.__on_deselectbutton_clicked,
                "on_deletebutton_clicked" : self.__on_deletebutton_clicked,
@@ -100,35 +204,10 @@ class DeleteSnapManager:
                "on_errordialog_response" : self.__on_errordialog_response}
         self.xml.signal_autoconnect(dic)
 
-    def __create_snapshot_list_store(self):
-
-        for snapshot in self.snapscanner.snapshots:
-            try:
-                tm = time.localtime(snapshot.get_creation_time())
-                t = unicode(time.strftime ("%c", tm),
-                    locale.getpreferredencoding()).encode('utf-8')
-            except:
-                t = time.ctime(snapshot.get_creation_time())
-            try:
-                mount_point = self.snapscanner.mounts[snapshot.fsname]
-                if (mount_point == "legacy"):
-                    mount_point = _("Legacy")
-                self.liststorefs.append([
-                       mount_point,
-                       snapshot.fsname,
-                       snapshot.snaplabel,
-                       t,
-                       snapshot.get_creation_time(),
-                       snapshot])
-            except KeyError:
-                continue
-                # This will catch exceptions from things we ignore
-                # such as dump and swap volumes and skip over them.
-
     def initialise_view(self):
         if len(self.shortcircuit) == 0:
             # Set TreeViews
-            self.liststorefs = gtk.ListStore(str, str, str, str, long,
+            self.liststorefs = gtk.ListStore(str, str, str, str, str, long,
                                              gobject.TYPE_PYOBJECT)
             list_filter = self.liststorefs.filter_new()
             list_sort = gtk.TreeModelSort(list_filter)
@@ -142,43 +221,67 @@ class DeleteSnapManager:
             cell1 = gtk.CellRendererText()
             cell2 = gtk.CellRendererText()
             cell3 = gtk.CellRendererText()
+            cell4 = gtk.CellRendererText()
+            cell5 = gtk.CellRendererText()
+
+            typecol = gtk.TreeViewColumn(_("Type"),
+                                            cell0, text = 0)
+            typecol.set_sort_column_id(0)
+            typecol.set_resizable(True)
+            typecol.connect("clicked",
+                self.__on_treeviewcol_clicked, 0)
+            self.snaptreeview.append_column(typecol)
 
             mountptcol = gtk.TreeViewColumn(_("Mount Point"),
-                                            cell0, text = 0)
-            mountptcol.set_sort_column_id(0)
+                                            cell1, text = 1)
+            mountptcol.set_sort_column_id(1)
             mountptcol.set_resizable(True)
             mountptcol.connect("clicked",
-                self.__on_treeviewcol_clicked, 0)
+                self.__on_treeviewcol_clicked, 1)
             self.snaptreeview.append_column(mountptcol)
 
             fsnamecol = gtk.TreeViewColumn(_("File System Name"),
-                                           cell1, text = 1)
-            fsnamecol.set_sort_column_id(1)
+                                           cell2, text = 2)
+            fsnamecol.set_sort_column_id(2)
             fsnamecol.set_resizable(True)
             fsnamecol.connect("clicked",
-                self.__on_treeviewcol_clicked, 1)
+                self.__on_treeviewcol_clicked, 2)
             self.snaptreeview.append_column(fsnamecol)
 
             snaplabelcol = gtk.TreeViewColumn(_("Snapshot Name"),
-                                              cell2, text = 2)
-            snaplabelcol.set_sort_column_id(2)
+                                              cell3, text = 3)
+            snaplabelcol.set_sort_column_id(3)
             snaplabelcol.set_resizable(True)
             snaplabelcol.connect("clicked",
-                self.__on_treeviewcol_clicked, 2)
+                self.__on_treeviewcol_clicked, 3)
             self.snaptreeview.append_column(snaplabelcol)
 
+            cell4.props.xalign = 1.0
             creationcol = gtk.TreeViewColumn(_("Creation Time"),
-                                             cell3, text = 3)
-            creationcol.set_sort_column_id(4)
+                                             cell4, text = 4)
+            creationcol.set_sort_column_id(5)
             creationcol.set_resizable(True)
             creationcol.connect("clicked",
-                self.__on_treeviewcol_clicked, 3)
+                self.__on_treeviewcol_clicked, 5)
             self.snaptreeview.append_column(creationcol)
-
 
             # Note to developers.
             # The second element is for internal matching and should not
-            # be i18ned under any circumstances.        
+            # be i18ned under any circumstances.
+            typestore = gtk.ListStore(str, str)
+            typestore.append([_("All"), "All"])
+            typestore.append([_("Backups"), "Backup"])
+            typestore.append([_("Snapshots"), "Snapshot"])
+
+            self.typefiltercombo = self.xml.get_widget("typefiltercombo")
+            self.typefiltercombo.set_model(typestore)
+            typefiltercomboCell = gtk.CellRendererText()
+            self.typefiltercombo.pack_start(typefiltercomboCell, True)
+            self.typefiltercombo.add_attribute(typefiltercomboCell, 'text',0)
+
+            # Note to developers.
+            # The second element is for internal matching and should not
+            # be i18ned under any circumstances.
             fsstore = gtk.ListStore(str, str)
             fslist = self.datasets.list_filesystems()
             fsstore.append([_("All"), None])
@@ -195,11 +298,11 @@ class DeleteSnapManager:
             # The second element is for internal matching and should not
             # be i18ned under any circumstances.
             schedstore.append([_("All"), None])
-            schedstore.append([_("Monthly"), "zfs-auto-snap:monthly"])
-            schedstore.append([_("Weekly"), "zfs-auto-snap:weekly"])
-            schedstore.append([_("Daily"), "zfs-auto-snap:daily"])
-            schedstore.append([_("Hourly"), "zfs-auto-snap:hourly"])
-            schedstore.append([_("1/4 Hourly"), "zfs-auto-snap:frequent"])
+            schedstore.append([_("Monthly"), "monthly"])
+            schedstore.append([_("Weekly"), "weekly"])
+            schedstore.append([_("Daily"), "daily"])
+            schedstore.append([_("Hourly"), "hourly"])
+            schedstore.append([_("1/4 Hourly"), "frequent"])
             self.schedfilterentry = self.xml.get_widget("schedfilterentry")
             self.schedfilterentry.set_model(schedstore)
             self.schedfilterentry.set_text_column(0)
@@ -208,10 +311,13 @@ class DeleteSnapManager:
 
             self.schedfilterentry.set_active(0)
             self.fsfilterentry.set_active(0)
+            self.typefiltercombo.set_active(0)
         else:
             cloned = self.datasets.list_cloned_snapshots()
+            num_snap = 0
+            num_rsync = 0
             for snapname in self.shortcircuit:
-                # Filter out snapshots that are the root 
+                # Filter out snapshots that are the root
                 # of cloned filesystems or volumes
                 try:
                     cloned.index(snapname)
@@ -230,16 +336,35 @@ class DeleteSnapManager:
                     dialog.run()
                     sys.exit(1)
                 except ValueError:
-                    snapshot = zfs.Snapshot(snapname)
-                    self.snapstodelete.append(snapshot)
+                    path = os.path.abspath (snapname)
+                    if not os.path.exists (path):
+                        snapshot = zfs.Snapshot(snapname)
+                        self.backuptodelete.append(snapshot)
+                        num_snap += 1
+                    else:
+                        self.backuptodelete.append(RsyncBackup (snapname))
+                        num_rsync += 1
+
             confirm = self.xml.get_widget("confirmdialog")
             summary = self.xml.get_widget("summarylabel")
-            total = len(self.snapstodelete)
-            if total == 1:
-                summary.set_text(_("1 snapshot will be deleted."))
-            else:
-                summary.set_text(_("%d snapshots will be deleted.") \
-                                 % total)
+            total = len(self.backuptodelete)
+
+            text = ""
+            if num_rsync != 0 :
+                if num_rsync == 1:
+                    text = _("1 external backup will be deleted.")
+                else:
+                    text = _("%d external backups will be deleted.") % num_rsync
+
+            if num_snap != 0 :
+                if len(text) != 0:
+                    text += "\n"
+                if num_snap == 1:
+                    text += _("1 snapshot will be deleted.")
+                else:
+                    text += _("%d snapshots will be deleted.") % num_snap
+
+            summary.set_text(text )
             response = confirm.run()
             if response != 2:
                 sys.exit(0)
@@ -252,8 +377,8 @@ class DeleteSnapManager:
     def __on_treeviewcol_clicked(self, widget, searchcol):
         self.snaptreeview.set_search_column(searchcol)
 
-    def __filter_snapshot_list(self, list, filesys = None, snap = None):
-        if filesys == None and snap == None:
+    def __filter_snapshot_list(self, list, filesys = None, snap = None, btype = None):
+        if filesys == None and snap == None and btype == None:
             return list
         fssublist = []
         if filesys != None:
@@ -270,7 +395,20 @@ class DeleteSnapManager:
                     snaplist.append(snapshot)
         else:
             snaplist = fssublist
-        return snaplist
+
+        typelist = []
+        if btype != None and btype != "All":
+            for item in snaplist:
+                if btype == "Backup":
+                    if isinstance(item, RsyncBackup):
+                        typelist.append (item)
+                else:
+                    if isinstance(item, zfs.Snapshot):
+                        typelist.append (item)
+        else:
+            typelist = snaplist
+
+        return typelist
 
     def __on_filterentry_changed(self, widget):
         # Get the filesystem filter value
@@ -288,10 +426,18 @@ class DeleteSnapManager:
             model = self.schedfilterentry.get_model()
             snap = model.get(iter, 1)[0]
 
+        # Get the type filter value
+        iter = self.typefiltercombo.get_active_iter()
+        if iter == None:
+            type = "All"
+        else:
+            model = self.typefiltercombo.get_model()
+            type = model.get(iter, 1)[0]
+
         self.liststorefs.clear()
         newlist = self.__filter_snapshot_list(self.snapscanner.snapshots,
                     filesys,
-                    snap)
+                    snap, type)
         for snapshot in newlist:
             try:
                 tm = time.localtime(snapshot.get_creation_time())
@@ -303,7 +449,9 @@ class DeleteSnapManager:
                 mount_point = self.snapscanner.mounts[snapshot.fsname]
                 if (mount_point == "legacy"):
                     mount_point = _("Legacy")
+
                 self.liststorefs.append([
+                       _("Snapshot"),
                        mount_point,
                        snapshot.fsname,
                        snapshot.snaplabel,
@@ -314,6 +462,18 @@ class DeleteSnapManager:
                 continue
                 # This will catch exceptions from things we ignore
                 # such as dump as swap volumes and skip over them.
+            # add rsync backups
+        newlist = self.__filter_snapshot_list(self.snapscanner.rsynced_backups,
+                                                filesys,
+                                                snap, type)
+        for backup in newlist:
+            self.liststorefs.append([_("Backup"),
+                                     backup.zfs_mountpoint,
+                                     backup.fsname,
+                                     backup.snaplabel,
+                                     backup.creationtime_str,
+                                     backup.creationtime,
+                                     backup])
 
     def __on_selectbutton_clicked(self, widget):
         selection = self.snaptreeview.get_selection()
@@ -326,43 +486,63 @@ class DeleteSnapManager:
         return
 
     def __on_deletebutton_clicked(self, widget):
-        self.snapstodelete = []
+        self.backuptodelete = []
         selection = self.snaptreeview.get_selection()
         selection.selected_foreach(self.__add_selection)
-        total = len(self.snapstodelete)
+        total = len(self.backuptodelete)
         if total <= 0:
             return
 
         confirm = self.xml.get_widget("confirmdialog")
         summary = self.xml.get_widget("summarylabel")
-        if total == 1:
-            summary.set_text(_("1 snapshot will be deleted."))
-        else:
-            summary.set_text(_("%d snapshots will be deleted.") \
-                       % total)
+
+        num_snap = 0
+        num_rsync = 0
+        for item in self.backuptodelete:
+            if isinstance (item, RsyncBackup):
+                num_rsync+=1
+            else:
+                num_snap+=1
+
+        str = ""
+        if num_rsync != 0 :
+            if num_rsync == 1:
+                str = _("1 external backup will be deleted.")
+            else:
+                str = _("%d external backups will be deleted.") % num_rsync
+
+        if num_snap != 0 :
+            if len(str) != 0:
+                str += "\n"
+            if num_snap == 1:
+                str += _("1 snapshot will be deleted.")
+            else:
+                str += _("%d snapshots will be deleted.") % num_snap
+
+        summary.set_text(str)
         response = confirm.run()
         if response != 2:
             return
         else:
             glib.idle_add(self.__init_delete)
         return
-        
+
     def __init_scan(self):
         self.snapscanner = ScanSnapshots()
         self.pulsedialog.show()
         self.snapscanner.start()
-        glib.timeout_add(100, self.__monitor_scan)  
+        glib.timeout_add(100, self.__monitor_scan)
         return False
 
     def __init_delete(self):
-        self.snapdeleter = DeleteSnapshots(self.snapstodelete)
+        self.snapdeleter = DeleteSnapshots(self.backuptodelete)
         # If there's more than a few snapshots, pop up
         # a progress bar.
-        if len(self.snapstodelete) > 3:
+        if len(self.backuptodelete) > 3:
             self.progressbar.set_fraction(0.0)
-            self.progressdialog.show()        
+            self.progressdialog.show()
         self.snapdeleter.start()
-        glib.timeout_add(300, self.__monitor_deletion)  
+        glib.timeout_add(300, self.__monitor_deletion)
         return False
 
     def __monitor_scan(self):
@@ -379,7 +559,7 @@ class DeleteSnapManager:
                             gtk.BUTTONS_CLOSE,
                             _("Some snapshots could not be read"))
                 dialog.connect("response",
-                            self.on_errordialog_response)                 
+                            self.__on_errordialog_response)
                 for error in self.snapscanner.errors:
                     details = details + error
                 dialog.format_secondary_text(details)
@@ -403,7 +583,7 @@ class DeleteSnapManager:
                             gtk.BUTTONS_CLOSE,
                             _("Some snapshots could not be deleted"))
                 dialog.connect("response",
-                            self.on_errordialog_response)                 
+                            self.__on_errordialog_response)
                 for error in self.snapdeleter.errors:
                     details = details + error
                 dialog.format_secondary_text(details)
@@ -419,12 +599,12 @@ class DeleteSnapManager:
 
     def __refresh_view(self):
         self.liststorefs.clear()
-        glib.idle_add(self.__init_scan)        
-        self.snapstodelete = []
+        glib.idle_add(self.__init_scan)
+        self.backuptodelete = []
 
     def __add_selection(self, treemodel, path, iter):
-        snapshot = treemodel.get(iter, 5)[0]
-        self.snapstodelete.append(snapshot)
+        snapshot = treemodel.get(iter, 6)[0]
+        self.backuptodelete.append(snapshot)
 
     def __on_confirmcancel_clicked(self, widget):
         widget.get_toplevel().hide()
@@ -444,13 +624,52 @@ class ScanSnapshots(threading.Thread):
         self.errors = []
         self.datasets = zfs.Datasets()
         self.snapshots = []
+        self.rsynced_fs = []
+        self.rsynced_backups = []
 
     def run(self):
         self.mounts = self.__get_fs_mountpoints()
+        self.rsyncsmf = rsyncsmf.RsyncSMF("%s:rsync" %(plugin.PLUGINBASEFMRI))
+        self.__get_rsync_backups ()
         self.rescan()
 
+    def __get_rsync_backups (self):
+        # get rsync backup dir
+        self.rsyncsmf = rsyncsmf.RsyncSMF("%s:rsync" %(plugin.PLUGINBASEFMRI))
+        rsyncBaseDir = self.rsyncsmf.get_target_dir()
+        sys,nodeName,rel,ver,arch = os.uname()
+        self.rsyncDir = os.path.join(rsyncBaseDir,
+                                     rsyncsmf.RSYNCDIRPREFIX,
+                                     nodeName)
+        if not os.path.exists(self.rsyncDir):
+            return
+
+        rootBackupDirs = []
+
+        for root, dirs, files in os.walk(self.rsyncDir):
+            if '.time-slider' in dirs:
+                dirs.remove('.time-slider')
+                backupDir = os.path.join(root, rsyncsmf.RSYNCDIRSUFFIX)
+                if os.path.exists(backupDir):
+                    insort(rootBackupDirs, os.path.abspath(backupDir))
+
+        for dirName in rootBackupDirs:
+            os.chdir(dirName)
+            for d in os.listdir(dirName):
+                if os.path.isdir(d) and not os.path.islink(d):
+                    s1 = dirName.split ("%s/" % self.rsyncDir, 1)
+                    s2 = s1[1].split ("/%s" % rsyncsmf.RSYNCDIRSUFFIX, 1)
+                    fs = s2[0]
+
+                    rb = RsyncBackup ("%s/%s" %(dirName, d),
+                                      self.rsyncDir,
+                                      fs,
+                                      d,
+                                      os.stat(d).st_mtime)
+                    self.rsynced_backups.append (rb)
+
     def __get_fs_mountpoints(self):
-        """Returns a dictionary mapping: 
+        """Returns a dictionary mapping:
            {filesystem : mountpoint}"""
         result = {}
         for filesys,mountpoint in self.datasets.list_filesystems():
@@ -461,8 +680,8 @@ class ScanSnapshots(threading.Thread):
         cloned = self.datasets.list_cloned_snapshots()
         self.snapshots = []
         snaplist = self.datasets.list_snapshots()
-        for snapname,snaptime in snaplist:  
-            # Filter out snapshots that are the root 
+        for snapname,snaptime in snaplist:
+            # Filter out snapshots that are the root
             # of cloned filesystems or volumes
             try:
                 cloned.index(snapname)
@@ -474,7 +693,7 @@ class DeleteSnapshots(threading.Thread):
 
     def __init__(self, snapshots):
         threading.Thread.__init__(self)
-        self.snapstodelete = snapshots
+        self.backuptodelete = snapshots
         self.started = False
         self.completed = False
         self.progress = 0.0
@@ -483,15 +702,15 @@ class DeleteSnapshots(threading.Thread):
     def run(self):
         deleted = 0
         self.started = True
-        total = len(self.snapstodelete)
-        for snapshot in self.snapstodelete:
-            # The snapshot could have expired and been automatically
+        total = len(self.backuptodelete)
+        for backup in self.backuptodelete:
+            # The backup could have expired and been automatically
             # destroyed since the user selected it. Check that it
-            # still exists before attempting to delete it. If it 
+            # still exists before attempting to delete it. If it
             # doesn't exist just silently ignore it.
-            if snapshot.exists():
+            if backup.exists():
                 try:
-                    snapshot.destroy_snapshot()
+                    backup.destroy ()
                 except RuntimeError, inst:
                     self.errors.append(str(inst))
             deleted += 1
@@ -504,16 +723,7 @@ def main(argv):
     except getopt.GetoptError:
         sys.exit(2)
     rbacp = RBACprofile()
-    # The user security attributes checked are the following:
-    # 1. The "Primary Administrator" role
-    # 4. The "ZFS Files System Management" profile.
-    #
-    # Valid combinations of the above are:
-    # - 1 or 4
-    # Note that an effective UID=0 will match any profile search so
-    # no need to check it explicitly.
-    if rbacp.has_profile("Primary Administrator") or \
-            rbacp.has_profile("ZFS File System Management"):
+    if os.geteuid() == 0:
         if len(args) > 0:
             manager = DeleteSnapManager(args)
         else:
@@ -522,6 +732,16 @@ def main(argv):
         glib.idle_add(manager.initialise_view)
         gtk.main()
         gtk.gdk.threads_leave()
+    elif rbacp.has_profile("Primary Administrator") or \
+            rbacp.has_profile("ZFS File System Management"):
+        # Run via pfexec, which will launch the GUI as superuser
+        arguments = []
+        arguments.append ("pfexec")
+        arguments.append (argv)
+        arguments += args
+        os.execv("/usr/bin/pfexec", arguments)
+        # Shouldn't reach this point
+        sys.exit(1)
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):
         # Run via gksu, which will prompt for the root password
         newargs = ["gksu", argv]
@@ -544,4 +764,3 @@ def main(argv):
         dialog.run()
         print argv + "is not a valid executable path"
         sys.exit(1)
-

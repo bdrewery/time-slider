@@ -23,7 +23,8 @@
 import os
 import sys
 import subprocess
-
+from os.path import abspath, dirname, join, pardir
+sys.path.insert(0, join(dirname(__file__), pardir))
 from time_slider import smf, autosnapsmf, util
 
 
