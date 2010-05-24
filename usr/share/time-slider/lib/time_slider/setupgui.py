@@ -231,7 +231,7 @@ class SetupManager:
         cell0.connect('toggled', self._row_toggled)
         cell1.connect('toggled', self._rsync_cell_toggled)
         advancedBox = self._xml.get_widget("advancedbox")
-        advancedBox.connect('unmap', self._avcancedbox_unmap)  
+        advancedBox.connect('unmap', self._advancedbox_unmap)  
 
         self._rsyncSMF = rsyncsmf.RsyncSMF("%s:rsync" \
                                           %(plugin.PLUGINBASEFMRI))
@@ -1039,7 +1039,7 @@ class SetupManager:
        if widget.get_active() == True:
             self._xml.get_widget("fstreeview").set_sensitive(True)
 
-    def _avcancedbox_unmap(self, widget):
+    def _advancedbox_unmap(self, widget):
         # Auto shrink the window by subtracting the frame's height
         # requistion from the window's height requisition
         myrequest = widget.size_request()

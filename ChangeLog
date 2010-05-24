@@ -1,5 +1,10 @@
 2010-05-24 Niall Power - <niall.power@oracle.com>
 
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Fix minor function spelling typo
+
+2010-05-24 Niall Power - <niall.power@oracle.com>
+
 	* usr/share/time-slider/glade/time-slider-setup.glade:
 	  Replace GtkFileChooser combo widget with standard
 	  GtkComboBox
