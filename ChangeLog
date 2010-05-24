@@ -1,4 +1,31 @@
-2010-04-14 Niall Power - <niall.power@oracle.com>
+2010-05-24 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/glade/time-slider-setup.glade:
+	  Replace GtkFileChooser combo widget with standard
+	  GtkComboBox
+
+	* usr/share/time-slider/lib/time_slider/applet.py:
+	  User path_tol_volume() from util library instead of
+	  private copy
+
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Replace standard GtkFileChooser logic with custom combo
+	  box implementation that is more tailored towards selecting
+	  a backup device rather than a generic path. Is able to 
+	  handle an offline/unmounted previously configured backup
+	  device gracefully (impossible with stock widget). Doesn't
+	  show meaningless shortcuts like Home, Documents, etc. either
+	  Cleanup of code, renamed variables to use camel case and 
+	  made unnecessarily public class variables private.
+	  Changed order of target validation tests to check if the
+	  device supports posix style links before checking if it's
+	  empty. Means user doesn't have to delete everything on a
+	  PCFS/FAT32 device only then to find out it's still unsuitable.
+
+	* usr/share/time-slider/lib/time_slider/util.py: Move previously
+	  private function path_to_volume(path) here so it can be shared.
+
+2010-05-14 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/applet.py:
 	  Use icon list hinted by gio.Volume instead of hardcoded

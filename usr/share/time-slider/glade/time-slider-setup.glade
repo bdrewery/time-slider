@@ -109,18 +109,19 @@
                                     <child>
                                       <widget class="GtkLabel" id="label10">
                                         <property name="visible">True</property>
-                                        <property name="label" translatable="yes">Drive Location:</property>
+                                        <property name="xalign">0</property>
+                                        <property name="label" translatable="yes">Backup Device:</property>
                                       </widget>
                                       <packing>
                                         <property name="expand">False</property>
+                                        <property name="fill">False</property>
                                         <property name="position">0</property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkFileChooserButton" id="rsyncchooser">
+                                      <widget class="GtkComboBox" id="rsyncdevcombo">
                                         <property name="visible">True</property>
-                                        <property name="action">select-folder</property>
-                                        <property name="title" translatable="yes">Select External Back Up Drive</property>
+                                        <property name="items" translatable="yes"></property>
                                       </widget>
                                       <packing>
                                         <property name="position">1</property>
@@ -284,7 +285,6 @@
                                             <property name="adjustment">0 0 100 1 10 0</property>
                                             <property name="numeric">True</property>
                                             <property name="update_policy">if-valid</property>
-                                            <signal name="value_changed" handler="on_capspinbutton_value_changed"/>
                                           </widget>
                                           <packing>
                                             <property name="expand">False</property>

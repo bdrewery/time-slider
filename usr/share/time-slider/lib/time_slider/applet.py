@@ -321,7 +321,7 @@ class RsyncNote(Note):
         # and hinted icon instead of the raw device path,
         # and standard harddisk icon if possible.
         icon = None
-        volume = path_to_volume(target)
+        volume = util.path_to_volume(target)
         if volume == None:
             volName = target
         else:
@@ -351,7 +351,7 @@ class RsyncNote(Note):
         # and hinted icon instead of the raw device path,
         # and standard harddisk icon if possible.
         icon = None
-        volume = path_to_volume(target)
+        volume = util.path_to_volume(target)
         if volume == None:
             volName = target
         else:
@@ -617,25 +617,6 @@ class NoteManager():
 
     def refresh(self):
         self._rsyncNote.refresh()
-
-def path_to_volume(path):
-    """
-       Tries to map a given path name to a gio Volume and
-       returns the gio.Volume object the enclosing
-       volume.
-       If it fails to find an enclosing volume it returns
-       None
-    """
-    gFile = gio.File(path)
-    try:
-        mount = gFile.find_enclosing_mount()
-    except gio.Error:
-        return None
-    else:
-        if mount != None:
-            volume = mount.get_volume()
-            return volume
-    return None
 
 bus = dbus.SystemBus()
 

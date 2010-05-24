@@ -26,6 +26,7 @@ import sys
 import syslog
 import statvfs
 import math
+import gio
 
 def run_command(command):
     """
@@ -112,3 +113,22 @@ def get_total_size(path):
     total = long(f[statvfs.F_BLOCKS] * f[statvfs.F_FRSIZE])
 
     return total
+
+def path_to_volume(path):
+    """
+       Tries to map a given path name to a gio Volume and
+       returns the gio.Volume object the enclosing
+       volume.
+       If it fails to find an enclosing volume it returns
+       None
+    """
+    gFile = gio.File(path)
+    try:
+        mount = gFile.find_enclosing_mount()
+    except gio.Error:
+        return None
+    else:
+        if mount != None:
+            volume = mount.get_volume()
+            return volume
+    return None

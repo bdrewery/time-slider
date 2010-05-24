@@ -48,6 +48,7 @@ except:
 
 import glib
 import gobject
+import gio
 import dbus
 import dbus.service
 import dbus.mainloop
@@ -112,9 +113,9 @@ class FilesystemIntention:
 class SetupManager:
 
     def __init__(self, execpath):
-        self.execpath = execpath
-        self.__datasets = zfs.Datasets()
-        self.xml = gtk.glade.XML("%s/../../glade/time-slider-setup.glade" \
+        self._execPath = execpath
+        self._datasets = zfs.Datasets()
+        self._xml = gtk.glade.XML("%s/../../glade/time-slider-setup.glade" \
                                   % (os.path.dirname(__file__)))
 
         # Tell dbus to use the gobject mainloop for async ops
@@ -147,38 +148,31 @@ class SetupManager:
         self._initialRsyncIntentDic = {}
 
         # Currently selected rsync backup device via the GUI.
-        self.rsyncTargetDir = None
+        self._newRsyncTargetDir = None
         # Used to store GUI filesystem selection state and the
         # set of intended properties to apply to zfs filesystems.
-        self.snapstatedic = {}
-        self.fsintentdic = {}
-        self.rsyncintentdic = {}
+        self._snapStateDic = {}
+        self._rsyncStateDic = {}
+        self._fsIntentDic = {}
+        self._rsyncIntentDic = {}
         # Dictionary that maps device ID numbers to zfs filesystem objects
-        self.fsDevices = {}
+        self._fsDevices = {}
 
-        # signal dictionary	
-        dic = {"on_ok_clicked" : self.__on_ok_clicked,
-               "on_cancel_clicked" : gtk.main_quit,
-               "on_snapshotmanager_delete_event" : gtk.main_quit,
-               "on_enablebutton_toggled" : self.__on_enablebutton_toggled,
-               "on_rsyncbutton_toggled" : self.__on_rsyncbutton_toggled,
-               "on_defaultfsradio_toggled" : self.__on_defaultfsradio_toggled,
-               "on_selectfsradio_toggled" : self.__on_selectfsradio_toggled,
-               "on_capspinbutton_value_changed" : self.__on_capspinbutton_value_changed,
-               "on_deletesnapshots_clicked" : self.__on_deletesnapshots_clicked}
-        self.xml.signal_autoconnect(dic)
-        topLevel = self.xml.get_widget("toplevel")
-        self._pulseDialog = self.xml.get_widget("pulsedialog")
+        topLevel = self._xml.get_widget("toplevel")
+        self._pulseDialog = self._xml.get_widget("pulsedialog")
         self._pulseDialog.set_transient_for(topLevel)
+        
+        # gio.VolumeMonitor reference
+        self._vm = gio.volume_monitor_get()
+        self._vm.connect("mount-added", self._mount_added)
+        self._vm.connect("mount-removed" , self._mount_removed)
 
-
-
-        self.liststorefs = gtk.ListStore(bool,
+        self._fsListStore = gtk.ListStore(bool,
                                          bool,
                                          str,
                                          str,
                                          gobject.TYPE_PYOBJECT)
-        filesystems = self.__datasets.list_filesystems()
+        filesystems = self._datasets.list_filesystems()
         for fsname,fsmountpoint in filesystems:
             if (fsmountpoint == "legacy"):
                 mountpoint = _("Legacy")
@@ -187,7 +181,7 @@ class SetupManager:
             fs = zfs.Filesystem(fsname, fsmountpoint)
             # Note that we don't deal with legacy mountpoints.
             if fsmountpoint != "legacy" and fs.is_mounted():
-                self.fsDevices[os.stat(fsmountpoint).st_dev] = fs
+                self._fsDevices[os.stat(fsmountpoint).st_dev] = fs
             snap = fs.get_auto_snap()
             rsyncstr = fs.get_user_property(rsyncsmf.RSYNCFSTAG)
             if rsyncstr == "true":
@@ -196,74 +190,130 @@ class SetupManager:
                 rsync = False
             # Rsync is only performed on snapshotted filesystems.
             # So treat as False if rsync is set to true independently
-            self.liststorefs.append([snap, snap & rsync,
+            self._fsListStore.append([snap, snap & rsync,
                                      mountpoint, fs.name, fs])
             self._initialSnapStateDic[fs.name] = snap
             self._initialRsyncStateDic[fs.name] = snap & rsync
         for fsname in self._initialSnapStateDic:
-                self.__refine_filesys_actions(fsname,
+                self._refine_filesys_actions(fsname,
                                               self._initialSnapStateDic,
                                               self._initialFsIntentDic)
-                self.__refine_filesys_actions(fsname,
+                self._refine_filesys_actions(fsname,
                                               self._initialRsyncStateDic,
                                               self._initialRsyncIntentDic)
    
-        self.fstv = self.xml.get_widget("fstreeview")
-        self.fstv.set_sensitive(False)
+        self._fsTreeView = self._xml.get_widget("fstreeview")
+        self._fsTreeView.set_sensitive(False)
         # FIXME: A bit hacky but it seems to work nicely
-        self.fstv.set_size_request(10,
+        self._fsTreeView.set_size_request(10,
                                    100 + (len(filesystems) - 2) *
                                    10)
         del filesystems
-        self.fstv.set_model(self.liststorefs)
+        self._fsTreeView.set_model(self._fsListStore)
 
-        self.cell0 = gtk.CellRendererToggle()
-        self.cell1 = gtk.CellRendererToggle()
-        self.cell2 = gtk.CellRendererText()
-        self.cell3 = gtk.CellRendererText()
+        cell0 = gtk.CellRendererToggle()
+        cell1 = gtk.CellRendererToggle()
+        cell2 = gtk.CellRendererText()
+        cell3 = gtk.CellRendererText()
  
-        self.tvradiocol = gtk.TreeViewColumn(_("Select"),
-                                             self.cell0, active=0)
-        self.fstv.insert_column(self.tvradiocol, 0)
+        radioColumn = gtk.TreeViewColumn(_("Select"),
+                                             cell0, active=0)
+        self._fsTreeView.insert_column(radioColumn, 0)
 
-        self.rsyncradiocol = gtk.TreeViewColumn(_("Replicate"),
-                                             self.cell1, active=1)
+        self._rsyncRadioColumn = gtk.TreeViewColumn(_("Replicate"),
+                                                    cell1, active=1)
+        nameColumn = gtk.TreeViewColumn(_("Mount Point"),
+                                        cell2, text=2)
+        self._fsTreeView.insert_column(nameColumn, 2)
+        mountPointColumn = gtk.TreeViewColumn(_("File System Name"),
+                                              cell3, text=3)
+        self._fsTreeView.insert_column(mountPointColumn, 3)
+        cell0.connect('toggled', self._row_toggled)
+        cell1.connect('toggled', self._rsync_cell_toggled)
+        advancedBox = self._xml.get_widget("advancedbox")
+        advancedBox.connect('unmap', self._avcancedbox_unmap)  
 
-        self.TvNameCol = gtk.TreeViewColumn(_("Mount Point"),
-                                            self.cell2, text=2)
-        self.fstv.insert_column(self.TvNameCol, 2)
-        self.TvMountpointCol = gtk.TreeViewColumn(_("File System Name"),
-                                                  self.cell3, text=3)
-        self.fstv.insert_column(self.TvMountpointCol, 3)
-        self.cell0.connect('toggled', self.__row_toggled)
-        self.cell1.connect('toggled', self.__rsync_cell_toggled)
-        advancedbox = self.xml.get_widget("advancedbox")
-        advancedbox.connect('unmap', self.__advancedbox_unmap)  
-
-        self.rsyncSMF = rsyncsmf.RsyncSMF("%s:rsync" \
+        self._rsyncSMF = rsyncsmf.RsyncSMF("%s:rsync" \
                                           %(plugin.PLUGINBASEFMRI))
-        state = self.rsyncSMF.get_service_state()
-        self._initialRsyncTargetDir = self.rsyncSMF.get_target_dir()
-        self.rsyncTargetDir = self._initialRsyncTargetDir
+        state = self._rsyncSMF.get_service_state()
+        self._initialRsyncTargetDir = self._rsyncSMF.get_target_dir()
+        # Check for the default, unset value of "" from SMF.
+        if self._initialRsyncTargetDir == '""':
+            self._initialRsyncTargetDir = ''
+        self._newRsyncTargetDir = self._initialRsyncTargetDir
+        self._smfTargetKey = self._rsyncSMF.get_target_key()
+        self._newRsyncTargetSelected = False
+        sys,self._nodeName,rel,ver,arch = os.uname()
 
-        rsyncChooser = self.xml.get_widget("rsyncchooser")
-        rsyncChooser.set_current_folder(self.rsyncTargetDir)
+        # Model columns:
+        # 0 Themed icon list (python list)
+        # 1 device root
+        # 2 volume name
+        # 3 Is gio.Mount device
+        # 4 Is separator (for comboBox separator rendering)
+        self._rsyncStore = gtk.ListStore(gobject.TYPE_PYOBJECT,
+                                         gobject.TYPE_STRING,
+                                         gobject.TYPE_STRING,
+                                         gobject.TYPE_BOOLEAN,
+                                         gobject.TYPE_BOOLEAN)
+        self._rsyncCombo = self._xml.get_widget("rsyncdevcombo")
+        mounts = self._vm.get_mounts()
+        for mount in mounts:
+            self._mount_added(self._vm, mount)
+        if len(mounts) > 0:
+            # Add a separator
+            self._rsyncStore.append((None, None, None, None, True))
+        del mounts
+
+        if len(self._newRsyncTargetDir) == 0:
+            self._rsyncStore.append((['folder'],
+                                    _("(None)"),
+                                    '',
+                                    False,
+                                    False))
+            # Add a separator
+            self._rsyncStore.append((None, None, None, None, True))
+        self._rsyncStore.append((None, _("Other..."), "Other", False, False))
+        self._iconCell = gtk.CellRendererPixbuf()
+        self._nameCell = gtk.CellRendererText()
+        self._rsyncCombo.clear()
+        self._rsyncCombo.pack_start(self._iconCell, False)
+        self._rsyncCombo.set_cell_data_func(self._iconCell,
+                                            self._icon_cell_render)
+        self._rsyncCombo.pack_end(self._nameCell)
+        self._rsyncCombo.set_attributes(self._nameCell, text=1)
+        self._rsyncCombo.set_row_separator_func(self._row_separator)
+        self._rsyncCombo.set_model(self._rsyncStore)
+        self._rsyncCombo.connect("changed", self._rsync_combo_changed)
+        # Force selection of currently configured device
+        self._rsync_dev_selected(self._newRsyncTargetDir)
+
+        # signal dictionary	
+        dic = {"on_ok_clicked" : self._on_ok_clicked,
+               "on_cancel_clicked" : gtk.main_quit,
+               "on_snapshotmanager_delete_event" : gtk.main_quit,
+               "on_enablebutton_toggled" : self._on_enablebutton_toggled,
+               "on_rsyncbutton_toggled" : self._on_rsyncbutton_toggled,
+               "on_defaultfsradio_toggled" : self._on_defaultfsradio_toggled,
+               "on_selectfsradio_toggled" : self._on_selectfsradio_toggled,
+               "on_deletesnapshots_clicked" : self._on_deletesnapshots_clicked}
+        self._xml.signal_autoconnect(dic)
 
         if state != "disabled":
-            self.rsyncEnabled = True
-            self.xml.get_widget("rsyncbutton").set_active(True)
+            self._rsyncEnabled = True
+            self._xml.get_widget("rsyncbutton").set_active(True)
             self._initialRsyncState = True
         else:
-            self.rsyncEnabled = False
-            rsyncChooser.set_sensitive(False)
+            self._rsyncEnabled = False
+            self._rsyncCombo.set_sensitive(False)
             self._initialRsyncState = False
 
         # Initialise SMF service instance state.
         try:
-            self.sliderSMF = TimeSliderSMF()
+            self._sliderSMF = TimeSliderSMF()
         except RuntimeError,message:
-            self.xml.get_widget("toplevel").set_sensitive(False)
-            dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
+            self._xml.get_widget("toplevel").set_sensitive(False)
+            dialog = gtk.MessageDialog(self._xml.get_widget("toplevel"),
                                        0,
                                        gtk.MESSAGE_ERROR,
                                        gtk.BUTTONS_CLOSE,
@@ -278,14 +328,14 @@ class SetupManager:
             dialog.run()
             sys.exit(1)
 
-        if self.sliderSMF.svcstate == "disabled":
-            self.xml.get_widget("enablebutton").set_active(False)
+        if self._sliderSMF.svcstate == "disabled":
+            self._xml.get_widget("enablebutton").set_active(False)
             self._initialEnabledState = False
-        elif self.sliderSMF.svcstate == "offline":
-            self.xml.get_widget("toplevel").set_sensitive(False)
+        elif self._sliderSMF.svcstate == "offline":
+            self._xml.get_widget("toplevel").set_sensitive(False)
             errors = ''.join("%s\n" % (error) for error in \
-                self.sliderSMF.find_dependency_errors())
-            dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
+                self._sliderSMF.find_dependency_errors())
+            dialog = gtk.MessageDialog(self._xml.get_widget("toplevel"),
                                         0,
                                         gtk.MESSAGE_ERROR,
                                         gtk.BUTTONS_CLOSE,
@@ -299,9 +349,9 @@ class SetupManager:
             dialog.set_icon_name("time-slider-setup")
             dialog.run()
             sys.exit(1)
-        elif self.sliderSMF.svcstate == "maintenance":
-            self.xml.get_widget("toplevel").set_sensitive(False)
-            dialog = gtk.MessageDialog(self.xml.get_widget("toplevel"),
+        elif self._sliderSMF.svcstate == "maintenance":
+            self._xml.get_widget("toplevel").set_sensitive(False)
+            dialog = gtk.MessageDialog(self._xml.get_widget("toplevel"),
                                         0,
                                         gtk.MESSAGE_ERROR,
                                         gtk.BUTTONS_CLOSE,
@@ -316,27 +366,27 @@ class SetupManager:
             sys.exit(1)
         else:
             # FIXME: Check transitional states 
-            self.xml.get_widget("enablebutton").set_active(True)
+            self._xml.get_widget("enablebutton").set_active(True)
             self._initialEnabledState = True
 
 
         # Emit a toggled signal so that the initial GUI state is consistent
-        self.xml.get_widget("enablebutton").emit("toggled")
+        self._xml.get_widget("enablebutton").emit("toggled")
         # Check the snapshotting policy (UserData (default), or Custom)
-        self._initialCustomSelection = self.sliderSMF.is_custom_selection()
+        self._initialCustomSelection = self._sliderSMF.is_custom_selection()
         if self._initialCustomSelection == True:
-            self.xml.get_widget("selectfsradio").set_active(True)
+            self._xml.get_widget("selectfsradio").set_active(True)
             # Show the advanced controls so the user can see the
             # customised configuration.
-            if self.sliderSMF.svcstate != "disabled":
-                self.xml.get_widget("expander").set_expanded(True)
+            if self._sliderSMF.svcstate != "disabled":
+                self._xml.get_widget("expander").set_expanded(True)
         else: # "false" or any other non "true" value
-            self.xml.get_widget("defaultfsradio").set_active(True)
+            self._xml.get_widget("defaultfsradio").set_active(True)
 
         # Set the cleanup threshhold value
-        spinButton = self.xml.get_widget("capspinbutton")
-        critLevel = self.sliderSMF.get_cleanup_level("critical")
-        warnLevel = self.sliderSMF.get_cleanup_level("warning")
+        spinButton = self._xml.get_widget("capspinbutton")
+        critLevel = self._sliderSMF.get_cleanup_level("critical")
+        warnLevel = self._sliderSMF.get_cleanup_level("warning")
 
         # Force the warning level to something practical
         # on the lower end, and make it no greater than the
@@ -348,36 +398,130 @@ class SetupManager:
         else:
             spinButton.set_value(70)
 
-    def __monitor_setup(self, pulseBar):
+    def _icon_cell_render(self, celllayout, cell, model, iter):
+        iconList = self._rsyncStore.get_value(iter, 0)
+        if iconList != None:
+            gicon = gio.ThemedIcon(iconList)
+            cell.set_property("gicon", gicon)
+        else:
+            root = self._rsyncStore.get_value(iter, 2)
+            if root == "Other":
+                cell.set_property("gicon", None)
+
+    def _row_separator(self, model, iter):
+        return model.get_value(iter, 4)
+
+    def _mount_added(self, volume_monitor, mount):
+        icon = mount.get_icon()
+        iconList = icon.get_names()
+        if iconList == None:
+            iconList = ['drive-harddisk', 'drive']
+        root = mount.get_root()
+        path = root.get_path()
+        mountName = mount.get_name()
+        volume = mount.get_volume()
+        if volume == None:
+            volName = mount.get_name()
+            if volName == None:
+                volName = os.path.split(path)[1]
+        else:
+            volName = volume.get_name()
+
+        # Check to see if there is at least one gio.Mount device already
+        # in the ListStore. If not, then we also need to add a separator
+        # row.
+        iter = self._rsyncStore.get_iter_first()
+        if iter and self._rsyncStore.get_value(iter, 3) == False:
+            self._rsyncStore.insert(0, (None, None, None, None, True))
+        
+        self._rsyncStore.insert(0, (iconList, volName, path, True, False))
+        # If this happens to be the already configured backup device
+        # and the user hasn't tried to change device yet, auto select
+        # it.
+        if self._initialRsyncTargetDir == self._newRsyncTargetDir:
+            if self._validate_rsync_target(path) == True:
+                self._rsyncCombo.set_active(0)
+
+    def _mount_removed(self, volume_monitor, mount):
+        root = mount.get_root()
+        path = root.get_path()
+        iter = self._rsyncStore.get_iter_first()
+        mountIter = None
+        numMounts = 0
+        # Search gio.Mount devices
+        while iter != None and \
+            self._rsyncStore.get_value(iter, 3) == True:
+            numMounts += 1
+            compPath = self._rsyncStore.get_value(iter, 2)
+            if compPath == path:
+                mountIter = iter
+                break
+            else:
+                iter = self._rsyncStore.iter_next(iter)
+        if mountIter != None:
+            if numMounts == 1:
+                # Need to remove the separator also since
+                # there will be no more gio.Mount devices
+                # shown in the combo box
+                sepIter = self._rsyncStore.iter_next(mountIter)
+                if self._rsyncStore.get_value(sepIter, 4) == True:
+                    self._rsyncStore.remove(sepIter)                  
+            self._rsyncStore.remove(mountIter)
+            iter = self._rsyncStore.get_iter_first()
+            # Insert a custom folder if none exists already
+            if self._rsyncStore.get_value(iter, 2) == "Other":
+                path = self._initialRsyncTargetDir
+                length = len(path)
+                if length > 1:
+                    name = os.path.split(path)[1]
+                elif length == 1:
+                    name = path
+                else: # Indicates path is unset: ''
+                    name = _("(None)")
+                iter = self._rsyncStore.insert_before(iter,
+                                                      (None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       True))
+                iter = self._rsyncStore.insert_before(iter,
+                                                      (['folder'],
+                                                       name,
+                                                       path,
+                                                       False,
+                                                       False))
+            self._rsyncCombo.set_active_iter(iter)
+
+    def _monitor_setup(self, pulseBar):
         if self._enabler.isAlive() == True:
             pulseBar.pulse()
             return True
         else:
             gtk.main_quit()   
 
-    def __row_toggled(self, renderer, path):
-        model = self.fstv.get_model()
+    def _row_toggled(self, renderer, path):
+        model = self._fsTreeView.get_model()
         iter = model.get_iter(path)
         state = renderer.get_active()
         if state == False:
-            self.liststorefs.set_value(iter, 0, True)
+            self._fsListStore.set_value(iter, 0, True)
         else:
-            self.liststorefs.set_value(iter, 0, False)
-            self.liststorefs.set_value(iter, 1, False)
+            self._fsListStore.set_value(iter, 0, False)
+            self._fsListStore.set_value(iter, 1, False)
 
-    def __rsync_cell_toggled(self, renderer, path):
-        model = self.fstv.get_model()
+    def _rsync_cell_toggled(self, renderer, path):
+        model = self._fsTreeView.get_model()
         iter = model.get_iter(path)
         state = renderer.get_active()
-        rowstate = self.liststorefs.get_value(iter, 0)
+        rowstate = self._fsListStore.get_value(iter, 0)
         if rowstate == True:
             if state == False:
-                self.liststorefs.set_value(iter, 1, True)
+                self._fsListStore.set_value(iter, 1, True)
             else:
-                self.liststorefs.set_value(iter, 1, False)
+                self._fsListStore.set_value(iter, 1, False)
 
-    def __rsync_config_error(self, msg):
-        topLevel = self.xml.get_widget("toplevel")
+    def _rsync_config_error(self, msg):
+        topLevel = self._xml.get_widget("toplevel")
         dialog = gtk.MessageDialog(topLevel,
                                     0,
                                     gtk.MESSAGE_ERROR,
@@ -389,7 +533,85 @@ class SetupManager:
         dialog.hide()
         return
 
-    def __rsync_size_warning(self, zpools, zpoolSize,
+    def _rsync_dev_selected(self, path):
+        iter = self._rsyncStore.get_iter_first()
+        while iter != None:
+            # Break out when we hit a non gio.Mount device
+            if self._rsyncStore.get_value(iter, 3) == False:
+                break
+            compPath = self._rsyncStore.get_value(iter, 2)
+            if compPath == path:
+                self._rsyncCombo.set_active_iter(iter)
+                self._newRsyncTargetDir = path
+                return
+            else:
+                iter = self._rsyncStore.iter_next(iter)
+
+        # Not one of the shortcut RMM devices, so it's
+        # some other path on the filesystem.
+        # iter may be pointing at a separator. Increment
+        # to next row iter if so.
+        if self._rsyncStore.get_value(iter, 4) == True:
+            iter = self._rsyncStore.iter_next(iter)
+
+        if iter != None:
+            if len(path) > 1:
+                name = os.path.split(path)[1]
+            elif len(path) == 1:
+                name = path
+            else: # Indicates path is unset: ''
+                name = _("(None)")
+            # Could be either the custom folder selection
+            # row or the  "Other" row if the custom row
+            # was not created. If "Other" then create the
+            # custom row and separator now at this position
+            if self._rsyncStore.get_value(iter, 2) == "Other":
+                iter = self._rsyncStore.insert_before(iter,
+                                                      (None,
+                                                       None,
+                                                       None,
+                                                       None,
+                                                       True))
+                iter = self._rsyncStore.insert_before(iter,
+                                                      (['folder'],
+                                                       name,
+                                                       path,
+                                                       False,
+                                                       False))
+            else:
+                self._rsyncStore.set(iter,
+                                     1, name,
+                                     2, path)
+            self._rsyncCombo.set_active_iter(iter)
+            self._newRsyncTargetDir = path
+
+    def _rsync_combo_changed(self, combobox):
+        newIter = combobox.get_active_iter()
+        if newIter != None:
+            root = self._rsyncStore.get_value(newIter, 2)
+            if root != "Other":
+                self._newRsyncTargetDir = root
+            else:
+                msg = _("Select A Back Up Device")
+                fileDialog = \
+                    gtk.FileChooserDialog(
+                        msg,
+                        self._xml.get_widget("toplevel"),
+                        gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                        (gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
+                        gtk.STOCK_OK,gtk.RESPONSE_OK),
+                        None)
+                self._rsyncCombo.set_sensitive(False)
+                response = fileDialog.run()
+                fileDialog.hide()
+                if response == gtk.RESPONSE_OK:
+                    gFile = fileDialog.get_file()
+                    self._rsync_dev_selected(gFile.get_path())
+                else:
+                    self._rsync_dev_selected(self._newRsyncTargetDir)
+                self._rsyncCombo.set_sensitive(True)
+
+    def _rsync_size_warning(self, zpools, zpoolSize,
                              rsyncTarget, targetSize):
         # Using decimal "GB" instead of binary "GiB"
         KB = 1000
@@ -419,7 +641,7 @@ class SetupManager:
                 "Do you want to use it anyway?") \
                 % (sizeStr, rsyncTarget, targetStr)
 
-        topLevel = self.xml.get_widget("toplevel")
+        topLevel = self._xml.get_widget("toplevel")
         dialog = gtk.MessageDialog(topLevel,
                                    0,
                                    gtk.MESSAGE_QUESTION,
@@ -437,7 +659,7 @@ class SetupManager:
         else:
             return False
 
-    def __check_rsync_config(self):
+    def _check_rsync_config(self):
         """
            Checks rsync configuration including, filesystem selection,
            target directory validation and capacity checks.
@@ -449,18 +671,65 @@ class SetupManager:
             if os.path.ismount(path):
                 return path
             else:
-                return _get_mount_point(join(path, pardir))
+                return _get_mount_point(abspath(join(path, pardir)))
 
-        if self.rsyncEnabled != True:
+        if self._rsyncEnabled != True:
+            return True
+
+        if len(self._newRsyncTargetDir) == 0:
+            msg = _("No backup device was selected.\n"
+                    "Please select an empty device.")
+            self._rsync_config_error(msg)
+            return False
+        # There's little that can be done if the device is from a
+        # previous configuration and currently offline. So just 
+        # treat it as being OK based on the assumption that it was
+        # previously deemed to be OK.
+        if self._initialRsyncTargetDir == self._newRsyncTargetDir and \
+           not os.path.exists(self._newRsyncTargetDir):
             return True
         # Perform the required validation checks on the
         # target directory.
-        rsyncChooser = self.xml.get_widget("rsyncchooser")
-        newTargetDir = rsyncChooser.get_file().get_path()
+        newTargetDir = self._newRsyncTargetDir
 
         # We require the whole device. So find the enclosing
         # mount point and inspect from there.
         targetMountPoint = abspath(_get_mount_point(newTargetDir))
+
+        # Check that it's writable.
+        f = None
+        testFile = os.path.join(targetMountPoint, ".ts-test")
+        try:
+            f = open(testFile, 'w')
+        except (OSError, IOError):
+            msg = _("\'%s\'\n"
+                    "is not writable. The backup device must "
+                    "be writeable by the system admistrator." 
+                    "\n\nPlease use a different device.") \
+                    % (targetMountPoint)
+            self._rsync_config_error(msg)
+            return False
+        f.close()
+
+        # Try to create a symlink. Rsync requires this to
+        # do incremental backups and to ensure it's posix like
+        # enough to correctly set file ownerships and perms.
+        os.chdir(targetMountPoint)
+        try:
+            os.link(testFile, ".ts-test-link")
+        except OSError:
+            msg = _("\'%s\'\n"
+                    "contains an incompatible file system. " 
+                    "The selected device must have a Unix "
+                    "style file system that supports file "
+                    "linking, such as UFS"
+                    "\n\nPlease use a different device.") \
+                    % (targetMountPoint)
+            self._rsync_config_error(msg)
+            return False
+        finally:
+            os.unlink(testFile)
+        os.unlink(".ts-test-link")
 
         # Check that selected directory is either empty
         # or already preconfigured as a backup target
@@ -471,7 +740,7 @@ class SetupManager:
                                 nodeName)
         configPath = os.path.join(basePath,
                                     rsyncsmf.RSYNCCONFIGFILE)
-        self.newRsyncTarget = True
+        self._newRsyncTargetSelected = True
         targetDirKey = None
 
         contents = os.listdir(targetMountPoint)
@@ -487,7 +756,7 @@ class SetupManager:
                 msg = _("\'%s\'\n is not an empty device.\n\n"
                         "Please select an empty device.") \
                         % (newTargetDir)
-                self.__rsync_config_error(msg)
+                self._rsync_config_error(msg)
                 return False
 
         # Validate existing directory structure
@@ -506,7 +775,6 @@ class SetupManager:
                     if key.strip() == "target_key":
                         targetDirKey = val.strip()
                         break
-            self._smfTargetKey = self.rsyncSMF.get_target_key()
 
             # Examine anything else in the directory
             self._targetSelectionError = None
@@ -520,12 +788,12 @@ class SetupManager:
                 # No config key or > 1 directory:
                 # User specified a non empty directory.
                 if targetDirKey == None or len(dirList) > 1:
-                    self.__rsync_config_error(msg)
+                    self._rsync_config_error(msg)
                     return False
                 # Make sure the single item is not a file or symlink.
                 elif os.path.islink(dirList[0]) or \
                         os.path.isfile(dirList[0]):
-                    self.__rsync_config_error(msg)
+                    self._rsync_config_error(msg)
                     return False
                 else:
                     # Has 1 other item and a config key. Other
@@ -541,7 +809,7 @@ class SetupManager:
                                 "systems." 
                                 "\n\nPlease use a different device.") \
                                 % (newTargetDir)
-                        self.__rsync_config_error(msg)                                
+                        self._rsync_config_error(msg)                                
                         return False
                     else:
                         if dirList[0] == nodeName and \
@@ -555,7 +823,7 @@ class SetupManager:
                                     "this device for backups?") \
                                     % (newTargetDir)
 
-                            topLevel = self.xml.get_widget("toplevel")
+                            topLevel = self._xml.get_widget("toplevel")
                             dialog = gtk.MessageDialog(topLevel,
                                                        0,
                                                        gtk.MESSAGE_QUESTION,
@@ -572,44 +840,7 @@ class SetupManager:
                                 return False
                         else:
                             # Appears to be our own pre-configured directory.
-                            self.newRsyncTarget = False
-
-        # If it's a new directory check that it's writable.
-        if self.newRsyncTarget == True:
-            f = None
-            testFile = os.path.join(targetMountPoint, ".ts-test")
-            try:
-                f = open(testFile, 'w')
-            except (OSError, IOError):
-                msg = _("\'%s\'\n"
-                        "is not writable. The backup device must "
-                        "be writeable by the system admistrator." 
-                        "\n\nPlease use a different device.") \
-                        % (targetMountPoint)
-                self.__rsync_config_error(msg)
-                return False
-            f.close()
-
-            # Try to create a symlink. Rsync requires this to
-            # do incremental backups and to ensure it's posix like
-            # enough to correctly set file ownerships and perms.
-            os.chdir(targetMountPoint)
-            try:
-                os.link(testFile, ".ts-test-link")
-            except OSError:
-                msg = _("\'%s\'\n"
-                        "contains an incompatible file system. " 
-                        "The selected device must have a Unix "
-                        "style file system that supports file "
-                        "linking, such as UFS"
-                        "\n\nPlease use a different device.") \
-                        % (targetMountPoint)
-                self.__rsync_config_error(msg)
-                return False
-            finally:
-                os.unlink(testFile)
-            os.unlink(".ts-test-link")
-
+                            self._newRsyncTargetSelected = False
 
         # Compare device ID against selected ZFS filesystems
         # and their enclosing Zpools. The aim is to avoid
@@ -617,12 +848,12 @@ class SetupManager:
         # the same pool the snapshots originate from
         targetDev = os.stat(newTargetDir).st_dev
         try:
-            fs = self.fsDevices[targetDev]
+            fs = self._fsDevices[targetDev]
             
             # See if the filesystem itself is selected
             # and/or any other fileystem on the pool is 
             # selected.
-            fsEnabled = self.snapstatedic[fs.name]
+            fsEnabled = self._snapStateDic[fs.name]
             if fsEnabled == True:
                 # Definitely can't use this since it's a
                 # snapshotted filesystem.
@@ -634,17 +865,17 @@ class SetupManager:
                         "not already in use by "
                         "Time Slider") \
                         % (newTargetDir, fs.name)
-                self.__rsync_config_error(msg)
+                self._rsync_config_error(msg)
                 return False
             else:
                 # See if there is anything else on the pool being
                 # snapshotted
                 poolName = fs.name.split("/", 1)[0]
-                for name,mount in self.__datasets.list_filesystems():
+                for name,mount in self._datasets.list_filesystems():
                     if name.find(poolName) == 0:
                         try:
-                            otherEnabled = self.snapstatedic[name]
-                            radioBtn = self.xml.get_widget("defaultfsradio")
+                            otherEnabled = self._snapStateDic[name]
+                            radioBtn = self._xml.get_widget("defaultfsradio")
                             snapAll = radioBtn.get_active()
                             if snapAll or otherEnabled:
                                 msg = _("\'%s\'\n"
@@ -655,7 +886,7 @@ class SetupManager:
                                         "not already in use by "
                                         "Time Slider") \
                                         % (newTargetDir, poolName)
-                                self.__rsync_config_error(msg)
+                                self._rsync_config_error(msg)
                                 return False
                         except KeyError:
                             pass               
@@ -681,8 +912,8 @@ class SetupManager:
                 # the GUI, so not crucial.
                 for fsName,mount in pool.list_filesystems():
                     # Don't try to catch exception. The filesystems
-                    # are already populated in self.snapstatedic
-                    enabled = self.snapstatedic[fsName]
+                    # are already populated in self._snapStateDic
+                    enabled = self._snapStateDic[fsName]
                     if enabled == True:
                         snapPools.append(poolName)
                         break
@@ -725,120 +956,116 @@ class SetupManager:
 
         targetPoolRatio = targetSum/float(sumPoolSize)
         if (targetPoolRatio < RSYNCTARGETRATIO):
-            response = self.__rsync_size_warning(snapPools,
+            response = self._rsync_size_warning(snapPools,
                                                  sumPoolSize,
                                                  targetMountPoint,
                                                  targetSum)
             if response == False:
                 return False
 
-        self.rsyncTargetDir = targetMountPoint
+        self._newRsyncTargetDir = targetMountPoint
         return True
 
-    def __on_ok_clicked(self, widget):
+    def _on_ok_clicked(self, widget):
         # Make sure the dictionaries are empty.
-        self.fsintentdic = {}
-        self.snapstatedic = {}
-        self.rsyncstatedic = {}
-        enabled = self.xml.get_widget("enablebutton").get_active()
-        self.rsyncEnabled = self.xml.get_widget("rsyncbutton").get_active()
+        self._fsIntentDic = {}
+        self._snapStateDic = {}
+        self._rsyncStateDic = {}
+        enabled = self._xml.get_widget("enablebutton").get_active()
+        self._rsyncEnabled = self._xml.get_widget("rsyncbutton").get_active()
         if enabled == False:
-            if self.rsyncEnabled == False and \
+            if self._rsyncEnabled == False and \
                self._initialRsyncState == True:
-                self.rsyncSMF.disable_service()
+                self._rsyncSMF.disable_service()
             if self._initialEnabledState == True:
-                self.sliderSMF.disable_service()
+                self._sliderSMF.disable_service()
             # Ignore other changes to the snapshot/rsync configuration
             # of filesystems. Just broadcast the change and exit.
             self._configNotify = True
             self.broadcast_changes()
             gtk.main_quit()
         else:
-            model = self.fstv.get_model()
-            snapalldata = self.xml.get_widget("defaultfsradio").get_active()
+            model = self._fsTreeView.get_model()
+            snapalldata = self._xml.get_widget("defaultfsradio").get_active()
                 
             if snapalldata == True:
-                model.foreach(self.__set_fs_selection_state, True)
-                if self.rsyncEnabled == True:
-                    model.foreach(self.__set_rsync_selection_state, True)
+                model.foreach(self._set_fs_selection_state, True)
+                if self._rsyncEnabled == True:
+                    model.foreach(self._set_rsync_selection_state, True)
             else:
-                model.foreach(self.__get_fs_selection_state)
-                model.foreach(self.__get_rsync_selection_state)
-            for fsname in self.snapstatedic:
-                self.__refine_filesys_actions(fsname,
-                                              self.snapstatedic,
-                                              self.fsintentdic)
-                if self.rsyncEnabled == True:
-                    self.__refine_filesys_actions(fsname,
-                                                  self.rsyncstatedic,
-                                                  self.rsyncintentdic)
-            if self.rsyncEnabled and \
-               not self.__check_rsync_config():
+                model.foreach(self._get_fs_selection_state)
+                model.foreach(self._get_rsync_selection_state)
+            for fsname in self._snapStateDic:
+                self._refine_filesys_actions(fsname,
+                                              self._snapStateDic,
+                                              self._fsIntentDic)
+                if self._rsyncEnabled == True:
+                    self._refine_filesys_actions(fsname,
+                                                  self._rsyncStateDic,
+                                                  self._rsyncIntentDic)
+            if self._rsyncEnabled and \
+               not self._check_rsync_config():
                     return
 
             self._pulseDialog.show()
             self._enabler = EnableService(self)
             self._enabler.start()
             glib.timeout_add(100,
-                             self.__monitor_setup,
-                             self.xml.get_widget("pulsebar"))
+                             self._monitor_setup,
+                             self._xml.get_widget("pulsebar"))
 
-    def __on_enablebutton_toggled(self, widget):
-        expander = self.xml.get_widget("expander")
+    def _on_enablebutton_toggled(self, widget):
+        expander = self._xml.get_widget("expander")
         enabled = widget.get_active()
-        self.xml.get_widget("filesysframe").set_sensitive(enabled)
+        self._xml.get_widget("filesysframe").set_sensitive(enabled)
         expander.set_sensitive(enabled)
-        self.enabled = enabled
         if (enabled == False):
             expander.set_expanded(False)
 
-    def __on_rsyncbutton_toggled(self, widget):
-        self.rsyncEnabled = widget.get_active()
-        if self.rsyncEnabled == True:
-            self.fstv.insert_column(self.rsyncradiocol, 1)
-            self.xml.get_widget("rsyncchooser").set_sensitive(True)
+    def _on_rsyncbutton_toggled(self, widget):
+        self._rsyncEnabled = widget.get_active()
+        if self._rsyncEnabled == True:
+            self._fsTreeView.insert_column(self._rsyncRadioColumn, 1)
+            self._rsyncCombo.set_sensitive(True)
         else:
-            self.fstv.remove_column(self.rsyncradiocol)
-            self.xml.get_widget("rsyncchooser").set_sensitive(False)
+            self._fsTreeView.remove_column(self._rsyncRadioColumn)
+            self._rsyncCombo.set_sensitive(False)
 
-    def __on_defaultfsradio_toggled(self, widget):
+    def _on_defaultfsradio_toggled(self, widget):
         if widget.get_active() == True:
-            self.xml.get_widget("fstreeview").set_sensitive(False)
+            self._xml.get_widget("fstreeview").set_sensitive(False)
 
-    def __on_selectfsradio_toggled(self, widget):
+    def _on_selectfsradio_toggled(self, widget):
        if widget.get_active() == True:
-            self.xml.get_widget("fstreeview").set_sensitive(True)
+            self._xml.get_widget("fstreeview").set_sensitive(True)
 
-    def __on_capspinbutton_value_changed(self, widget):
-        pass
-
-    def __advancedbox_unmap(self, widget):
+    def _avcancedbox_unmap(self, widget):
         # Auto shrink the window by subtracting the frame's height
         # requistion from the window's height requisition
         myrequest = widget.size_request()
-        toplevel = self.xml.get_widget("toplevel")
+        toplevel = self._xml.get_widget("toplevel")
         toprequest = toplevel.size_request()
         toplevel.resize(toprequest[0], toprequest[1] - myrequest[1])
 
-    def __get_fs_selection_state(self, model, path, iter):
-        fsname = self.liststorefs.get_value(iter, 3)    
-        enabled = self.liststorefs.get_value(iter, 0)
-        self.snapstatedic[fsname] = enabled
+    def _get_fs_selection_state(self, model, path, iter):
+        fsname = self._fsListStore.get_value(iter, 3)    
+        enabled = self._fsListStore.get_value(iter, 0)
+        self._snapStateDic[fsname] = enabled
 
-    def __get_rsync_selection_state(self, model, path, iter):
-        fsname = self.liststorefs.get_value(iter, 3)
-        enabled = self.liststorefs.get_value(iter, 1)
-        self.rsyncstatedic[fsname] = enabled
+    def _get_rsync_selection_state(self, model, path, iter):
+        fsname = self._fsListStore.get_value(iter, 3)
+        enabled = self._fsListStore.get_value(iter, 1)
+        self._rsyncStateDic[fsname] = enabled
 
-    def __set_fs_selection_state(self, model, path, iter, selected):
-        fsname = self.liststorefs.get_value(iter, 3)
-        self.snapstatedic[fsname] = selected
+    def _set_fs_selection_state(self, model, path, iter, selected):
+        fsname = self._fsListStore.get_value(iter, 3)
+        self._snapStateDic[fsname] = selected
 
-    def __set_rsync_selection_state(self, model, path, iter, selected):
-        fsname = self.liststorefs.get_value(iter, 3)
-        self.rsyncstatedic[fsname] = selected
+    def _set_rsync_selection_state(self, model, path, iter, selected):
+        fsname = self._fsListStore.get_value(iter, 3)
+        self._rsyncStateDic[fsname] = selected
 
-    def __refine_filesys_actions(self, fsname, inputdic, actions):
+    def _refine_filesys_actions(self, fsname, inputdic, actions):
         selected = inputdic[fsname]
         try:
             fstag = actions[fsname]
@@ -847,32 +1074,62 @@ class SetupManager:
             # Need to check parent value to see if
             # we should set explicitly or just inherit.
             path = fsname.rsplit("/", 1)
-            parentname = path[0]
-            if parentname == fsname:
+            parentName = path[0]
+            if parentName == fsname:
                 # Means this filesystem is the root of the pool
                 # so we need to set it explicitly.
                 actions[fsname] = \
                     FilesystemIntention(fsname, selected, False)
             else:
-                parentintent = None
+                parentIntent = None
                 inherit = False
                 # Check if parent is already set and if so whether to
                 # inherit or override with a locally set property value.
                 try:
                     # Parent has already been registered
-                    parentintent = actions[parentname]
+                    parentIntent = actions[parentName]
                 except:
                     # Parent not yet set, so do that recursively to figure
                     # out if we need to inherit or set a local property on
                     # this child filesystem.
-                    self.__refine_filesys_actions(parentname,
+                    self._refine_filesys_actions(parentName,
                                                   inputdic,
                                                   actions)
-                    parentintent = actions[parentname]
-                if parentintent.selected == selected:
+                    parentIntent = actions[parentName]
+                if parentIntent.selected == selected:
                     inherit = True
                 actions[fsname] = \
                     FilesystemIntention(fsname, selected, inherit)
+
+    def _validate_rsync_target(self, path):
+        """
+            Tests path to see if it is the pre-configured
+            rsync backup device path.
+            Returns True on success, otherwise False
+        """
+        # FIXME - this is duplicate in applet.py and rsync-backup.py
+        # It should be moved into a shared module
+        if not os.path.exists(path):
+            return False
+        testDir = os.path.join(path,
+                                rsyncsmf.RSYNCDIRPREFIX,
+                                self._nodeName)
+        testKeyFile = os.path.join(path,
+                                    rsyncsmf.RSYNCDIRPREFIX,
+                                    rsyncsmf.RSYNCCONFIGFILE)
+        if os.path.exists(testDir) and \
+            os.path.exists(testKeyFile):
+            testKeyVal = None
+            f = open(testKeyFile, 'r')
+            for line in f.readlines():
+                key, val = line.strip().split('=')
+                if key.strip() == "target_key":
+                    targetKey = val.strip()
+                    break
+            f.close()
+            if targetKey == self._smfTargetKey:
+                return True
+        return False
 
 
     def commit_filesystem_selection(self):
@@ -881,11 +1138,11 @@ class SetupManager:
         user's UI configuration to disk. Compares with initial startup
         configuration and applies the minimum set of necessary changes.
         """
-        for fsname,fsmountpoint in self.__datasets.list_filesystems():
+        for fsname,fsmountpoint in self._datasets.list_filesystems():
             fs = zfs.Filesystem(fsname, fsmountpoint)
             try:
                 initialIntent = self._initialFsIntentDic[fsname]
-                intent = self.fsintentdic[fsname]
+                intent = self._fsIntentDic[fsname]
                 if intent == initialIntent:
                     continue
                 fs.set_auto_snap(intent.selected, intent.inherited)
@@ -899,11 +1156,11 @@ class SetupManager:
         user's UI configuration to disk. Compares with initial startup
         configuration and applies the minimum set of necessary changes.
         """
-        for fsname,fsmountpoint in self.__datasets.list_filesystems():
+        for fsname,fsmountpoint in self._datasets.list_filesystems():
             fs = zfs.Filesystem(fsname, fsmountpoint)
             try:
                 initialIntent = self._initialRsyncIntentDic[fsname]
-                intent = self.rsyncintentdic[fsname]
+                intent = self._rsyncIntentDic[fsname]
                 if intent == initialIntent:
                     continue
                 if intent.inherited == True and \
@@ -920,15 +1177,15 @@ class SetupManager:
                 pass
 
     def setup_rsync_config(self):
-        if self.rsyncEnabled == True:
-            if self.rsyncTargetDir != self._initialRsyncTargetDir:
+        if self._rsyncEnabled == True:
+            if self._newRsyncTargetSelected == True:
                 sys,nodeName,rel,ver,arch = os.uname()
-                basePath = os.path.join(self.rsyncTargetDir,
+                basePath = os.path.join(self._newRsyncTargetDir,
                                         rsyncsmf.RSYNCDIRPREFIX,)
                 nodePath = os.path.join(basePath,
                                         nodeName)
                 configPath = os.path.join(basePath,
-                                            rsyncsmf.RSYNCCONFIGFILE)
+                                          rsyncsmf.RSYNCCONFIGFILE)
                 newKey = generate_random_key()
                 try:
                     origmask = os.umask(0222)
@@ -943,10 +1200,10 @@ class SetupManager:
                     sys.stderr.write("Error configuring external " \
                                      "backup device:\n" \
                                      "%s\n\nReason:\n %s") \
-                                     % (self.rsyncTargetDir, str(e))
+                                     % (self._newRsyncTargetDir, str(e))
                     sys.exit(-1)
-                self.rsyncSMF.set_target_dir(self.rsyncTargetDir)
-                self.rsyncSMF.set_target_key(newKey)
+                self._rsyncSMF.set_target_dir(self._newRsyncTargetDir)
+                self._rsyncSMF.set_target_key(newKey)
                 # Applet monitors rsyncTargetDir so make sure to notify it.
                 self._configNotify = True
         return
@@ -956,20 +1213,20 @@ class SetupManager:
         # will query it.
         # Changes to rsync or time-slider SMF service State should be
         # broadcast to let notification applet refresh.
-        if self.rsyncEnabled == True and \
+        if self._rsyncEnabled == True and \
             self._initialRsyncState == False:
-            self.rsyncSMF.enable_service()
+            self._rsyncSMF.enable_service()
             self._configNotify = True
-        elif self.rsyncEnabled == False and \
+        elif self._rsyncEnabled == False and \
             self._initialRsyncState == True:
-            self.rsyncSMF.disable_service()
+            self._rsyncSMF.disable_service()
             self._configNotify = True
-        customSelection = self.xml.get_widget("selectfsradio").get_active()
+        customSelection = self._xml.get_widget("selectfsradio").get_active()
         if customSelection != self._initialCustomSelection:
-            self.sliderSMF.set_custom_selection(customSelection)
+            self._sliderSMF.set_custom_selection(customSelection)
         if self._initialEnabledState == False:
             enable_default_schedules()
-            self.sliderSMF.enable_service()
+            self._sliderSMF.enable_service()
             self._configNotify = True
 
     def set_cleanup_level(self):
@@ -977,9 +1234,9 @@ class SetupManager:
         Wrapper function to set the warning level cleanup threshold
         value as a percentage of pool capacity.
         """
-        level = self.xml.get_widget("capspinbutton").get_value_as_int()
+        level = self._xml.get_widget("capspinbutton").get_value_as_int()
         if level != self._initialCleanupLevel:
-            self.sliderSMF.set_cleanup_level("warning", level)
+            self._sliderSMF.set_cleanup_level("warning", level)
 
     def broadcast_changes(self):
         """
@@ -990,8 +1247,8 @@ class SetupManager:
             return
         self._dbus.config_changed()
 
-    def __on_deletesnapshots_clicked(self, widget):
-        cmdpath = os.path.join(os.path.dirname(self.execpath), \
+    def _on_deletesnapshots_clicked(self, widget):
+        cmdpath = os.path.join(os.path.dirname(self._execPath), \
                                "../lib/time-slider-delete")
         p = subprocess.Popen(cmdpath, close_fds=True)
 
@@ -1010,7 +1267,6 @@ class EnableService(threading.Thread):
             self._setupManager.commit_rsync_selection()
             self._setupManager.set_cleanup_level()
             self._setupManager.setup_rsync_config()
-
             self._setupManager.setup_services()
             self._setupManager.broadcast_changes()
         except RuntimeError, message:
@@ -1047,11 +1303,13 @@ def main(argv):
         gtk.gdk.threads_leave()
     elif rbacp.has_profile("Primary Administrator"):
         # Run via pfexec, which will launch the GUI as superuser
+        os.unsetenv("DBUS_SESSION_BUS_ADDRESS")
         os.execl("/usr/bin/pfexec", "pfexec", argv)
         # Shouldn't reach this point
         sys.exit(1)
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):
         # Run via gksu, which will prompt for the root password
+        os.unsetenv("DBUS_SESSION_BUS_ADDRESS")
         os.execl("/usr/bin/gksu", "gksu", argv)
         # Shouldn't reach this point
         sys.exit(1)
