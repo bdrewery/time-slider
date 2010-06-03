@@ -1,3 +1,9 @@
+2010-06-04 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/time_slider/applet.py:
+	  Register menu callback in Note class instantiation to
+	  avoid multiple registration of same callback.
+
 2010-05-24 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/setupgui.py:

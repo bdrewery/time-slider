@@ -44,16 +44,19 @@ sys.path.insert(0, join(dirname(__file__), pardir, "plugin", "rsync"))
 import backup, rsyncsmf
 
 class Note:
+    _iconConnected = False
 
     def __init__(self, icon, menu):
         self._note = None
         self._msgDialog = None
         self._menu = menu
         self._icon = icon
-        self._icon.connect("popup-menu", self._activate_menu)
+        if Note._iconConnected == False:
+            self._icon.connect("popup-menu", self._popup_menu)
+            Note._iconConnected = True
         self._icon.set_visible(True)
 
-    def _activate_menu(self, icon, button, time):
+    def _popup_menu(self, icon, button, time):
         if button == 3:
             # Don't popup an empty menu
             if len(self._menu.get_children()) > 0:
@@ -611,9 +614,13 @@ class NoteManager():
         self._menu = gtk.Menu()
         self._icon = gtk.StatusIcon()
         self._icon.set_from_icon_name("time-slider-setup")
-        self._setupNote = SetupNote(self._icon, self._menu, self)
-        self._cleanupNote = CleanupNote(self._icon, self._menu)
-        self._rsyncNote = RsyncNote(self._icon, self._menu)
+        self._setupNote = SetupNote(self._icon,
+                                    self._menu,
+                                    self)
+        self._cleanupNote = CleanupNote(self._icon,
+                                        self._menu)
+        self._rsyncNote = RsyncNote(self._icon,
+                                    self._menu)
 
     def refresh(self):
         self._rsyncNote.refresh()
