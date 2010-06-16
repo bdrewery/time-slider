@@ -1,3 +1,9 @@
+2010-06-16 Niall Power - <niall.power@oracle.com>
+	* usr/share/time-slider/lib/plugin/rsync/backup.py:
+	  Remove accidental clobbering of tempSchedule list so
+	  that non-archived backups can be expired as per normal
+	  schedule retention rules. Opensolaris defect #16280
+
 2010-06-04 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/applet.py:

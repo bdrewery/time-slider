@@ -1007,10 +1007,6 @@ class BackupQueue():
             keep = tempSchedule[3] # [schedule,interval,period,keep]
             schedBackups = [d for d in os.listdir(targetDir) if 
                             d.find(label) == 0]
-            
-
-            schedBackups = [d for d in dirList if 
-                            d.find(label) == 0]
             # The minimum that can be kept around is one:
             # keeping zero is stupid since it might trigger
             # a total replication rather than an incremental
