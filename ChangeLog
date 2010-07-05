@@ -1,3 +1,18 @@
+2010-07-05 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/time_slider/setupgui.py:
+	  Don't set filesystem tree view size request based on 
+	  number of filesystems: Doesn't scale well. Set fixed
+	  initial size instead. Fixes defect  #16319
+	  Correct misspellings of "writable and "administrator".
+	  Fixes defect #16388
+
+	* usr/share/time-slider/lib/time_slider/zfs.py:
+	  Check returned value of bisect.bisect_left() is within
+	  index range of list before trying to dereference it and
+	  causing IndexError exceptions. Fixes defect #16377. 
+	  Thanks to Tim Foster for this fix.
+
 2010-06-16 Niall Power - <niall.power@oracle.com>
 	* usr/share/time-slider/lib/plugin/rsync/backup.py:
 	  Remove accidental clobbering of tempSchedule list so

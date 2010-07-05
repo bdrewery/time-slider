@@ -125,7 +125,7 @@ class Datasets(Exception):
                         name.find(datasetname) == 0]
             for child in children:
                 idx = bisect_left(excluded, child)
-                if excluded[idx] == child:
+                if idx < len(excluded) and excluded[idx] == child:
                     excludedchild = True
                     single.append(datasetname)
                     break

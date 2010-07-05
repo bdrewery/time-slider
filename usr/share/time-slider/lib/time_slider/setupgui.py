@@ -194,6 +194,8 @@ class SetupManager:
                                      mountpoint, fs.name, fs])
             self._initialSnapStateDic[fs.name] = snap
             self._initialRsyncStateDic[fs.name] = snap & rsync
+        del filesystems
+
         for fsname in self._initialSnapStateDic:
                 self._refine_filesys_actions(fsname,
                                               self._initialSnapStateDic,
@@ -204,11 +206,8 @@ class SetupManager:
    
         self._fsTreeView = self._xml.get_widget("fstreeview")
         self._fsTreeView.set_sensitive(False)
-        # FIXME: A bit hacky but it seems to work nicely
-        self._fsTreeView.set_size_request(10,
-                                   100 + (len(filesystems) - 2) *
-                                   10)
-        del filesystems
+        self._fsTreeView.set_size_request(10, 200)
+
         self._fsTreeView.set_model(self._fsListStore)
 
         cell0 = gtk.CellRendererToggle()
@@ -704,7 +703,7 @@ class SetupManager:
         except (OSError, IOError):
             msg = _("\'%s\'\n"
                     "is not writable. The backup device must "
-                    "be writeable by the system admistrator." 
+                    "be writable by the system administrator." 
                     "\n\nPlease use a different device.") \
                     % (targetMountPoint)
             self._rsync_config_error(msg)
