@@ -540,7 +540,7 @@ class SnapshotManager(threading.Thread):
                                      snapname + "\n")
                     self.exitCode = smf.SMF_EXIT_MON_DEGRADE
                     #Propogate the exception to the thead run() method
-                    raise RunTimeError,message
+                    raise RuntimeError,message
 
         # Deleting individual snapshots instead of recursive sets
         # breaks the recursion chain and leaves child snapshots

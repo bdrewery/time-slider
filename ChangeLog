@@ -1,3 +1,9 @@
+2010-07-08 Niall Power - <niall.power@oracle.com>
+
+	* usr/share/time-slider/lib/time_slider/timesliderd.py:
+	  Fix typo when raising exception. Defect #16361
+	  RunTimeError -> RuntimeError
+
 2010-07-05 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/setupgui.py:
