@@ -1,3 +1,7 @@
+2010-07-29 Niall Power - <niall.power@oracle.com>
+
+	* VERSION: Bump to 0.2.97
+
 2010-07-08 Niall Power - <niall.power@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/timesliderd.py:
