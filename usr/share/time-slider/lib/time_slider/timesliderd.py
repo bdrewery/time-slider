@@ -939,7 +939,6 @@ def main(argv):
     create_daemon()
 
     # The user security attributes checked are the following:
-    # 1. The "Primary Administrator" profile
     # Note that UID == 0 will match any profile search so
     # no need to check it explicitly.
     syslog.openlog("time-sliderd", 0, syslog.LOG_DAEMON)

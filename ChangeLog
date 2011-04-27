@@ -1,3 +1,17 @@
+2011-04-27 Erwann Chenede - <erwann.chenede@oracle.com>
+
+	* VERSION: Bump to 0.2.98
+	* usr/share/time-slider/lib/time_slider/applet.py
+	  usr/share/time-slider/lib/time_slider/deletegui.py
+	  usr/share/time-slider/lib/time_slider/setupgui.py
+	  usr/share/time-slider/lib/time_slider/snapnowui.py
+	  usr/share/time-slider/lib/time_slider/timesliderd.py :
+	  Fix for 7038498 removed Primary Administrator references
+
+	* usr/share/time-slider/lib/time_slider/util.py
+	  usr/share/time-slider/lib/time_slider/zfs.py : 
+	  Fix for 6996354 gracefully handle snapshot failure
+
 2010-07-29 Niall Power - <niall.power@oracle.com>
 
 	* VERSION: Bump to 0.2.97

@@ -130,16 +130,11 @@ class RsyncNote(Note):
         # Use this variable to keep track of it's running status.
         self._scriptRunning = False
         self._targetDirAvail = False
-        # If the user is authorised, allow them to manually synchronise
-        # rsync backups.
-        self._syncNowItem = None
-        if os.geteuid() == 0 or \
-            rbac.RBACprofile().has_profile("Primary Administrator"):
-            self._syncNowItem = gtk.MenuItem(_("Update Backups Now"))
-            self._syncNowItem.set_sensitive(False)
-            self._syncNowItem.connect("activate",
-                                      self._sync_now)
-            self._menu.append(self._syncNowItem)
+        self._syncNowItem = gtk.MenuItem(_("Update Backups Now"))
+        self._syncNowItem.set_sensitive(False)
+        self._syncNowItem.connect("activate",
+                                  self._sync_now)
+        self._menu.append(self._syncNowItem)
 
         self.refresh()
 
@@ -427,17 +422,22 @@ class RsyncNote(Note):
             self._syncNowItem.hide()
 
     def _sync_now(self, menuItem):
-        """Runs the rsync-bacjup script manually
-           Assumes that user is either root or has the 
-           Primary Administrator profile since it is only
-           called from the menu item which is invisilbe to
+        """Runs the rsync-backup script manually
+           Assumes that user is root since it is only
+           called from the menu item which is invisible to
            not authorised users
         """
         cmdPath = os.path.join(os.path.dirname(sys.argv[0]), \
                                "time-slider/plugins/rsync/rsync-backup")
-        cmd = ["/usr/bin/pfexec", cmdPath, \
-               "%s:rsync" % (plugin.PLUGINBASEFMRI)]
-        subprocess.Popen(cmd, close_fds=True, cwd="/")
+        if os.geteuid() == 0:
+	  cmd = [cmdPath, \
+		 "%s:rsync" % (plugin.PLUGINBASEFMRI)]
+	else:
+	  cmd = ['/usr/bin/gksu' ,cmdPath, \
+		 "%s:rsync" % (plugin.PLUGINBASEFMRI)]
+
+	subprocess.Popen(cmd, close_fds=True, cwd="/")
+
 
 class CleanupNote(Note):
 

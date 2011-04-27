@@ -1291,8 +1291,7 @@ def main(argv):
     # This GUI can be launched with an euid of root in one of
     # the following 3 ways;
     # 0. Run by the superuser (root)
-    # 1. Run by a user assigned "Primary Administrator" profile.
-    # 3. Run via gksu to allow a non priviliged user to authenticate
+    # 1. Run via gksu to allow a non priviliged user to authenticate
     #    as the superuser (root)
 
     if os.geteuid() == 0:
@@ -1300,12 +1299,6 @@ def main(argv):
         gtk.gdk.threads_enter()
         gtk.main()
         gtk.gdk.threads_leave()
-    elif rbacp.has_profile("Primary Administrator"):
-        # Run via pfexec, which will launch the GUI as superuser
-        os.unsetenv("DBUS_SESSION_BUS_ADDRESS")
-        os.execl("/usr/bin/pfexec", "pfexec", argv)
-        # Shouldn't reach this point
-        sys.exit(1)
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):
         # Run via gksu, which will prompt for the root password
         os.unsetenv("DBUS_SESSION_BUS_ADDRESS")

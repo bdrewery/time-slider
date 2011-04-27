@@ -28,7 +28,7 @@ import statvfs
 import math
 import gio
 
-def run_command(command):
+def run_command(command, raise_on_try=True):
     """
     Wrapper function around subprocess.Popen
     Returns a tuple of standard out and stander error.
@@ -45,7 +45,7 @@ def run_command(command):
     except OSError, message:
         raise RuntimeError, "%s subprocess error:\n %s" % \
                             (command, str(message))
-    if err != 0:
+    if err != 0 and raise_on_try:
         raise RuntimeError, '%s failed with exit code %d\n%s' % \
                             (str(command), err, errdata)
     return outdata,errdata

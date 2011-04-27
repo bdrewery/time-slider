@@ -195,8 +195,7 @@ def main(argv):
     # - 1 or 4
     # Note that an effective UID=0 will match any profile search so
     # no need to check it explicitly.
-    if rbacp.has_profile("Primary Administrator") or \
-            rbacp.has_profile("ZFS File System Management"):
+    if rbacp.has_profile("ZFS File System Management"):
 	manager = SnapshotNowDialog(args[0],args[1])
         gtk.main()
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):

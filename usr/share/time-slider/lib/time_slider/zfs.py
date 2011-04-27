@@ -856,7 +856,9 @@ class ReadWritableDataset(ReadableDataset):
         if recursive == True:
             cmd.append("-r")
         cmd.append("%s@%s" % (self.name, snaplabel))
-        outdata,errdata = util.run_command(cmd)
+        outdata,errdata = util.run_command(cmd, False)
+	if errdata:
+	  print errdata
         self.datasets.refresh_snapshots()
 
     def list_children(self):
@@ -1044,5 +1046,4 @@ if __name__ == "__main__":
             for snapshot, snaptime in vol.list_snapshots():
                 snap = Snapshot(snapshot, snaptime)
                 print "\t\t" + snap.name
-
 

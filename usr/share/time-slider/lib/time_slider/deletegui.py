@@ -732,16 +732,6 @@ def main(argv):
         glib.idle_add(manager.initialise_view)
         gtk.main()
         gtk.gdk.threads_leave()
-    elif rbacp.has_profile("Primary Administrator") or \
-            rbacp.has_profile("ZFS File System Management"):
-        # Run via pfexec, which will launch the GUI as superuser
-        arguments = []
-        arguments.append ("pfexec")
-        arguments.append (argv)
-        arguments += args
-        os.execv("/usr/bin/pfexec", arguments)
-        # Shouldn't reach this point
-        sys.exit(1)
     elif os.path.exists(argv) and os.path.exists("/usr/bin/gksu"):
         # Run via gksu, which will prompt for the root password
         newargs = ["gksu", argv]
