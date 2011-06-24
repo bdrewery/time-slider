@@ -132,7 +132,7 @@ class Datasets(Exception):
             if excludedchild == False:
                 # We want recursive list sorted in alphabetical order
                 # so insert instead of append to the list.
-                recursive.insert(0, datasetname)
+                recursive.append (datasetname)
 
         for datasetname in recursive:
             parts = datasetname.rsplit('/', 1)
