@@ -23,7 +23,6 @@ DISTFILES = Authors \
 			$(SUBDIRS) \
 			lib \
 			usr \
-			var \
 			etc
 
 clean:
@@ -116,11 +115,11 @@ install:
 		  $(INSTALL_DATA) $(DESTDIR)/usr/share/time-slider/lib/plugin/zfssend $$file; \
 		fi; \
 	done
-	$(mkinstalldirs) $(DESTDIR)/var/svc/manifest/application
-	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider.xml
-	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/application var/svc/manifest/application/time-slider-plugin.xml
-	$(mkinstalldirs) $(DESTDIR)/var/svc/manifest/system/filesystem
-	$(INSTALL_DATA) $(DESTDIR)/var/svc/manifest/system/filesystem var/svc/manifest/system/filesystem/auto-snapshot.xml
+	$(mkinstalldirs) $(DESTDIR)/lib/svc/manifest/application
+	$(INSTALL_DATA) $(DESTDIR)/lib/svc/manifest/application lib/svc/manifest/application/time-slider.xml
+	$(INSTALL_DATA) $(DESTDIR)/lib/svc/manifest/application lib/svc/manifest/application/time-slider-plugin.xml
+	$(mkinstalldirs) $(DESTDIR)/lib/svc/manifest/system/filesystem
+	$(INSTALL_DATA) $(DESTDIR)/lib/svc/manifest/system/filesystem lib/svc/manifest/system/filesystem/auto-snapshot.xml
 	$(PYTHON) py-compile.py
 	
 uninstall:
@@ -147,6 +146,6 @@ uninstall:
 	$(RM) $(DESTDIR)/usr/share/applications/time-slider.desktop
 	$(RM) $(DESTDIR)/usr/share/icons/hicolor/*/apps/time-slider-setup.png
 	$(RMRF) $(DESTDIR)/usr/share/time-slider
-	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider.xml
-	$(RM) $(DESTDIR)/var/svc/manifest/application/time-slider-plugin.xml
-	$(RM) $(DESTDIR)/var/svc/manifest/system/filesystem/auto-snapshot.xml
+	$(RM) $(DESTDIR)/lib/svc/manifest/application/time-slider.xml
+	$(RM) $(DESTDIR)/lib/svc/manifest/application/time-slider-plugin.xml
+	$(RM) $(DESTDIR)/lib/svc/manifest/system/filesystem/auto-snapshot.xml

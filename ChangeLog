@@ -1,3 +1,8 @@
+2011-07-29 Erwann Chenede - <erwann.chenede@oracle.com>
+
+	* var/*: moved to lib for 6939144
+	* VERSION: bumped to 0.2.99
+
 2011-06-24 Erwann Chenede - <erwann.chenede@oracle.com>
 
 	* usr/share/time-slider/lib/time_slider/zfs.py:
